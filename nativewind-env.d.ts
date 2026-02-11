@@ -1,3 +1,1 @@
-/// <reference types="react-native-css/types" />
-
-declare module '*.css';
+/// <reference types="nativewind/types" />
