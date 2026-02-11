@@ -5,6 +5,7 @@ export const translations = {
       login: 'Logg inn',
       tryDemo: 'Prøv demo',
       emailHint: 'eksempel@mail.no',
+      invalidEmail: 'Skriv inn en gyldig e-postadresse.',
       privacyPolicyConsent: 'Jeg godtar personvernerklæringen',
       privacyPolicyConsentAlert:
         'Du må godta bruksvilkårene og personvernerklæringen før du kan logge inn.',
@@ -47,6 +48,7 @@ export const translations = {
       login: 'Login',
       tryDemo: 'Try demo',
       emailHint: 'example@mail.com',
+      invalidEmail: 'Enter a valid email address.',
       privacyPolicyConsent: 'I accept the terms and privacy policy',
       privacyPolicyConsentAlert:
         'You must accept the terms and privacy policy before you can login.',

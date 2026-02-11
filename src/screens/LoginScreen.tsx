@@ -7,7 +7,6 @@ import { LoginBox } from '../components/login/LoginBox';
 import { VerifyCodeBox } from '../components/login/VerifyCodeBox';
 import { LanguageSelectorModal } from '../components/LanguageSelectorModal';
 import { RootStackParamList } from '../navigation/types';
-import { clearDeepLinkToken } from '../services/authService';
 import { useUser } from '../state/UserContext';
 import { createDemoUser } from '../types/user';
 
@@ -17,12 +16,8 @@ export function LoginScreen({ navigation }: NativeStackScreenProps<RootStackPara
   const [languageSelectorVisible, setLanguageSelectorVisible] = useState(false);
   const { setUser, loginWithToken } = useUser();
 
-  const handleTokenLogin = async (nextEmail: string, accessToken: string): Promise<boolean> => {
-    const success = await loginWithToken(nextEmail, accessToken);
-    if (success) {
-      await clearDeepLinkToken();
-    }
-    return success;
+  const handleTokenLogin = async (nextEmail: string, accessToken: string) => {
+    return loginWithToken(nextEmail, accessToken);
   };
 
   return (

@@ -1,22 +1,21 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { parseUser, User } from '../types/user';
+import { ZodError } from 'zod';
+import { digitalInternKortRequestSchema, parseInternkortInformation } from '../schemas/internkort';
+import { User } from '../types/user';
+import {
+  cleanupLegacyInsecureTokenStorage,
+  getTokenValue,
+  removeTokenValue,
+  setTokenValue,
+  TOKEN_STORAGE_KEYS,
+} from './tokenStorage';
+import { createAuthServiceError, toAuthServiceError } from './authError';
 
 const BASE_URL = 'https://api.kvarteret.no/api/DigitalInternkort';
 
-const STORAGE_KEYS = {
-  email: 'email',
-  accessToken: 'accessToken',
-  deepLinkToken: 'deep_link_token',
-};
-
-interface ApiError extends Error {
+export interface AuthResult {
+  success: boolean;
+  message?: string;
   status?: number;
-}
-
-function createApiError(message: string, status?: number): ApiError {
-  const error = new Error(message) as ApiError;
-  error.status = status;
-  return error;
 }
 
 async function postJson(path: string, body: Record<string, unknown>): Promise<Response> {
@@ -27,12 +26,22 @@ async function postJson(path: string, body: Record<string, unknown>): Promise<Re
   });
 }
 
+export async function initializeAuthStorage(): Promise<void> {
+  await cleanupLegacyInsecureTokenStorage();
+}
+
 export async function requestAccessToken(email: string): Promise<boolean> {
+  const requestBody = digitalInternKortRequestSchema.parse({ email });
+
   let response: Response;
   try {
-    response = await postJson('RequestAccessTokenOnEmail', { email });
+    response = await postJson('RequestAccessTokenOnEmail', requestBody);
   } catch (error) {
-    throw createApiError(`Network error: ${String(error)}`);
+    throw createAuthServiceError({
+      code: 'NETWORK_ERROR',
+      message: 'Network error. Please check your connection and try again.',
+      cause: error,
+    });
   }
 
   if (response.status === 200) {
@@ -40,85 +49,138 @@ export async function requestAccessToken(email: string): Promise<boolean> {
   }
 
   if (response.status === 404) {
-    throw createApiError('Email not found in the database', 404);
+    throw createAuthServiceError({
+      code: 'EMAIL_NOT_FOUND',
+      message: 'Email not found in the database',
+      status: 404,
+    });
   }
 
-  throw createApiError(`Failed to request access token: ${response.status}`, response.status);
+  throw createAuthServiceError({
+    code: 'REQUEST_FAILED',
+    message: `Failed to request access token: ${response.status}`,
+    status: response.status,
+  });
 }
 
-export async function getInternkortInformation(
-  email: string,
-  accessToken: string,
-): Promise<User> {
+export async function getInternkortInformation(email: string, accessToken: string): Promise<User> {
+  const requestBody = digitalInternKortRequestSchema.parse({
+    email,
+    accessToken,
+  });
+
   let response: Response;
   try {
-    response = await postJson('GetInternkortInformation', {
-      email,
-      accessToken,
-    });
+    response = await postJson('GetInternkortInformation', requestBody);
   } catch (error) {
-    throw createApiError(`Network error: ${String(error)}`);
+    throw createAuthServiceError({
+      code: 'NETWORK_ERROR',
+      message: 'Network error. Please check your connection and try again.',
+      cause: error,
+    });
   }
 
   if (response.status === 200) {
-    const payload = await response.json();
-    return parseUser(payload);
+    let payload: unknown;
+
+    try {
+      payload = await response.json();
+    } catch (error) {
+      throw createAuthServiceError({
+        code: 'UNEXPECTED_RESPONSE',
+        message: 'Server returned an unreadable response.',
+        status: response.status,
+        cause: error,
+      });
+    }
+
+    try {
+      return parseInternkortInformation(payload);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw createAuthServiceError({
+          code: 'UNEXPECTED_RESPONSE',
+          message: 'Server response format was invalid.',
+          status: response.status,
+          cause: error,
+        });
+      }
+
+      throw createAuthServiceError({
+        code: 'UNEXPECTED_RESPONSE',
+        message: 'Could not parse server response.',
+        status: response.status,
+        cause: error,
+      });
+    }
   }
 
   if (response.status === 401) {
-    throw createApiError('Invalid or expired access token', 401);
+    throw createAuthServiceError({
+      code: 'INVALID_AUTH',
+      message: 'Invalid or expired access token',
+      status: 401,
+    });
   }
 
   if (response.status === 404) {
-    throw createApiError('User not found', 404);
+    throw createAuthServiceError({
+      code: 'INVALID_AUTH',
+      message: 'User not found',
+      status: 404,
+    });
   }
 
-  throw createApiError(`Failed to fetch user information: ${response.status}`, response.status);
+  throw createAuthServiceError({
+    code: 'REQUEST_FAILED',
+    message: `Failed to fetch user information: ${response.status}`,
+    status: response.status,
+  });
 }
 
 export async function saveAccessToken(email: string, accessToken: string): Promise<void> {
-  await AsyncStorage.multiSet([
-    [STORAGE_KEYS.email, email],
-    [STORAGE_KEYS.accessToken, accessToken],
-  ]);
+  await setTokenValue(TOKEN_STORAGE_KEYS.email, email);
+  await setTokenValue(TOKEN_STORAGE_KEYS.accessToken, accessToken);
 }
 
-export async function getSavedCredentials(): Promise<{
-  email: string | null;
-  accessToken: string | null;
-}> {
-  const values = await AsyncStorage.multiGet([STORAGE_KEYS.email, STORAGE_KEYS.accessToken]);
-  const map = new Map(values);
-  return {
-    email: map.get(STORAGE_KEYS.email) ?? null,
-    accessToken: map.get(STORAGE_KEYS.accessToken) ?? null,
-  };
+export async function getSavedCredentials(): Promise<{ email: string | null; accessToken: string | null }> {
+  const [email, accessToken] = await Promise.all([
+    getTokenValue(TOKEN_STORAGE_KEYS.email),
+    getTokenValue(TOKEN_STORAGE_KEYS.accessToken),
+  ]);
+
+  return { email, accessToken };
 }
 
 export async function clearCredentials(): Promise<void> {
-  await AsyncStorage.multiRemove([STORAGE_KEYS.email, STORAGE_KEYS.accessToken]);
+  await Promise.all([
+    removeTokenValue(TOKEN_STORAGE_KEYS.email),
+    removeTokenValue(TOKEN_STORAGE_KEYS.accessToken),
+  ]);
 }
 
 export async function saveDeepLinkToken(token: string): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEYS.deepLinkToken, token);
+  await setTokenValue(TOKEN_STORAGE_KEYS.deepLinkToken, token);
 }
 
 export async function getDeepLinkToken(): Promise<string | null> {
-  return AsyncStorage.getItem(STORAGE_KEYS.deepLinkToken);
+  return getTokenValue(TOKEN_STORAGE_KEYS.deepLinkToken);
 }
 
 export async function clearDeepLinkToken(): Promise<void> {
-  await AsyncStorage.removeItem(STORAGE_KEYS.deepLinkToken);
+  await removeTokenValue(TOKEN_STORAGE_KEYS.deepLinkToken);
+}
+
+export function authResultFromError(error: unknown): AuthResult {
+  const authError = toAuthServiceError(error);
+  return {
+    success: false,
+    message: authError.message,
+    status: authError.status,
+  };
 }
 
 export function extractFriendlyErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    const prefix = 'Network error: Error: ';
-    if (error.message.startsWith(prefix)) {
-      return error.message.replace(prefix, '');
-    }
-    return error.message;
-  }
-
-  return String(error);
+  const authError = toAuthServiceError(error);
+  return authError.message;
 }

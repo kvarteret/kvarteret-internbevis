@@ -7,7 +7,7 @@ import { formatDate } from '../../utils/date';
 interface UserInfoCardProps {
   firstName: string;
   lastName: string;
-  birthDate: Date;
+  birthDate: Date | null;
   pingvinPoengSum: number;
   dagensOrd: string;
 }
@@ -30,11 +30,12 @@ export function UserInfoCard({
   const { height } = useWindowDimensions();
   const isSmallScreen = height < 600;
   const wordOfTheDayValue = normalizeWordOfTheDay(dagensOrd);
+  const birthDateText = birthDate ? formatDate(birthDate) : '-';
 
   return (
     <View style={styles.container}>
       <Text style={[styles.name, { fontSize: isSmallScreen ? 20 : 24 }]}>{`${firstName} ${lastName}`}</Text>
-      <Text style={[styles.birthDate, { fontSize: isSmallScreen ? 18 : 20 }]}>{formatDate(birthDate)}</Text>
+      <Text style={[styles.birthDate, { fontSize: isSmallScreen ? 18 : 20 }]}>{birthDateText}</Text>
       <Text style={[styles.points, { marginTop: isSmallScreen ? 5 : 10, fontSize: isSmallScreen ? 16 : 18 }]}>
         {`${t('pingvinPoints')}: ${pingvinPoengSum}`}
       </Text>

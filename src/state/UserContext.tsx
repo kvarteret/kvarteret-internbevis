@@ -1,11 +1,17 @@
 import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  AuthResult,
+  authResultFromError,
   clearCredentials,
+  clearDeepLinkToken,
   getInternkortInformation,
   getSavedCredentials,
+  initializeAuthStorage,
   saveAccessToken,
+  saveDeepLinkToken,
 } from '../services/authService';
 import { User } from '../types/user';
+import { getHydrationErrorMessage, shouldClearCredentialsOnHydrationError } from './authErrorHandling';
 
 interface UserContextValue {
   user: User | null;
@@ -13,7 +19,7 @@ interface UserContextValue {
   isLoading: boolean;
   error: string | null;
   setUser: (nextUser: User | null) => void;
-  loginWithToken: (email: string, accessToken: string) => Promise<boolean>;
+  loginWithToken: (email: string, accessToken: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
 }
 
@@ -28,15 +34,22 @@ export function UserProvider({ children }: PropsWithChildren): React.JSX.Element
   useEffect(() => {
     async function hydrateUser(): Promise<void> {
       try {
+        await initializeAuthStorage();
         const credentials = await getSavedCredentials();
+
         if (credentials.email && credentials.accessToken) {
           const nextUser = await getInternkortInformation(credentials.email, credentials.accessToken);
           setUser(nextUser);
           setError(null);
         }
       } catch (nextError) {
+        if (shouldClearCredentialsOnHydrationError(nextError)) {
+          await clearCredentials();
+          await clearDeepLinkToken();
+        }
+
         setUser(null);
-        setError(nextError instanceof Error ? nextError.message : String(nextError));
+        setError(getHydrationErrorMessage(nextError));
       } finally {
         setIsHydrating(false);
       }
@@ -45,18 +58,24 @@ export function UserProvider({ children }: PropsWithChildren): React.JSX.Element
     void hydrateUser();
   }, []);
 
-  const loginWithToken = async (email: string, accessToken: string): Promise<boolean> => {
+  const loginWithToken = async (email: string, accessToken: string): Promise<AuthResult> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const nextUser = await getInternkortInformation(email, accessToken);
       await saveAccessToken(email, accessToken);
+      await saveDeepLinkToken(accessToken);
       setUser(nextUser);
-      return true;
+      return { success: true, status: 200 };
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : String(nextError));
-      return false;
+      if (shouldClearCredentialsOnHydrationError(nextError)) {
+        await clearDeepLinkToken();
+      }
+
+      const failedResult = authResultFromError(nextError);
+      setError(failedResult.message ?? null);
+      return failedResult;
     } finally {
       setIsLoading(false);
     }
@@ -64,6 +83,7 @@ export function UserProvider({ children }: PropsWithChildren): React.JSX.Element
 
   const logout = async (): Promise<void> => {
     await clearCredentials();
+    await clearDeepLinkToken();
     setUser(null);
   };
 

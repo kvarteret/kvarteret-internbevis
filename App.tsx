@@ -10,7 +10,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { extractAccessTokenFromUrl } from './src/services/deepLinkService';
-import { saveDeepLinkToken } from './src/services/authService';
+import { setPendingDeepLinkToken } from './src/services/pendingDeepLinkToken';
 import { LanguageProvider, useLanguage } from './src/state/LanguageContext';
 import { UserProvider, useUser } from './src/state/UserContext';
 
@@ -26,7 +26,7 @@ function RootNavigator(): React.JSX.Element {
     const handleUrl = async (url: string): Promise<void> => {
       const accessToken = extractAccessTokenFromUrl(url);
       if (mounted && accessToken) {
-        await saveDeepLinkToken(accessToken);
+        setPendingDeepLinkToken(accessToken);
       }
     };
 
