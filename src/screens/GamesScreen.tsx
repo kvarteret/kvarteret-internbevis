@@ -1,15 +1,24 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/theme';
 import { RootStackParamList } from '../navigation/types';
+import {
+  ChessPlayer,
+  ChessTimerState,
+  resetTimer,
+  selectActivePlayer,
+  switchTurn,
+  tick,
+  toggleStartPause,
+} from '../utils/chessTimer';
 
 type GameMode = 'd6' | 'chess';
-type ChessPlayer = 'white' | 'black';
 
 const INITIAL_CHESS_MS = 5 * 60 * 1000;
+const TIMER_POLL_INTERVAL_MS = 200;
 
 function formatClock(milliseconds: number): string {
   const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
@@ -22,6 +31,10 @@ function rollD6(): number {
   return Math.floor(Math.random() * 6) + 1;
 }
 
+function getWinnerLabelKey(winner: ChessPlayer): 'chessWhite' | 'chessBlack' {
+  return winner === 'white' ? 'chessWhite' : 'chessBlack';
+}
+
 export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Games'>): React.JSX.Element {
   const { t } = useTranslation();
   const [mode, setMode] = useState<GameMode>('d6');
@@ -29,39 +42,84 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
   const [diceValue, setDiceValue] = useState(1);
   const [diceRollCount, setDiceRollCount] = useState(0);
 
-  const [whiteMs, setWhiteMs] = useState(INITIAL_CHESS_MS);
-  const [blackMs, setBlackMs] = useState(INITIAL_CHESS_MS);
-  const [activePlayer, setActivePlayer] = useState<ChessPlayer>('white');
-  const [isRunning, setIsRunning] = useState(false);
+  const [timerState, setTimerState] = useState<ChessTimerState>(() => resetTimer(INITIAL_CHESS_MS));
+
+  const timerStateRef = useRef(timerState);
+  const lastTickAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    timerStateRef.current = timerState;
+  }, [timerState]);
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: t('gamesTitle') });
   }, [navigation, t]);
 
+  const applyElapsed = useCallback((now: number): void => {
+    setTimerState((previous) => {
+      if (!previous.isRunning || previous.winner) {
+        return previous;
+      }
+
+      const lastTickAt = lastTickAtRef.current ?? now;
+      const elapsed = Math.max(0, now - lastTickAt);
+      lastTickAtRef.current = now;
+
+      if (elapsed === 0) {
+        return previous;
+      }
+
+      return tick(previous, elapsed);
+    });
+  }, []);
+
+  const pauseWithElapsed = useCallback((): void => {
+    const now = Date.now();
+    setTimerState((previous) => {
+      if (!previous.isRunning || previous.winner) {
+        return previous;
+      }
+
+      const lastTickAt = lastTickAtRef.current ?? now;
+      const elapsed = Math.max(0, now - lastTickAt);
+      const next = elapsed > 0 ? tick(previous, elapsed) : previous;
+      return next.isRunning ? toggleStartPause(next) : next;
+    });
+    lastTickAtRef.current = null;
+  }, []);
+
   useEffect(() => {
-    if (!isRunning) {
+    if (!timerState.isRunning || timerState.winner) {
+      lastTickAtRef.current = null;
       return;
     }
 
-    const timer = setInterval(() => {
-      if (activePlayer === 'white') {
-        setWhiteMs((previous) => Math.max(0, previous - 1000));
-        return;
-      }
+    lastTickAtRef.current = Date.now();
 
-      setBlackMs((previous) => Math.max(0, previous - 1000));
-    }, 1000);
+    const timer = setInterval(() => {
+      applyElapsed(Date.now());
+    }, TIMER_POLL_INTERVAL_MS);
 
     return () => {
       clearInterval(timer);
     };
-  }, [activePlayer, isRunning]);
+  }, [applyElapsed, timerState.isRunning, timerState.winner]);
 
   useEffect(() => {
-    if (whiteMs === 0 || blackMs === 0) {
-      setIsRunning(false);
-    }
-  }, [whiteMs, blackMs]);
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active' && timerStateRef.current.isRunning) {
+        pauseWithElapsed();
+      }
+
+      if (nextState === 'active') {
+        lastTickAtRef.current = null;
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [pauseWithElapsed]);
 
   const handleRollDice = (): void => {
     setDiceValue(rollD6());
@@ -69,45 +127,58 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
   };
 
   const handleToggleTimer = (): void => {
-    if (whiteMs === 0 || blackMs === 0) {
-      setWhiteMs(INITIAL_CHESS_MS);
-      setBlackMs(INITIAL_CHESS_MS);
-      setActivePlayer('white');
-      setIsRunning(true);
+    if (timerState.winner) {
+      setTimerState(resetTimer(INITIAL_CHESS_MS));
+      lastTickAtRef.current = null;
       return;
     }
 
-    setIsRunning((previous) => !previous);
-  };
+    if (timerState.isRunning) {
+      pauseWithElapsed();
+      return;
+    }
 
-  const handleSwitchTurn = (): void => {
-    setActivePlayer((previous) => (previous === 'white' ? 'black' : 'white'));
+    lastTickAtRef.current = Date.now();
+    setTimerState((previous) => toggleStartPause(previous));
   };
 
   const handleResetTimer = (): void => {
-    setWhiteMs(INITIAL_CHESS_MS);
-    setBlackMs(INITIAL_CHESS_MS);
-    setActivePlayer('white');
-    setIsRunning(false);
+    setTimerState(resetTimer(INITIAL_CHESS_MS));
+    lastTickAtRef.current = null;
   };
 
   const handlePressPlayer = (player: ChessPlayer): void => {
-    if (!isRunning) {
-      setActivePlayer(player);
-      return;
-    }
+    setTimerState((previous) => {
+      if (previous.winner) {
+        return previous;
+      }
 
-    if (player === activePlayer) {
-      handleSwitchTurn();
-    }
+      if (!previous.isRunning) {
+        return selectActivePlayer(previous, player);
+      }
+
+      if (player !== previous.activePlayer) {
+        return previous;
+      }
+
+      const now = Date.now();
+      const lastTickAt = lastTickAtRef.current ?? now;
+      const elapsed = Math.max(0, now - lastTickAt);
+      const withElapsed = elapsed > 0 ? tick(previous, elapsed) : previous;
+
+      if (withElapsed.winner || !withElapsed.isRunning) {
+        lastTickAtRef.current = null;
+        return withElapsed;
+      }
+
+      lastTickAtRef.current = now;
+      return switchTurn(withElapsed);
+    });
   };
 
-  const winnerLabel =
-    whiteMs === 0
-      ? t('chessWinner', { winner: t('chessBlack') })
-      : blackMs === 0
-        ? t('chessWinner', { winner: t('chessWhite') })
-        : null;
+  const winnerLabel = timerState.winner
+    ? t('chessWinner', { winner: t(getWinnerLabelKey(timerState.winner)) })
+    : null;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
@@ -142,30 +213,26 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
             <Text style={styles.cardTitle}>{t('gamesChessTimer')}</Text>
 
             <Pressable
-              style={[styles.clockCard, activePlayer === 'white' ? styles.clockCardActive : null]}
+              style={[styles.clockCard, timerState.activePlayer === 'white' ? styles.clockCardActive : null]}
               onPress={() => handlePressPlayer('white')}
             >
               <Text style={styles.clockLabel}>{t('chessWhite')}</Text>
-              <Text style={styles.clockValue}>{formatClock(whiteMs)}</Text>
+              <Text style={styles.clockValue}>{formatClock(timerState.whiteMs)}</Text>
             </Pressable>
 
             <Pressable
-              style={[styles.clockCard, activePlayer === 'black' ? styles.clockCardActive : null]}
+              style={[styles.clockCard, timerState.activePlayer === 'black' ? styles.clockCardActive : null]}
               onPress={() => handlePressPlayer('black')}
             >
               <Text style={styles.clockLabel}>{t('chessBlack')}</Text>
-              <Text style={styles.clockValue}>{formatClock(blackMs)}</Text>
+              <Text style={styles.clockValue}>{formatClock(timerState.blackMs)}</Text>
             </Pressable>
 
             {winnerLabel ? <Text style={styles.winnerText}>{winnerLabel}</Text> : null}
 
             <View style={styles.actionsRow}>
               <Pressable style={styles.primaryButton} onPress={handleToggleTimer}>
-                <Text style={styles.primaryButtonText}>{isRunning ? t('chessPause') : t('chessStart')}</Text>
-              </Pressable>
-
-              <Pressable style={styles.secondaryButton} onPress={handleSwitchTurn}>
-                <Text style={styles.secondaryButtonText}>{t('chessSwitchTurn')}</Text>
+                <Text style={styles.primaryButtonText}>{timerState.isRunning ? t('chessPause') : t('chessStart')}</Text>
               </Pressable>
 
               <Pressable style={styles.secondaryButton} onPress={handleResetTimer}>
