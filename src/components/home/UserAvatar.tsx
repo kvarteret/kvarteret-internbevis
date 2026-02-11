@@ -1,7 +1,14 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Image, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { colors } from '../../constants/theme';
+import { MaterialIcons } from "@expo/vector-icons";
+import React, { useEffect, useMemo, useRef } from "react";
+import {
+  Animated,
+  Easing,
+  Image,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { colors } from "../../constants/theme";
 
 interface UserAvatarProps {
   imageUrl?: string;
@@ -9,13 +16,19 @@ interface UserAvatarProps {
 }
 
 const localImageMap: Record<string, number> = {
-  'assets/images/demopingvin.png': require('../../../assets/images/demopingvin.png'),
+  "assets/images/demopingvin.png": require("../../../assets/images/demopingvin.png"),
 };
 
-export function UserAvatar({ imageUrl, animationTrigger }: UserAvatarProps): React.JSX.Element {
+export function UserAvatar({
+  imageUrl,
+  animationTrigger,
+}: UserAvatarProps): React.JSX.Element {
   const { height } = useWindowDimensions();
   const isSmallScreen = height < 600;
-  const radius = useMemo(() => (isSmallScreen ? height * 0.12 : height * 0.15), [height, isSmallScreen]);
+  const radius = useMemo(
+    () => (isSmallScreen ? height * 0.1 : height * 0.1),
+    [height, isSmallScreen],
+  );
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const rotationAnim = useRef(new Animated.Value(0)).current;
@@ -47,10 +60,26 @@ export function UserAvatar({ imageUrl, animationTrigger }: UserAvatarProps): Rea
         }),
       ]),
       Animated.sequence([
-        Animated.timing(rotationAnim, { toValue: 0.2, duration: 250, useNativeDriver: true }),
-        Animated.timing(rotationAnim, { toValue: -0.2, duration: 500, useNativeDriver: true }),
-        Animated.timing(rotationAnim, { toValue: 0.2, duration: 500, useNativeDriver: true }),
-        Animated.timing(rotationAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+        Animated.timing(rotationAnim, {
+          toValue: 0.2,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotationAnim, {
+          toValue: -0.2,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotationAnim, {
+          toValue: 0.2,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotationAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
       ]),
     ]).start();
   }, [animationTrigger, rotationAnim, scaleAnim]);
@@ -67,20 +96,37 @@ export function UserAvatar({ imageUrl, animationTrigger }: UserAvatarProps): Rea
             {
               rotate: rotationAnim.interpolate({
                 inputRange: [-1, 1],
-                outputRange: ['-1rad', '1rad'],
+                outputRange: ["-1rad", "1rad"],
               }),
             },
           ],
         }}
       >
-        <View style={[styles.avatar, { width: radius * 2, height: radius * 2, borderRadius: radius }]}> 
+        <View
+          style={[
+            styles.avatar,
+            { width: radius * 2, height: radius * 2, borderRadius: radius },
+          ]}
+        >
           {localImageSource ? (
-            <Image source={localImageSource} style={styles.image} resizeMode="cover" />
+            <Image
+              source={localImageSource}
+              style={styles.image}
+              resizeMode="cover"
+            />
           ) : hasRemoteImage ? (
-            <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+            />
           ) : (
             <View style={styles.fallback}>
-              <MaterialIcons name="person" size={radius} color={colors.gray600} />
+              <MaterialIcons
+                name="person"
+                size={radius}
+                color={colors.gray600}
+              />
             </View>
           )}
         </View>
@@ -91,20 +137,20 @@ export function UserAvatar({ imageUrl, animationTrigger }: UserAvatarProps): Rea
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatar: {
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: colors.gray200,
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   fallback: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
