@@ -11,8 +11,8 @@ export interface User {
   id: number;
   fornavn: string;
   etternavn: string;
-  fodselsdato: Date;
-  opprettet: Date;
+  fodselsdato: Date | null;
+  opprettet: Date | null;
   gyldigTil: Date;
   bildeUrl?: string;
   pingvinPoengSum: number;
@@ -39,35 +39,6 @@ function cloneVerv(verv: InternKortVerv): InternKortVerv {
     gruppe: verv.gruppe,
     signertKontrakt: verv.signertKontrakt,
     rabattTrinn: verv.rabattTrinn,
-  };
-}
-
-export function parseUser(json: unknown): User {
-  const value = json as Record<string, unknown>;
-  return {
-    id: Number(value.id),
-    fornavn: String(value.fornavn ?? ''),
-    etternavn: String(value.etternavn ?? ''),
-    fodselsdato: new Date(String(value.fodselsdato)),
-    opprettet: new Date(String(value.opprettet)),
-    gyldigTil: new Date(String(value.gyldigTil)),
-    bildeUrl: value.bildeUrl ? String(value.bildeUrl) : undefined,
-    pingvinPoengSum: Number(value.pingvinPoengSum ?? 0),
-    aktiveVerv: Array.isArray(value.aktiveVerv)
-      ? value.aktiveVerv.map((entry) => {
-          const verv = entry as Record<string, unknown>;
-          return {
-            navn: String(verv.navn ?? ''),
-            gruppe: String(verv.gruppe ?? ''),
-            signertKontrakt: Boolean(verv.signertKontrakt),
-            rabattTrinn:
-              verv.rabattTrinn === null || verv.rabattTrinn === undefined
-                ? null
-                : Number(verv.rabattTrinn),
-          };
-        })
-      : [],
-    dagensOrd: String(value.dagensOrd ?? ''),
   };
 }
 

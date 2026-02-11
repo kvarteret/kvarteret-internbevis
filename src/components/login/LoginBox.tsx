@@ -12,11 +12,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/theme';
 import {
-  clearDeepLinkToken,
   extractFriendlyErrorMessage,
-  getDeepLinkToken,
   requestAccessToken,
 } from '../../services/authService';
+import { consumePendingDeepLinkToken } from '../../services/pendingDeepLinkToken';
 import { AppButton } from '../common/AppButton';
 import { AppTextField } from '../common/AppTextField';
 
@@ -24,12 +23,15 @@ interface LoginBoxProps {
   onOtpRequested: (email: string) => void;
   onDemoLogin: () => void;
   onPrivacyPress: () => void;
-  onLoginWithToken: (email: string, accessToken: string) => Promise<boolean>;
+  onLoginWithToken: (
+    email: string,
+    accessToken: string,
+  ) => Promise<{ success: boolean; message?: string }>;
 }
 
 function isEmailInputValid(email: string): boolean {
   const normalized = email.trim();
-  return normalized.length > 0 && normalized.includes('@');
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
 }
 
 export function LoginBox({
@@ -55,19 +57,18 @@ export function LoginBox({
     }
 
     if (!isEmailInputValid(normalizedEmail)) {
-      setEmailErrorText(t('emailHint'));
+      setEmailErrorText(t('invalidEmail'));
       return;
     }
 
     setSendingOtp(true);
 
     try {
-      const deepLinkToken = await getDeepLinkToken();
+      const deepLinkToken = consumePendingDeepLinkToken();
 
       if (deepLinkToken) {
-        const deepLinkLoginSuccess = await onLoginWithToken(normalizedEmail, deepLinkToken);
-        if (deepLinkLoginSuccess) {
-          await clearDeepLinkToken();
+        const deepLinkLoginResult = await onLoginWithToken(normalizedEmail, deepLinkToken);
+        if (deepLinkLoginResult.success) {
           return;
         }
       }

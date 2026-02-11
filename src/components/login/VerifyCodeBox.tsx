@@ -5,23 +5,25 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/theme';
-import { extractFriendlyErrorMessage, requestAccessToken, saveDeepLinkToken } from '../../services/authService';
-import { extractAccessTokenFromUrl } from '../../services/deepLinkService';
+import { extractFriendlyErrorMessage, requestAccessToken } from '../../services/authService';
+import { extractAccessTokenFromManualInput, extractAccessTokenFromUrl } from '../../services/deepLinkService';
 import { AppButton } from '../common/AppButton';
 import { AppTextField } from '../common/AppTextField';
 
 interface VerifyCodeBoxProps {
   email: string;
   onBack: () => void;
-  onLoginWithToken: (accessToken: string) => Promise<boolean>;
+  onLoginWithToken: (
+    accessToken: string,
+  ) => Promise<{ success: boolean; message?: string }>;
 }
 
 export function VerifyCodeBox({ email, onBack, onLoginWithToken }: VerifyCodeBoxProps): React.JSX.Element {
   const { t } = useTranslation();
   const isExpoGo = Constants.executionEnvironment === 'storeClient';
   const [otpCode, setOtpCode] = useState('');
-  const [otpErrorText, setOtpErrorText] = useState<string | null>(null);
-  const [attemptedVerification, setAttemptedVerification] = useState(false);
+  const [otpFieldErrorText, setOtpFieldErrorText] = useState<string | null>(null);
+  const [globalErrorText, setGlobalErrorText] = useState<string | null>(null);
   const handlingDeepLinkRef = useRef(false);
 
   useEffect(() => {
@@ -40,10 +42,9 @@ export function VerifyCodeBox({ email, onBack, onLoginWithToken }: VerifyCodeBox
       handlingDeepLinkRef.current = true;
 
       try {
-        await saveDeepLinkToken(accessToken);
-        const success = await onLoginWithToken(accessToken);
-        if (!success && mounted) {
-          setOtpErrorText(t('invalidAccessToken'));
+        const result = await onLoginWithToken(accessToken);
+        if (!result.success && mounted) {
+          setGlobalErrorText(result.message ?? t('invalidAccessToken'));
         }
       } finally {
         handlingDeepLinkRef.current = false;
@@ -67,23 +68,23 @@ export function VerifyCodeBox({ email, onBack, onLoginWithToken }: VerifyCodeBox
   }, [onLoginWithToken, t]);
 
   const handleVerifyCode = async (): Promise<void> => {
-    setOtpErrorText(null);
-    setAttemptedVerification(true);
+    setOtpFieldErrorText(null);
+    setGlobalErrorText(null);
 
     if (!otpCode.trim()) {
-      setOtpErrorText(t('pleaseEnterCode'));
+      setOtpFieldErrorText(t('pleaseEnterCode'));
       return;
     }
 
-    const success = await onLoginWithToken(otpCode.trim());
-    if (!success) {
-      setOtpErrorText(t('couldNotFetchData'));
+    const result = await onLoginWithToken(otpCode.trim());
+    if (!result.success) {
+      setGlobalErrorText(result.message ?? t('couldNotFetchData'));
     }
   };
 
   const handleSendOtp = async (): Promise<void> => {
-    setAttemptedVerification(false);
-    setOtpErrorText(null);
+    setOtpFieldErrorText(null);
+    setGlobalErrorText(null);
 
     try {
       const success = await requestAccessToken(email);
@@ -91,24 +92,25 @@ export function VerifyCodeBox({ email, onBack, onLoginWithToken }: VerifyCodeBox
         Alert.alert(t('status'), t('newCodeSent'));
       }
     } catch (error) {
-      setOtpErrorText(extractFriendlyErrorMessage(error) || t('couldNotSendCode'));
+      setGlobalErrorText(extractFriendlyErrorMessage(error) || t('couldNotSendCode'));
     }
   };
 
   const handleUseClipboardLink = async (): Promise<void> => {
-    setOtpErrorText(null);
+    setOtpFieldErrorText(null);
+    setGlobalErrorText(null);
+
     const clipboardText = await Clipboard.getStringAsync();
-    const accessToken = extractAccessTokenFromUrl(clipboardText);
+    const accessToken = extractAccessTokenFromManualInput(clipboardText);
 
     if (!accessToken) {
-      setOtpErrorText(t('expoGoClipboardNoToken'));
+      setGlobalErrorText(t('expoGoClipboardNoToken'));
       return;
     }
 
-    await saveDeepLinkToken(accessToken);
-    const success = await onLoginWithToken(accessToken);
-    if (!success) {
-      setOtpErrorText(t('invalidAccessToken'));
+    const result = await onLoginWithToken(accessToken);
+    if (!result.success) {
+      setGlobalErrorText(result.message ?? t('invalidAccessToken'));
     }
   };
 
@@ -126,12 +128,14 @@ export function VerifyCodeBox({ email, onBack, onLoginWithToken }: VerifyCodeBox
 
         <View style={styles.form}>
           <AppTextField
-            errorText={attemptedVerification ? otpErrorText : null}
+            errorText={otpFieldErrorText}
             icon="lock"
             placeholder={t('codeFromEmail')}
             value={otpCode}
             onChangeText={setOtpCode}
           />
+
+          {globalErrorText ? <Text style={styles.globalErrorText}>{globalErrorText}</Text> : null}
 
           <View style={styles.buttonGroup}>
             <AppButton text={t('confirm')} onPress={() => void handleVerifyCode()} />
@@ -198,7 +202,11 @@ const styles = StyleSheet.create({
   },
   form: {
     marginTop: 30,
-    gap: 28,
+    gap: 16,
+  },
+  globalErrorText: {
+    color: '#B91C1C',
+    fontSize: 13,
   },
   buttonGroup: {
     gap: 12,
