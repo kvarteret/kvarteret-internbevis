@@ -1,6 +1,9 @@
 import React from 'react';
 import { StyleProp, Text, TextProps, TextStyle } from 'react-native';
+import { styled } from 'nativewind';
 import { getTypographyStyle, TextVariant } from '../../theme/typography';
+
+const StyledText = styled(Text);
 
 interface AppTextProps extends TextProps {
   variant?: TextVariant;
@@ -9,5 +12,5 @@ interface AppTextProps extends TextProps {
 }
 
 export function AppText({ variant = 'body', style, ...props }: AppTextProps): React.JSX.Element {
-  return <Text {...props} style={[getTypographyStyle(variant), style]} />;
+  return <StyledText {...props} style={[getTypographyStyle(variant), style]} />;
 }

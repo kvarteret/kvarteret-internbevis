@@ -56,10 +56,11 @@ export function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParam
 
   return (
     <SafeAreaView style={safeAreaStyle}>
-      <Box className="h-[68px] items-center justify-center px-5 pt-1.5">
+      <Box className="h-[72px] flex-row items-center px-4 pt-1.5">
+        <Box className="w-10" />
         <AppText
           adjustsFontSizeToFit
-          className="max-w-[78%] text-center text-black"
+          className="flex-1 px-2 text-center text-black"
           minimumFontScale={0.72}
           numberOfLines={1}
           variant="title"
@@ -68,7 +69,7 @@ export function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParam
         </AppText>
         <TouchableOpacity
           accessibilityLabel="Open menu"
-          className="absolute right-4 top-5"
+          className="w-10 items-end"
           onPress={() => setMenuVisible(true)}
         >
           <MaterialIcons name="menu" size={28} color={colors.primaryText} />
