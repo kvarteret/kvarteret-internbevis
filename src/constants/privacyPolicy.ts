@@ -1,10 +1,10 @@
 import { SupportedLanguage } from '../state/LanguageContext';
 
 export const PRIVACY_POLICY_MARKDOWN: Record<SupportedLanguage, string> = {
-  no: `# Personvernerklæring for Kvarteret Internbevis
+  no: `# Personvernerklæring for Studentersamfunnet Internbevis
 
 ## Om appen
-Kvarteret Internbevis er en app som lar aktive medlemmer på Kvarteret se sitt medlemsbevis digitalt. Appen er utviklet for å gjøre det enklere for medlemmer å vise sitt medlemskap og trinnivå.
+Studentersamfunnet Internbevis er en app som lar aktive medlemmer i Studentersamfunnet se sitt medlemsbevis digitalt. Appen er utviklet for å gjøre det enklere for medlemmer å vise sitt medlemskap og trinnivå.
 
 ## Hvilke personopplysninger vi behandler
 Appen behandler følgende personopplysninger:
@@ -22,21 +22,21 @@ Vi bruker personopplysningene utelukkende for å:
 3. Vise din status og dine rettigheter i organisasjonen
 
 ## Datalagring
-Appen lagrer ingen nye personopplysninger. All informasjon som vises i appen hentes direkte fra Kvarterets eksisterende medlemsdatabase, hvor opplysningene allerede er lagret som en del av ditt medlemskap.
+Appen lagrer ingen nye personopplysninger. All informasjon som vises i appen hentes direkte fra Studentersamfunnets eksisterende medlemsdatabase, hvor opplysningene allerede er lagret som en del av ditt medlemskap.
 
 ## Sikkerhet
 - Innlogging skjer via en sikker to-faktor autentisering med e-post
 - Ingen personopplysninger lagres lokalt på enheten
 
 ## Deling av personopplysninger
-Vi deler ikke dine personopplysninger med tredjeparter. Informasjonen som vises i appen er kun tilgjengelig for deg og autorisert personell på Kvarteret.
+Vi deler ikke dine personopplysninger med tredjeparter. Informasjonen som vises i appen er kun tilgjengelig for deg og autorisert personell i Studentersamfunnet.
 
 ## Dine rettigheter
 Du har rett til å:
 - Få innsyn i hvilke personopplysninger vi har om deg
 - Kreve retting av feilaktige opplysninger
 
-For å utøve disse rettighetene, kontakt it-ansvarlig på Kvarteret.
+For å utøve disse rettighetene, kontakt it-ansvarlig i Studentersamfunnet.
 
 ## Endringer i personvernerklæringen
 Vi forbeholder oss retten til å oppdatere denne personvernerklæringen. Større endringer vil bli varslet via e-post eller i appen.
@@ -47,10 +47,10 @@ For spørsmål om personvern eller utøvelse av dine rettigheter, kontakt:
 - Adresse: Det Akademiske Kvarter, Olav Kyrres gate 49, 5015 Bergen
 
 Sist oppdatert: [31/10/2024]`,
-  en: `# Privacy Policy for Kvarteret Internbevis
+  en: `# Privacy Policy for Studentersamfunnet Internbevis
 
 ## About the App
-Kvarteret Internbevis is an app that allows active members at Kvarteret to view their membership ID digitally. The app is developed to make it easier for members to show their membership and access level.
+Studentersamfunnet Internbevis is an app that allows active members in Studentersamfunnet to view their membership ID digitally. The app is developed to make it easier for members to show their membership and access level.
 
 ## What Personal Data We Process
 The app processes the following personal information:
@@ -68,21 +68,21 @@ We use personal data solely to:
 3. Show your status and rights within the organization
 
 ## Data Storage
-The app does not store any new personal data. All information displayed in the app is retrieved directly from Kvarteret's existing membership database, where the information is already stored as part of your membership.
+The app does not store any new personal data. All information displayed in the app is retrieved directly from Studentersamfunnet's existing membership database, where the information is already stored as part of your membership.
 
 ## Security
 - Login is done through secure two-factor authentication with email
 - No personal data is stored locally on the device
 
 ## Sharing of Personal Data
-We do not share your personal data with third parties. The information displayed in the app is only accessible to you and authorized personnel at Kvarteret.
+We do not share your personal data with third parties. The information displayed in the app is only accessible to you and authorized personnel in Studentersamfunnet.
 
 ## Your Rights
 You have the right to:
 - Access what personal data we have about you
 - Request correction of incorrect information
 
-To exercise these rights, contact the IT manager at Kvarteret.
+To exercise these rights, contact the IT manager in Studentersamfunnet.
 
 ## Changes to the Privacy Policy
 We reserve the right to update this privacy policy. Significant changes will be notified via email or in the app.

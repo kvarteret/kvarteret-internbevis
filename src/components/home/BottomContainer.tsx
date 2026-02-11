@@ -60,11 +60,13 @@ export function BottomContainer({ user, onSemesterBoxTap }: BottomContainerProps
 
       <Text style={styles.validText}>{active ? t('validUntil', { date: formatDate(user.gyldigTil) }) : ''}</Text>
 
-      <Animated.View style={[styles.penguinContainer, { opacity: opacityAnim }]}> 
-        <Pressable onPress={resetPenguin}>
-          <Animated.Image source={require('../../../assets/images/penguin-eg.png')} style={styles.penguin} />
-        </Pressable>
-      </Animated.View>
+      {showPenguin ? (
+        <Animated.View style={[styles.penguinContainer, { opacity: opacityAnim }]}>
+          <Pressable onPress={resetPenguin}>
+            <Animated.Image source={require('../../../assets/images/penguin-eg.png')} style={styles.penguin} />
+          </Pressable>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -73,30 +75,38 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'space-evenly',
-    gap: 12,
+    justifyContent: 'center',
+    gap: 14,
   },
   orgInfoContainer: {
     alignItems: 'center',
     paddingHorizontal: 16,
+    gap: 2,
   },
   group: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
+    lineHeight: 28,
+    letterSpacing: 0.2,
     color: colors.primaryText,
     textAlign: 'center',
   },
   role: {
     fontSize: 20,
+    lineHeight: 26,
     color: 'rgba(0, 0, 0, 0.7)',
+    fontWeight: '500',
     textAlign: 'center',
   },
   validText: {
     color: colors.primaryText,
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: '700',
+    lineHeight: 22,
+    textAlign: 'center',
   },
   penguinContainer: {
-    height: 100,
+    marginTop: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },

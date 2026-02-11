@@ -1,7 +1,8 @@
 export const translations = {
   no: {
     translation: {
-      appTitle: 'Kvarteret Internbevis',
+      appTitle: 'Studentersamfunnet Internbevis',
+      homeTitle: 'Studentersamfunnet',
       login: 'Logg inn',
       tryDemo: 'Prøv demo',
       emailHint: 'eksempel@mail.no',
@@ -71,7 +72,8 @@ export const translations = {
   },
   en: {
     translation: {
-      appTitle: 'Kvarteret Internal ID',
+      appTitle: 'Studentersamfunnet Internal ID',
+      homeTitle: 'Studentersamfunnet',
       login: 'Login',
       tryDemo: 'Try demo',
       emailHint: 'example@mail.com',

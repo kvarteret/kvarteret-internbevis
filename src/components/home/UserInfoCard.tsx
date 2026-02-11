@@ -36,10 +36,10 @@ export function UserInfoCard({
     <View style={styles.container}>
       <Text style={[styles.name, { fontSize: isSmallScreen ? 20 : 24 }]}>{`${firstName} ${lastName}`}</Text>
       <Text style={[styles.birthDate, { fontSize: isSmallScreen ? 18 : 20 }]}>{birthDateText}</Text>
-      <Text style={[styles.points, { marginTop: isSmallScreen ? 5 : 10, fontSize: isSmallScreen ? 16 : 18 }]}>
+      <Text style={[styles.points, { marginTop: isSmallScreen ? 6 : 10, fontSize: isSmallScreen ? 16 : 18 }]}>
         {`${t('pingvinPoints')}: ${pingvinPoengSum}`}
       </Text>
-      <Text style={[styles.wordOfDay, { marginTop: isSmallScreen ? 5 : 10, fontSize: isSmallScreen ? 18 : 20 }]}>
+      <Text style={[styles.wordOfDay, { marginTop: isSmallScreen ? 6 : 10, fontSize: isSmallScreen ? 18 : 20 }]}>
         {`${t('wordOfTheDay')}: ${wordOfTheDayValue}`}
       </Text>
     </View>
@@ -48,26 +48,36 @@ export function UserInfoCard({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    width: '100%',
+    maxWidth: 420,
+    paddingHorizontal: 20,
     alignItems: 'center',
   },
   name: {
     textAlign: 'center',
     color: colors.primaryText,
-    fontWeight: '700',
+    fontWeight: '800',
+    lineHeight: 30,
+    letterSpacing: 0.3,
   },
   birthDate: {
     textAlign: 'center',
     color: 'rgba(0, 0, 0, 0.7)',
+    lineHeight: 24,
+    fontWeight: '500',
   },
   points: {
     textAlign: 'center',
     color: colors.primaryText,
-    fontWeight: '700',
+    fontWeight: '800',
+    lineHeight: 24,
+    letterSpacing: 0.2,
   },
   wordOfDay: {
     textAlign: 'center',
     color: colors.primaryText,
     fontStyle: 'italic',
+    lineHeight: 27,
+    letterSpacing: 0.1,
   },
 });
