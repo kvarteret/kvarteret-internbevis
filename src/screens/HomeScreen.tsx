@@ -42,7 +42,14 @@ export function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParam
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Kvarteret</Text>
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+          numberOfLines={1}
+          style={styles.headerTitle}
+        >
+          {t('homeTitle')}
+        </Text>
         <TouchableOpacity
           accessibilityLabel="Open menu"
           style={styles.headerMenuButton}
@@ -76,8 +83,10 @@ export function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParam
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>{t('homeFooterPrefix')}</Text>
-        <Text style={styles.footerSeparator}>|</Text>
+        <View style={styles.footerTopRow}>
+          <Text style={styles.footerText}>{t('homeFooterPrefix')}</Text>
+          <Text style={styles.footerSeparator}>|</Text>
+        </View>
         <TouchableOpacity accessibilityRole="link" onPress={handleOpenVolunteerPage}>
           <Text style={styles.footerLink}>{t('homeFooterVolunteer')}</Text>
         </TouchableOpacity>
@@ -111,58 +120,74 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
-    height: 56,
+    height: 68,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingTop: 6,
   },
   headerTitle: {
-    fontSize: 25,
-    fontWeight: '600',
+    fontSize: 38,
+    fontWeight: '800',
+    lineHeight: 42,
+    letterSpacing: 0.3,
     color: colors.primaryText,
+    maxWidth: '78%',
+    textAlign: 'center',
   },
   headerMenuButton: {
     position: 'absolute',
     right: 16,
-    top: 14,
+    top: 20,
   },
   content: {
     flex: 1,
+    paddingTop: 6,
   },
   avatarSection: {
     justifyContent: 'center',
+    paddingBottom: 8,
   },
   infoSection: {
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   bottomSection: {
     justifyContent: 'center',
-    paddingBottom: 10,
+    paddingBottom: 4,
   },
   footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 2,
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingTop: 8,
+    paddingBottom: 18,
+  },
+  footerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   footerText: {
     color: colors.primaryText,
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   footerSeparator: {
     color: colors.primaryText,
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '300',
-    lineHeight: 24,
+    lineHeight: 28,
   },
   footerLink: {
     color: colors.primaryText,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '800',
+    letterSpacing: 0.2,
     textDecorationLine: 'underline',
   },
 });

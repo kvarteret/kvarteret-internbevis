@@ -45,11 +45,11 @@ export function SemesterBox({ status, semester, isValid, tier, onPress }: Semest
 const styles = StyleSheet.create({
   container: {
     borderRadius: 15,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 7,
   },
   row: {
     flexDirection: 'row',
@@ -59,16 +59,21 @@ const styles = StyleSheet.create({
   tierText: {
     color: colors.white,
     fontSize: 18,
-    fontWeight: '700',
+    lineHeight: 24,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   statusText: {
     color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 16,
-    fontWeight: '500',
+    lineHeight: 22,
+    fontWeight: '600',
   },
   semesterText: {
     color: colors.white,
     fontSize: 20,
-    fontWeight: '700',
+    lineHeight: 26,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
 });
