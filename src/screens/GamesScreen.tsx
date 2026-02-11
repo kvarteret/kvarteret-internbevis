@@ -8,16 +8,18 @@ import { RootStackParamList } from '../navigation/types';
 import {
   ChessPlayer,
   ChessTimerState,
+  completeMove,
+  pause,
   resetTimer,
   selectActivePlayer,
-  switchTurn,
   tick,
   toggleStartPause,
 } from '../utils/chessTimer';
 
 type GameMode = 'd6' | 'chess';
 
-const INITIAL_CHESS_MS = 5 * 60 * 1000;
+const INITIAL_CHESS_MS = 15 * 60 * 1000;
+const INCREMENT_MS = 2 * 1000;
 const TIMER_POLL_INTERVAL_MS = 200;
 
 function formatClock(milliseconds: number): string {
@@ -35,6 +37,40 @@ function getWinnerLabelKey(winner: ChessPlayer): 'chessWhite' | 'chessBlack' {
   return winner === 'white' ? 'chessWhite' : 'chessBlack';
 }
 
+function getClockCardStyle(state: ChessTimerState, player: ChessPlayer): object[] {
+  const isActivePlayer = state.activePlayer === player;
+  if (!isActivePlayer) {
+    return [styles.clockCard, styles.clockCardInactive];
+  }
+
+  if (state.isRunning) {
+    return [styles.clockCard, styles.clockCardRunningActive];
+  }
+
+  if (state.winner) {
+    return [styles.clockCard, styles.clockCardInactive];
+  }
+
+  return [styles.clockCard, styles.clockCardPausedActive];
+}
+
+function getClockTextStyles(state: ChessTimerState, player: ChessPlayer): { label: object[]; value: object[] } {
+  const isActivePlayer = state.activePlayer === player;
+  const isHighlighted = isActivePlayer && (state.isRunning || !state.winner);
+
+  if (!isHighlighted) {
+    return {
+      label: [styles.clockLabel],
+      value: [styles.clockValue],
+    };
+  }
+
+  return {
+    label: [styles.clockLabel, styles.clockLabelActive],
+    value: [styles.clockValue, styles.clockValueActive],
+  };
+}
+
 export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Games'>): React.JSX.Element {
   const { t } = useTranslation();
   const [mode, setMode] = useState<GameMode>('d6');
@@ -42,7 +78,7 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
   const [diceValue, setDiceValue] = useState(1);
   const [diceRollCount, setDiceRollCount] = useState(0);
 
-  const [timerState, setTimerState] = useState<ChessTimerState>(() => resetTimer(INITIAL_CHESS_MS));
+  const [timerState, setTimerState] = useState<ChessTimerState>(() => resetTimer(INITIAL_CHESS_MS, INCREMENT_MS));
 
   const timerStateRef = useRef(timerState);
   const lastTickAtRef = useRef<number | null>(null);
@@ -83,7 +119,7 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
       const lastTickAt = lastTickAtRef.current ?? now;
       const elapsed = Math.max(0, now - lastTickAt);
       const next = elapsed > 0 ? tick(previous, elapsed) : previous;
-      return next.isRunning ? toggleStartPause(next) : next;
+      return pause(next);
     });
     lastTickAtRef.current = null;
   }, []);
@@ -128,7 +164,7 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
 
   const handleToggleTimer = (): void => {
     if (timerState.winner) {
-      setTimerState(resetTimer(INITIAL_CHESS_MS));
+      setTimerState(resetTimer(INITIAL_CHESS_MS, INCREMENT_MS));
       lastTickAtRef.current = null;
       return;
     }
@@ -143,7 +179,7 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
   };
 
   const handleResetTimer = (): void => {
-    setTimerState(resetTimer(INITIAL_CHESS_MS));
+    setTimerState(resetTimer(INITIAL_CHESS_MS, INCREMENT_MS));
     lastTickAtRef.current = null;
   };
 
@@ -171,8 +207,9 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
         return withElapsed;
       }
 
+      const moved = completeMove(withElapsed);
       lastTickAtRef.current = now;
-      return switchTurn(withElapsed);
+      return moved;
     });
   };
 
@@ -212,20 +249,19 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t('gamesChessTimer')}</Text>
 
-            <Pressable
-              style={[styles.clockCard, timerState.activePlayer === 'white' ? styles.clockCardActive : null]}
-              onPress={() => handlePressPlayer('white')}
-            >
-              <Text style={styles.clockLabel}>{t('chessWhite')}</Text>
-              <Text style={styles.clockValue}>{formatClock(timerState.whiteMs)}</Text>
+            <View style={styles.timerMetaRow}>
+              <Text style={styles.timerMetaText}>{t('chessTimeControl')}</Text>
+              <Text style={styles.timerMetaText}>{t('chessMoves', { count: timerState.moveCount })}</Text>
+            </View>
+
+            <Pressable style={getClockCardStyle(timerState, 'white')} onPress={() => handlePressPlayer('white')}>
+              <Text style={getClockTextStyles(timerState, 'white').label}>{t('chessWhite')}</Text>
+              <Text style={getClockTextStyles(timerState, 'white').value}>{formatClock(timerState.whiteMs)}</Text>
             </Pressable>
 
-            <Pressable
-              style={[styles.clockCard, timerState.activePlayer === 'black' ? styles.clockCardActive : null]}
-              onPress={() => handlePressPlayer('black')}
-            >
-              <Text style={styles.clockLabel}>{t('chessBlack')}</Text>
-              <Text style={styles.clockValue}>{formatClock(timerState.blackMs)}</Text>
+            <Pressable style={getClockCardStyle(timerState, 'black')} onPress={() => handlePressPlayer('black')}>
+              <Text style={getClockTextStyles(timerState, 'black').label}>{t('chessBlack')}</Text>
+              <Text style={getClockTextStyles(timerState, 'black').value}>{formatClock(timerState.blackMs)}</Text>
             </Pressable>
 
             {winnerLabel ? <Text style={styles.winnerText}>{winnerLabel}</Text> : null}
@@ -295,6 +331,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primaryText,
   },
+  timerMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timerMetaText: {
+    color: colors.gray700,
+    fontSize: 16,
+    fontWeight: '600',
+  },
   diceValue: {
     textAlign: 'center',
     fontSize: 72,
@@ -308,24 +354,36 @@ const styles = StyleSheet.create({
   },
   clockCard: {
     borderWidth: 1,
-    borderColor: colors.gray300,
     borderRadius: 10,
     padding: 14,
+  },
+  clockCardInactive: {
+    borderColor: colors.gray300,
     backgroundColor: colors.gray100,
   },
-  clockCardActive: {
-    borderColor: colors.secondary,
-    backgroundColor: '#EAF7E6',
+  clockCardRunningActive: {
+    borderColor: colors.danger,
+    backgroundColor: colors.danger,
+  },
+  clockCardPausedActive: {
+    borderColor: colors.danger,
+    backgroundColor: 'rgba(170, 0, 0, 0.45)',
   },
   clockLabel: {
     fontSize: 14,
     color: colors.gray700,
     marginBottom: 6,
   },
+  clockLabelActive: {
+    color: colors.white,
+  },
   clockValue: {
     fontSize: 48,
     fontWeight: '700',
     color: colors.primaryText,
+  },
+  clockValueActive: {
+    color: colors.white,
   },
   winnerText: {
     fontSize: 16,

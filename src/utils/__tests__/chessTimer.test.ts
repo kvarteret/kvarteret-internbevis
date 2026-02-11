@@ -1,15 +1,16 @@
 import {
   ChessTimerState,
+  completeMove,
+  pause,
   resetTimer,
   selectActivePlayer,
-  switchTurn,
   tick,
   toggleStartPause,
 } from '../chessTimer';
 
 function runningState(overrides: Partial<ChessTimerState> = {}): ChessTimerState {
   return {
-    ...resetTimer(300000),
+    ...resetTimer(15 * 60 * 1000, 2000),
     isRunning: true,
     ...overrides,
   };
@@ -20,8 +21,8 @@ describe('chessTimer', () => {
     const state = runningState({ activePlayer: 'white' });
     const next = tick(state, 1500);
 
-    expect(next.whiteMs).toBe(298500);
-    expect(next.blackMs).toBe(300000);
+    expect(next.whiteMs).toBe(898500);
+    expect(next.blackMs).toBe(900000);
     expect(next.winner).toBeNull();
     expect(next.isRunning).toBe(true);
   });
@@ -31,34 +32,46 @@ describe('chessTimer', () => {
     const next = tick(state, 1500);
 
     expect(next.blackMs).toBe(0);
-    expect(next.whiteMs).toBe(300000);
+    expect(next.whiteMs).toBe(900000);
     expect(next.winner).toBe('white');
     expect(next.isRunning).toBe(false);
   });
 
-  test('switchTurn only works while running and without winner', () => {
-    const running = runningState({ activePlayer: 'white' });
-    const paused = { ...running, isRunning: false };
+  test('completeMove applies increment, increments moveCount, and switches player', () => {
+    const state = runningState({ activePlayer: 'white', whiteMs: 500000, moveCount: 3 });
+    const next = completeMove(state);
 
-    expect(switchTurn(running).activePlayer).toBe('black');
-    expect(switchTurn(paused).activePlayer).toBe('white');
-    expect(switchTurn({ ...running, winner: 'black' }).activePlayer).toBe('white');
+    expect(next.whiteMs).toBe(502000);
+    expect(next.blackMs).toBe(900000);
+    expect(next.activePlayer).toBe('black');
+    expect(next.moveCount).toBe(4);
+    expect(next.isRunning).toBe(true);
   });
 
-  test('resetTimer returns paused baseline state', () => {
-    const next = resetTimer(5 * 60 * 1000);
+  test('completeMove has no effect when paused or finished', () => {
+    const paused = { ...resetTimer(900000, 2000), activePlayer: 'white' as const };
+    const finished = { ...runningState(), winner: 'white' as const, isRunning: false };
+
+    expect(completeMove(paused)).toEqual(paused);
+    expect(completeMove(finished)).toEqual(finished);
+  });
+
+  test('resetTimer returns paused baseline state with increment and move count', () => {
+    const next = resetTimer(15 * 60 * 1000, 2000);
 
     expect(next).toEqual({
-      whiteMs: 300000,
-      blackMs: 300000,
+      whiteMs: 900000,
+      blackMs: 900000,
       activePlayer: 'white',
       isRunning: false,
       winner: null,
+      moveCount: 0,
+      incrementMs: 2000,
     });
   });
 
   test('selectActivePlayer only works while paused and without winner', () => {
-    const paused = resetTimer(300000);
+    const paused = resetTimer(900000, 2000);
     const running = { ...paused, isRunning: true };
 
     expect(selectActivePlayer(paused, 'black').activePlayer).toBe('black');
@@ -66,11 +79,15 @@ describe('chessTimer', () => {
     expect(selectActivePlayer({ ...paused, winner: 'black' }, 'black').activePlayer).toBe('white');
   });
 
-  test('toggleStartPause toggles only when game has no winner', () => {
-    const paused = resetTimer(300000);
+  test('toggleStartPause and pause respect winner state', () => {
+    const paused = resetTimer(900000, 2000);
+    const running = { ...paused, isRunning: true };
+    const finished = { ...running, winner: 'black' as const, isRunning: false };
 
     expect(toggleStartPause(paused).isRunning).toBe(true);
-    expect(toggleStartPause({ ...paused, isRunning: true }).isRunning).toBe(false);
-    expect(toggleStartPause({ ...paused, winner: 'white' }).isRunning).toBe(false);
+    expect(toggleStartPause(running).isRunning).toBe(false);
+    expect(toggleStartPause(finished).isRunning).toBe(false);
+    expect(pause(running).isRunning).toBe(false);
+    expect(pause(finished).isRunning).toBe(false);
   });
 });
