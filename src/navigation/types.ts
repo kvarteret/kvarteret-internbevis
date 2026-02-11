@@ -3,4 +3,5 @@ export type RootStackParamList = {
   Home: undefined;
   Privacy: undefined;
   KvarteretSkjerm: undefined;
+  Games: undefined;
 };

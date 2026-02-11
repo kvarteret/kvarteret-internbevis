@@ -87,6 +87,7 @@ export function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParam
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
         onOpenLanguage={() => setLanguageSelectorVisible(true)}
+        onOpenGames={() => navigation.navigate('Games')}
         onOpenKvarteretSkjerm={() => navigation.navigate('KvarteretSkjerm')}
         onOpenPrivacy={() => navigation.navigate('Privacy')}
         onLogout={() => {
