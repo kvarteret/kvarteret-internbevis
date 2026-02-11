@@ -1,0 +1,85 @@
+import { NowPlayingState } from '../types/nowPlaying';
+
+const DEFAULT_KVARTERET_SKJERM_BASE_URL = 'https://kvarteret-skjerm.fly.dev';
+
+export function getKvarteretSkjermBaseUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL?.trim();
+  const base = configured && configured.length > 0 ? configured : DEFAULT_KVARTERET_SKJERM_BASE_URL;
+  return base.endsWith('/') ? base.slice(0, -1) : base;
+}
+
+export function getSpotifyConnectUrl(connectUrl?: string | null): string {
+  const trimmed = typeof connectUrl === 'string' ? connectUrl.trim() : '';
+  if (trimmed.length > 0) {
+    return trimmed;
+  }
+
+  return `${getKvarteretSkjermBaseUrl()}/login`;
+}
+
+function parseRequiredBoolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new Error(`Invalid now playing response: ${field} must be a boolean`);
+  }
+
+  return value;
+}
+
+function parseNullableString(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  return typeof value === 'string' ? value : null;
+}
+
+function parseNullableNumber(value: unknown, field: string): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  throw new Error(`Invalid now playing response: ${field} must be a number or null`);
+}
+
+function parseNowPlayingResponse(payload: unknown): NowPlayingState {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid now playing response payload');
+  }
+
+  const value = payload as Record<string, unknown>;
+
+  return {
+    authorized: parseRequiredBoolean(value.authorized, 'authorized'),
+    playing: parseRequiredBoolean(value.playing, 'playing'),
+    isPlaying: parseRequiredBoolean(value.isPlaying, 'isPlaying'),
+    name: parseNullableString(value.name),
+    artists: parseNullableString(value.artists),
+    album: parseNullableString(value.album),
+    image: parseNullableString(value.image),
+    progressMs: parseNullableNumber(value.progressMs, 'progressMs'),
+    durationMs: parseNullableNumber(value.durationMs, 'durationMs'),
+    progressPercent: parseNullableNumber(value.progressPercent, 'progressPercent'),
+    connectUrl: getSpotifyConnectUrl(parseNullableString(value.connectUrl)),
+  };
+}
+
+export async function fetchNowPlaying(signal?: AbortSignal): Promise<NowPlayingState> {
+  const response = await fetch(`${getKvarteretSkjermBaseUrl()}/api/now-playing`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch now playing data (${response.status})`);
+  }
+
+  const payload = (await response.json()) as unknown;
+  return parseNowPlayingResponse(payload);
+}
