@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleProp, Text, TextProps, TextStyle } from 'react-native';
-import { cssInterop } from 'nativewind';
+import { styled } from 'nativewind';
 import { getTypographyStyle, TextVariant } from '../../theme/typography';
 
-const StyledText = cssInterop(Text, { className: 'style' });
+const StyledText = styled(Text);
 
 interface AppTextProps extends TextProps {
   variant?: TextVariant;
