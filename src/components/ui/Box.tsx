@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, ViewProps } from 'react-native';
-import { styled } from 'nativewind';
+import { cssInterop } from 'nativewind';
 
-const StyledView = styled(View);
+const StyledView = cssInterop(View, { className: 'style' });
 
 export type BoxProps = ViewProps & {
   className?: string;
