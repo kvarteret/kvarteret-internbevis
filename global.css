@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@import "nativewind/theme";
+
+@source "./App.{js,jsx,ts,tsx}";
+@source "./src/**/*.{js,jsx,ts,tsx}";

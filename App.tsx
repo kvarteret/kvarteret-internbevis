@@ -1,8 +1,17 @@
 import * as Linking from 'expo-linking';
+import { useFonts } from 'expo-font';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, LogBox, Platform, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from '@expo-google-fonts/inter';
+import './global.css';
 import './src/localization/i18n';
 import { colors } from './src/constants/theme';
 import { RootStackParamList } from './src/navigation/types';
@@ -18,9 +27,27 @@ import { UserProvider, useUser } from './src/state/UserContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+LogBox.ignoreLogs([
+  "SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead.",
+]);
+
 function RootNavigator(): React.JSX.Element {
   const { user, isHydrating: userHydrating } = useUser();
   const { isHydrating: languageHydrating } = useLanguage();
+
+  const [webFontsLoaded, webFontsError] = useFonts(
+    Platform.OS === 'web'
+      ? {
+          Inter_400Regular,
+          Inter_500Medium,
+          Inter_600SemiBold,
+          Inter_700Bold,
+          Inter_800ExtraBold,
+        }
+      : {},
+  );
+
+  const fontsReady = Platform.OS !== 'web' || webFontsLoaded || Boolean(webFontsError);
 
   useEffect(() => {
     let mounted = true;
@@ -48,7 +75,7 @@ function RootNavigator(): React.JSX.Element {
     };
   }, []);
 
-  if (userHydrating || languageHydrating) {
+  if (userHydrating || languageHydrating || !fontsReady) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator color={colors.primaryText} size="large" />

@@ -1,7 +1,9 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, useWindowDimensions } from 'react-native';
 import { colors, getTierBackgroundColor } from '../../constants/theme';
+import { AppText } from '../ui/AppText';
+import { Box } from '../ui/Box';
 
 interface SemesterBoxProps {
   status: string;
@@ -31,49 +33,25 @@ export function SemesterBox({ status, semester, isValid, tier, onPress }: Semest
   const containerWidth = width < 600 ? width * 0.9 : width * 0.7;
 
   return (
-    <Pressable onPress={onPress} style={[styles.container, { width: containerWidth, backgroundColor: getTierBackgroundColor(tier, isValid) }]}>
-      <View style={styles.row}>
+    <Pressable
+      className="items-center justify-center gap-[7px] rounded-[15px] px-5 py-3.5"
+      onPress={onPress}
+      style={{ width: containerWidth, backgroundColor: getTierBackgroundColor(tier, isValid) }}
+    >
+      <Box className="flex-row items-center gap-2">
         <MaterialIcons name={getTierIconName(tier)} size={24} color={colors.white} />
-        <Text style={styles.tierText}>{`Trinn ${tier}`}</Text>
-      </View>
-      <Text style={styles.statusText}>{status}</Text>
-      <Text style={styles.semesterText}>{semester}</Text>
+        <AppText className="text-white" style={{ fontSize: 18, lineHeight: 24 }} variant="meta">
+          {`Trinn ${tier}`}
+        </AppText>
+      </Box>
+
+      <AppText className="text-white/80" style={{ fontSize: 16, lineHeight: 22 }} variant="body">
+        {status}
+      </AppText>
+
+      <AppText className="text-white" style={{ fontSize: 20, lineHeight: 26 }} variant="subtitle">
+        {semester}
+      </AppText>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 15,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  tierText: {
-    color: colors.white,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  statusText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '600',
-  },
-  semesterText: {
-    color: colors.white,
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-});

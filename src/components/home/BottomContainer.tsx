@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors } from '../../constants/theme';
 import { getHighestTier, getHighestTierGroup, getHighestTierName, User } from '../../types/user';
 import { formatDate } from '../../utils/date';
 import { SemesterBox } from './SemesterBox';
+import { AppText } from '../ui/AppText';
+import { Box } from '../ui/Box';
 
 interface BottomContainerProps {
   user: User;
@@ -44,11 +45,15 @@ export function BottomContainer({ user, onSemesterBoxTap }: BottomContainerProps
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.orgInfoContainer}>
-        <Text style={styles.group}>{getHighestTierGroup(user)}</Text>
-        <Text style={styles.role}>{getHighestTierName(user)}</Text>
-      </View>
+    <Box className="w-full items-center justify-center gap-3.5">
+      <Box className="items-center gap-0.5 px-4">
+        <AppText className="text-center text-black" style={{ fontSize: 22, lineHeight: 28 }} variant="subtitle">
+          {getHighestTierGroup(user)}
+        </AppText>
+        <AppText className="text-center text-gray-600" style={{ fontSize: 20, lineHeight: 26 }} variant="body">
+          {getHighestTierName(user)}
+        </AppText>
+      </Box>
 
       <SemesterBox
         status={t('status')}
@@ -58,60 +63,17 @@ export function BottomContainer({ user, onSemesterBoxTap }: BottomContainerProps
         onPress={handleTap}
       />
 
-      <Text style={styles.validText}>{active ? t('validUntil', { date: formatDate(user.gyldigTil) }) : ''}</Text>
+      <AppText className="text-center text-black" variant="meta">
+        {active ? t('validUntil', { date: formatDate(user.gyldigTil) }) : ''}
+      </AppText>
 
       {showPenguin ? (
-        <Animated.View style={[styles.penguinContainer, { opacity: opacityAnim }]}>
+        <Animated.View style={{ opacity: opacityAnim, marginTop: 4, alignItems: 'center', justifyContent: 'center' }}>
           <Pressable onPress={resetPenguin}>
-            <Animated.Image source={require('../../../assets/images/penguin-eg.png')} style={styles.penguin} />
+            <Animated.Image source={require('../../../assets/images/penguin-eg.png')} style={{ width: 100, height: 100 }} />
           </Pressable>
         </Animated.View>
       ) : null}
-    </View>
+    </Box>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-  },
-  orgInfoContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    gap: 2,
-  },
-  group: {
-    fontSize: 22,
-    fontWeight: '800',
-    lineHeight: 28,
-    letterSpacing: 0.2,
-    color: colors.primaryText,
-    textAlign: 'center',
-  },
-  role: {
-    fontSize: 20,
-    lineHeight: 26,
-    color: 'rgba(0, 0, 0, 0.7)',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  validText: {
-    color: colors.primaryText,
-    fontSize: 17,
-    fontWeight: '700',
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-  penguinContainer: {
-    marginTop: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  penguin: {
-    width: 100,
-    height: 100,
-  },
-});
