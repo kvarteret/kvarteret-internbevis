@@ -1,7 +1,8 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BottomContainer } from '../components/home/BottomContainer';
 import { MenuSheet } from '../components/home/MenuSheet';
@@ -14,6 +15,7 @@ import { useUser } from '../state/UserContext';
 import { NotRegisteredScreen } from './NotRegisteredScreen';
 
 export function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Home'>): React.JSX.Element {
+  const { t } = useTranslation();
   const { user, isLoading, logout } = useUser();
   const { height } = useWindowDimensions();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -21,6 +23,9 @@ export function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParam
   const [animationTrigger, setAnimationTrigger] = useState(0);
 
   const isSmallScreen = height < 600;
+  const handleOpenVolunteerPage = (): void => {
+    void Linking.openURL('https://blifrivillig.no');
+  };
 
   if (isLoading) {
     return (
@@ -68,6 +73,14 @@ export function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParam
             }}
           />
         </View>
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>{t('homeFooterPrefix')}</Text>
+        <Text style={styles.footerSeparator}>|</Text>
+        <TouchableOpacity accessibilityRole="link" onPress={handleOpenVolunteerPage}>
+          <Text style={styles.footerLink}>{t('homeFooterVolunteer')}</Text>
+        </TouchableOpacity>
       </View>
 
       <MenuSheet
@@ -124,5 +137,31 @@ const styles = StyleSheet.create({
   bottomSection: {
     justifyContent: 'center',
     paddingBottom: 10,
+  },
+  footer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  footerText: {
+    color: colors.primaryText,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  footerSeparator: {
+    color: colors.primaryText,
+    fontSize: 22,
+    fontWeight: '300',
+    lineHeight: 24,
+  },
+  footerLink: {
+    color: colors.primaryText,
+    fontSize: 16,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });
