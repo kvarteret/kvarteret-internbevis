@@ -8,12 +8,13 @@ interface MenuSheetProps {
   visible: boolean;
   onClose: () => void;
   onOpenPrivacy: () => void;
+  onOpenKvarteretSkjerm: () => void;
   onOpenLanguage: () => void;
   onLogout: () => void;
 }
 
 interface Action {
-  key: 'privacy' | 'language' | 'logout';
+  key: 'privacy' | 'kvarteretSkjerm' | 'language' | 'logout';
   label: string;
   icon: keyof typeof MaterialIcons.glyphMap;
   destructive?: boolean;
@@ -24,6 +25,7 @@ export function MenuSheet({
   visible,
   onClose,
   onOpenPrivacy,
+  onOpenKvarteretSkjerm,
   onOpenLanguage,
   onLogout,
 }: MenuSheetProps): React.JSX.Element {
@@ -41,6 +43,12 @@ export function MenuSheet({
       label: t('language'),
       icon: 'language',
       onPress: onOpenLanguage,
+    },
+    {
+      key: 'kvarteretSkjerm',
+      label: t('kvarteretSkjerm'),
+      icon: 'tv',
+      onPress: onOpenKvarteretSkjerm,
     },
     {
       key: 'logout',

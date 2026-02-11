@@ -7,6 +7,7 @@ import './src/localization/i18n';
 import { colors } from './src/constants/theme';
 import { RootStackParamList } from './src/navigation/types';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { KvarteretSkjermScreen } from './src/screens/KvarteretSkjermScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { extractAccessTokenFromUrl } from './src/services/deepLinkService';
@@ -65,6 +66,14 @@ function RootNavigator(): React.JSX.Element {
         <Stack.Screen
           name="Privacy"
           component={PrivacyScreen}
+          options={{
+            headerBackTitle: '',
+            headerTintColor: colors.primaryText,
+          }}
+        />
+        <Stack.Screen
+          name="KvarteretSkjerm"
+          component={KvarteretSkjermScreen}
           options={{
             headerBackTitle: '',
             headerTintColor: colors.primaryText,
