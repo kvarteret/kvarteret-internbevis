@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors } from '../../constants/theme';
+import { AppText } from '../ui/AppText';
+import { Box } from '../ui/Box';
 import { formatDate } from '../../utils/date';
 
 interface UserInfoCardProps {
@@ -29,55 +30,49 @@ export function UserInfoCard({
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
   const isSmallScreen = height < 600;
+
   const wordOfTheDayValue = normalizeWordOfTheDay(dagensOrd);
   const birthDateText = birthDate ? formatDate(birthDate) : '-';
 
   return (
-    <View style={styles.container}>
-      <Text style={[styles.name, { fontSize: isSmallScreen ? 20 : 24 }]}>{`${firstName} ${lastName}`}</Text>
-      <Text style={[styles.birthDate, { fontSize: isSmallScreen ? 18 : 20 }]}>{birthDateText}</Text>
-      <Text style={[styles.points, { marginTop: isSmallScreen ? 6 : 10, fontSize: isSmallScreen ? 16 : 18 }]}>
+    <Box className="w-full max-w-[420px] items-center px-5">
+      <AppText
+        className="text-center text-black"
+        style={{
+          fontSize: isSmallScreen ? 20 : 24,
+          lineHeight: isSmallScreen ? 26 : 30,
+        }}
+        variant="subtitle"
+      >
+        {`${firstName} ${lastName}`}
+      </AppText>
+
+      <AppText
+        className="text-center text-gray-600"
+        style={{
+          fontSize: isSmallScreen ? 18 : 20,
+          lineHeight: isSmallScreen ? 22 : 24,
+        }}
+        variant="body"
+      >
+        {birthDateText}
+      </AppText>
+
+      <AppText
+        className="mt-1.5 text-center text-black"
+        style={{ fontSize: isSmallScreen ? 16 : 18 }}
+        variant="meta"
+      >
         {`${t('pingvinPoints')}: ${pingvinPoengSum}`}
-      </Text>
-      <Text style={[styles.wordOfDay, { marginTop: isSmallScreen ? 6 : 10, fontSize: isSmallScreen ? 18 : 20 }]}>
+      </AppText>
+
+      <AppText
+        className="mt-1.5 text-center text-black italic"
+        style={{ fontSize: isSmallScreen ? 18 : 20 }}
+        variant="emphasis"
+      >
         {`${t('wordOfTheDay')}: ${wordOfTheDayValue}`}
-      </Text>
-    </View>
+      </AppText>
+    </Box>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    maxWidth: 420,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-  },
-  name: {
-    textAlign: 'center',
-    color: colors.primaryText,
-    fontWeight: '800',
-    lineHeight: 30,
-    letterSpacing: 0.3,
-  },
-  birthDate: {
-    textAlign: 'center',
-    color: 'rgba(0, 0, 0, 0.7)',
-    lineHeight: 24,
-    fontWeight: '500',
-  },
-  points: {
-    textAlign: 'center',
-    color: colors.primaryText,
-    fontWeight: '800',
-    lineHeight: 24,
-    letterSpacing: 0.2,
-  },
-  wordOfDay: {
-    textAlign: 'center',
-    color: colors.primaryText,
-    fontStyle: 'italic',
-    lineHeight: 27,
-    letterSpacing: 0.1,
-  },
-});

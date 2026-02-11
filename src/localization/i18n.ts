@@ -6,6 +6,7 @@ void i18next.use(initReactI18next).init({
   resources: translations,
   lng: 'no',
   fallbackLng: 'no',
+  showSupportNotice: false,
   interpolation: {
     escapeValue: false,
   },
