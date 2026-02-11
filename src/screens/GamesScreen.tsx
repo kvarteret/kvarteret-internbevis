@@ -217,6 +217,10 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
     ? t('chessWinner', { winner: t(getWinnerLabelKey(timerState.winner)) })
     : null;
 
+  const handleChessBoxTap = (): void => {
+    void handlePressPlayer(timerState.activePlayer);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -249,22 +253,24 @@ export function GamesScreen({ navigation }: NativeStackScreenProps<RootStackPara
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t('gamesChessTimer')}</Text>
 
-            <View style={styles.timerMetaRow}>
-              <Text style={styles.timerMetaText}>{t('chessTimeControl')}</Text>
-              <Text style={styles.timerMetaText}>{t('chessMoves', { count: timerState.moveCount })}</Text>
-            </View>
+            <Pressable style={styles.chessTapArea} onPress={handleChessBoxTap}>
+              <View style={styles.timerMetaRow}>
+                <Text style={styles.timerMetaText}>{t('chessTimeControl')}</Text>
+                <Text style={styles.timerMetaText}>{t('chessMoves', { count: timerState.moveCount })}</Text>
+              </View>
 
-            <Pressable style={getClockCardStyle(timerState, 'white')} onPress={() => handlePressPlayer('white')}>
-              <Text style={getClockTextStyles(timerState, 'white').label}>{t('chessWhite')}</Text>
-              <Text style={getClockTextStyles(timerState, 'white').value}>{formatClock(timerState.whiteMs)}</Text>
+              <View style={getClockCardStyle(timerState, 'white')}>
+                <Text style={getClockTextStyles(timerState, 'white').label}>{t('chessWhite')}</Text>
+                <Text style={getClockTextStyles(timerState, 'white').value}>{formatClock(timerState.whiteMs)}</Text>
+              </View>
+
+              <View style={getClockCardStyle(timerState, 'black')}>
+                <Text style={getClockTextStyles(timerState, 'black').label}>{t('chessBlack')}</Text>
+                <Text style={getClockTextStyles(timerState, 'black').value}>{formatClock(timerState.blackMs)}</Text>
+              </View>
+
+              {winnerLabel ? <Text style={styles.winnerText}>{winnerLabel}</Text> : null}
             </Pressable>
-
-            <Pressable style={getClockCardStyle(timerState, 'black')} onPress={() => handlePressPlayer('black')}>
-              <Text style={getClockTextStyles(timerState, 'black').label}>{t('chessBlack')}</Text>
-              <Text style={getClockTextStyles(timerState, 'black').value}>{formatClock(timerState.blackMs)}</Text>
-            </Pressable>
-
-            {winnerLabel ? <Text style={styles.winnerText}>{winnerLabel}</Text> : null}
 
             <View style={styles.actionsRow}>
               <Pressable style={styles.primaryButton} onPress={handleToggleTimer}>
@@ -340,6 +346,9 @@ const styles = StyleSheet.create({
     color: colors.gray700,
     fontSize: 16,
     fontWeight: '600',
+  },
+  chessTapArea: {
+    gap: 12,
   },
   diceValue: {
     textAlign: 'center',
