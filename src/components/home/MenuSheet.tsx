@@ -8,13 +8,14 @@ interface MenuSheetProps {
   visible: boolean;
   onClose: () => void;
   onOpenPrivacy: () => void;
+  onOpenGames: () => void;
   onOpenKvarteretSkjerm: () => void;
   onOpenLanguage: () => void;
   onLogout: () => void;
 }
 
 interface Action {
-  key: 'privacy' | 'kvarteretSkjerm' | 'language' | 'logout';
+  key: 'privacy' | 'games' | 'kvarteretSkjerm' | 'language' | 'logout';
   label: string;
   icon: keyof typeof MaterialIcons.glyphMap;
   destructive?: boolean;
@@ -25,6 +26,7 @@ export function MenuSheet({
   visible,
   onClose,
   onOpenPrivacy,
+  onOpenGames,
   onOpenKvarteretSkjerm,
   onOpenLanguage,
   onLogout,
@@ -43,6 +45,12 @@ export function MenuSheet({
       label: t('language'),
       icon: 'language',
       onPress: onOpenLanguage,
+    },
+    {
+      key: 'games',
+      label: t('games'),
+      icon: 'sports-esports',
+      onPress: onOpenGames,
     },
     {
       key: 'kvarteretSkjerm',
