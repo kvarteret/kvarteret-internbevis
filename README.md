@@ -75,6 +75,33 @@ This repository is configured for hybrid previews:
 2. Register devices through EAS/Apple Developer for the preview provisioning profile.
 3. Re-run preview build after adding devices so new testers can install the iOS build from Firebase App Distribution.
 
+## Local backend (infra + Personaldatabase)
+
+For local development against the `infra` backend stack, the API root is:
+
+- `http://localhost:5001/api`
+
+The Internkort endpoints used by this app are under:
+
+- `http://localhost:5001/api/DigitalInternkort`
+
+When running Expo Go on a physical device, `localhost` points to the phone, not your computer.
+Use your computer LAN IP instead.
+
+Create `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/.env.local`:
+
+```bash
+EXPO_PUBLIC_INTERNKORT_BASE_URL=http://<LAN-IP>:5001/api/DigitalInternkort
+# Optional (defaults to production if not set)
+EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL=http://<LAN-IP>:<PORT>
+```
+
+Then start the app:
+
+```bash
+npm run start
+```
+
 ## Expo Go login-link support
 
 Expo Go cannot register the production custom URL scheme the same way as a standalone app.
