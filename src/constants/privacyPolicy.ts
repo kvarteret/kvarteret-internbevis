@@ -1,7 +1,7 @@
-import { SupportedLanguage } from '../state/LanguageContext';
+import { SupportedLanguage } from "../state/LanguageContext"
 
 export const PRIVACY_POLICY_MARKDOWN: Record<SupportedLanguage, string> = {
-  no: `# Personvernerklæring for Studentersamfunnet Internbevis
+    no: `# Personvernerklæring for Studentersamfunnet Internbevis
 
 ## Om appen
 Studentersamfunnet Internbevis er en app som lar aktive medlemmer i Studentersamfunnet se sitt medlemsbevis digitalt. Appen er utviklet for å gjøre det enklere for medlemmer å vise sitt medlemskap og trinnivå.
@@ -47,7 +47,7 @@ For spørsmål om personvern eller utøvelse av dine rettigheter, kontakt:
 - Adresse: Det Akademiske Kvarter, Olav Kyrres gate 49, 5015 Bergen
 
 Sist oppdatert: [31/10/2024]`,
-  en: `# Privacy Policy for Studentersamfunnet Internbevis
+    en: `# Privacy Policy for Studentersamfunnet Internbevis
 
 ## About the App
 Studentersamfunnet Internbevis is an app that allows active members in Studentersamfunnet to view their membership ID digitally. The app is developed to make it easier for members to show their membership and access level.
@@ -93,4 +93,4 @@ For questions about privacy or to exercise your rights, contact:
 - Address: Det Akademiske Kvarter, Olav Kyrres gate 49, 5015 Bergen
 
 Last updated: [31/10/2024]`,
-};
+}
