@@ -1,0 +1,278 @@
+name: Preview build and distribute
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-build-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview-binaries:
+    if: github.event.pull_request.head.repo.fork == false && contains(github.event.pull_request.labels.*.name, 'preview')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required secrets
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
+          FIREBASE_SERVICE_ACCOUNT_PREVIEW: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PREVIEW }}
+          FIREBASE_ANDROID_APP_ID_PREVIEW: ${{ secrets.FIREBASE_ANDROID_APP_ID_PREVIEW }}
+          FIREBASE_IOS_APP_ID_PREVIEW: ${{ secrets.FIREBASE_IOS_APP_ID_PREVIEW }}
+        run: |
+          set -euo pipefail
+          for var_name in EXPO_TOKEN FIREBASE_SERVICE_ACCOUNT_PREVIEW FIREBASE_ANDROID_APP_ID_PREVIEW FIREBASE_IOS_APP_ID_PREVIEW; do
+            if [ -z "${!var_name}" ]; then
+              echo "Missing required secret: ${var_name}"
+              exit 1
+            fi
+          done
+
+          if grep -q "REPLACE_WITH_EXPO_PROJECT_ID" app.json && [ -z "${EXPO_PROJECT_ID}" ]; then
+            echo "Missing required secret: EXPO_PROJECT_ID (app.json uses placeholder project id)"
+            exit 1
+          fi
+
+      - name: Inject Expo project id from secret when placeholder is present
+        env:
+          EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+
+          const path = "app.json";
+          const placeholder = "REPLACE_WITH_EXPO_PROJECT_ID";
+          const projectId = process.env.EXPO_PROJECT_ID || "";
+          const current = fs.readFileSync(path, "utf8");
+
+          if (!current.includes(placeholder)) {
+            process.exit(0);
+          }
+
+          if (!projectId) {
+            throw new Error("EXPO_PROJECT_ID secret is required when app.json contains placeholder values");
+          }
+
+          fs.writeFileSync(path, current.replaceAll(placeholder, projectId));
+          NODE
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Authenticate to Google Cloud (service account)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PREVIEW }}
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools
+
+      - name: Build Android preview
+        id: android_build
+        run: |
+          set -euo pipefail
+          eas build \
+            --platform android \
+            --profile preview-android \
+            --non-interactive \
+            --wait \
+            --json | tee android-build.json
+
+          node <<'NODE'
+          const fs = require("fs");
+
+          function pick(source, path) {
+            return path.reduce((value, key) => (value && value[key] ? value[key] : undefined), source);
+          }
+
+          const raw = fs.readFileSync("android-build.json", "utf8").trim();
+          if (!raw) {
+            throw new Error("Android build output was empty");
+          }
+
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+
+          const artifactUrl =
+            pick(build, ["artifacts", "applicationArchiveUrl"]) ||
+            pick(build, ["artifacts", "buildUrl"]) ||
+            pick(build, ["applicationArchiveUrl"]) ||
+            pick(build, ["buildArtifactUrl"]);
+
+          const buildDetailsUrl =
+            pick(build, ["buildDetailsPageUrl"]) ||
+            pick(build, ["logs", "buildDetailsPageUrl"]) ||
+            pick(build, ["detailsPageUrl"]) ||
+            pick(build, ["url"]);
+
+          if (!artifactUrl) {
+            throw new Error("Could not find Android build artifact URL in EAS output");
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `android_artifact_url=${artifactUrl}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `android_build_url=${buildDetailsUrl || ""}\n`);
+          NODE
+
+      - name: Build iOS preview
+        id: ios_build
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          eas build \
+            --platform ios \
+            --profile preview-ios \
+            --non-interactive \
+            --wait \
+            --json | tee ios-build.json
+
+          node <<'NODE'
+          const fs = require("fs");
+
+          function pick(source, path) {
+            return path.reduce((value, key) => (value && value[key] ? value[key] : undefined), source);
+          }
+
+          const raw = fs.readFileSync("ios-build.json", "utf8").trim();
+          if (!raw) {
+            throw new Error("iOS build output was empty");
+          }
+
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+
+          const artifactUrl =
+            pick(build, ["artifacts", "applicationArchiveUrl"]) ||
+            pick(build, ["artifacts", "buildUrl"]) ||
+            pick(build, ["applicationArchiveUrl"]) ||
+            pick(build, ["buildArtifactUrl"]);
+
+          const buildDetailsUrl =
+            pick(build, ["buildDetailsPageUrl"]) ||
+            pick(build, ["logs", "buildDetailsPageUrl"]) ||
+            pick(build, ["detailsPageUrl"]) ||
+            pick(build, ["url"]);
+
+          if (!artifactUrl) {
+            throw new Error("Could not find iOS build artifact URL in EAS output");
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `ios_artifact_url=${artifactUrl}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `ios_build_url=${buildDetailsUrl || ""}\n`);
+          NODE
+
+      - name: Download Android artifact
+        if: steps.android_build.outputs.android_artifact_url != ''
+        run: |
+          set -euo pipefail
+          curl --fail --location "${{ steps.android_build.outputs.android_artifact_url }}" --output android-preview.apk
+
+      - name: Download iOS artifact
+        if: steps.ios_build.outcome == 'success' && steps.ios_build.outputs.ios_artifact_url != ''
+        run: |
+          set -euo pipefail
+          curl --fail --location "${{ steps.ios_build.outputs.ios_artifact_url }}" --output ios-preview.ipa
+
+      - name: Distribute Android via Firebase App Distribution
+        id: android_distribute
+        if: steps.android_build.outputs.android_artifact_url != ''
+        env:
+          FIREBASE_ANDROID_APP_ID_PREVIEW: ${{ secrets.FIREBASE_ANDROID_APP_ID_PREVIEW }}
+          FIREBASE_DISTRIBUTION_GROUPS_PREVIEW: ${{ secrets.FIREBASE_DISTRIBUTION_GROUPS_PREVIEW }}
+        run: |
+          set -euo pipefail
+          GROUPS="${FIREBASE_DISTRIBUTION_GROUPS_PREVIEW:-internal-qa}"
+          firebase appdistribution:distribute android-preview.apk \
+            --app "${FIREBASE_ANDROID_APP_ID_PREVIEW}" \
+            --groups "${GROUPS}" | tee android-distribute.log
+
+          RELEASE_URL="$(grep -Eo 'https://console\.firebase\.google\.com[^ ]+' android-distribute.log | head -n 1 || true)"
+          echo "android_release_url=${RELEASE_URL}" >> "${GITHUB_OUTPUT}"
+
+      - name: Distribute iOS via Firebase App Distribution
+        id: ios_distribute
+        if: steps.ios_build.outcome == 'success' && steps.ios_build.outputs.ios_artifact_url != ''
+        env:
+          FIREBASE_IOS_APP_ID_PREVIEW: ${{ secrets.FIREBASE_IOS_APP_ID_PREVIEW }}
+          FIREBASE_DISTRIBUTION_GROUPS_PREVIEW: ${{ secrets.FIREBASE_DISTRIBUTION_GROUPS_PREVIEW }}
+        run: |
+          set -euo pipefail
+          GROUPS="${FIREBASE_DISTRIBUTION_GROUPS_PREVIEW:-internal-qa}"
+          firebase appdistribution:distribute ios-preview.ipa \
+            --app "${FIREBASE_IOS_APP_ID_PREVIEW}" \
+            --groups "${GROUPS}" | tee ios-distribute.log
+
+          RELEASE_URL="$(grep -Eo 'https://console\.firebase\.google\.com[^ ]+' ios-distribute.log | head -n 1 || true)"
+          echo "ios_release_url=${RELEASE_URL}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upsert preview binary comment
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          JOB_STATUS: ${{ job.status }}
+          ANDROID_BUILD_STATUS: ${{ steps.android_build.outcome }}
+          IOS_BUILD_STATUS: ${{ steps.ios_build.outcome }}
+          ANDROID_BUILD_URL: ${{ steps.android_build.outputs.android_build_url }}
+          IOS_BUILD_URL: ${{ steps.ios_build.outputs.ios_build_url }}
+          ANDROID_RELEASE_URL: ${{ steps.android_distribute.outputs.android_release_url }}
+          IOS_RELEASE_URL: ${{ steps.ios_distribute.outputs.ios_release_url }}
+        with:
+          script: |
+            const marker = "<!-- preview-binary-comment -->";
+            const body = `${marker}
+            ## Preview Binary Distribution
+            - Overall job status: \`${process.env.JOB_STATUS}\`
+            - Android build: \`${process.env.ANDROID_BUILD_STATUS || "not-run"}\`
+            - iOS build: \`${process.env.IOS_BUILD_STATUS || "not-run"}\`
+            - Android EAS build: ${process.env.ANDROID_BUILD_URL || "n/a"}
+            - iOS EAS build: ${process.env.IOS_BUILD_URL || "n/a"}
+            - Android Firebase release: ${process.env.ANDROID_RELEASE_URL || "n/a"}
+            - iOS Firebase release: ${process.env.IOS_RELEASE_URL || "n/a"}
+            - Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(comment =>
+              comment.user.type === "Bot" && comment.body && comment.body.includes(marker),
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

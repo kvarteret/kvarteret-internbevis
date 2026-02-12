@@ -1,0 +1,156 @@
+name: Preview update
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-update-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview-update:
+    if: github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required secret
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
+        run: |
+          if [ -z "${EXPO_TOKEN}" ]; then
+            echo "Missing required secret: EXPO_TOKEN"
+            exit 1
+          fi
+
+          if grep -q "REPLACE_WITH_EXPO_PROJECT_ID" app.json && [ -z "${EXPO_PROJECT_ID}" ]; then
+            echo "Missing required secret: EXPO_PROJECT_ID (app.json uses placeholder project id)"
+            exit 1
+          fi
+
+      - name: Inject Expo project id from secret when placeholder is present
+        env:
+          EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+
+          const path = "app.json";
+          const placeholder = "REPLACE_WITH_EXPO_PROJECT_ID";
+          const projectId = process.env.EXPO_PROJECT_ID || "";
+          const current = fs.readFileSync(path, "utf8");
+
+          if (!current.includes(placeholder)) {
+            process.exit(0);
+          }
+
+          if (!projectId) {
+            throw new Error("EXPO_PROJECT_ID secret is required when app.json contains placeholder values");
+          }
+
+          fs.writeFileSync(path, current.replaceAll(placeholder, projectId));
+          NODE
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish preview update
+        id: update
+        env:
+          PR_BRANCH: pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          eas update \
+            --branch "${PR_BRANCH}" \
+            --platform all \
+            --message "PR #${{ github.event.pull_request.number }} @ ${GITHUB_SHA}" \
+            --non-interactive \
+            --json | tee eas-update.json
+
+          node <<'NODE'
+          const fs = require("fs");
+
+          const raw = fs.readFileSync("eas-update.json", "utf8").trim();
+          if (!raw) {
+            throw new Error("eas update output was empty");
+          }
+
+          const parsed = JSON.parse(raw);
+          const updates = Array.isArray(parsed) ? parsed : [parsed];
+
+          const branches = [...new Set(updates.map(item => item.branch).filter(Boolean))];
+          const groups = [...new Set(updates.map(item => item.group).filter(Boolean))];
+          const dashboardUrl =
+            updates.map(item => item.dashboardUrl || item.detailsPageUrl || item.url).find(Boolean) || "";
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `branch=${branches[0] || process.env.PR_BRANCH}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `group_ids=${groups.join(",")}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `dashboard_url=${dashboardUrl}\n`);
+          NODE
+
+      - name: Upsert preview comment
+        uses: actions/github-script@v7
+        env:
+          BRANCH_NAME: ${{ steps.update.outputs.branch }}
+          GROUP_IDS: ${{ steps.update.outputs.group_ids }}
+          DASHBOARD_URL: ${{ steps.update.outputs.dashboard_url }}
+        with:
+          script: |
+            const marker = "<!-- preview-update-comment -->";
+            const dashboardUrl = process.env.DASHBOARD_URL || "Not provided by EAS output";
+            const groupIds = process.env.GROUP_IDS || "Not provided by EAS output";
+
+            const body = `${marker}
+            ## Expo Preview Update
+            - Branch: \`${process.env.BRANCH_NAME}\`
+            - Update groups: \`${groupIds}\`
+            - Dashboard: ${dashboardUrl}
+            - Commit: \`${context.payload.pull_request.head.sha}\`
+            - Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(comment =>
+              comment.user.type === "Bot" && comment.body && comment.body.includes(marker),
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
