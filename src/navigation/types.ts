@@ -1,7 +1,7 @@
 export type RootStackParamList = {
-  Login: undefined;
-  Home: undefined;
-  Privacy: undefined;
-  KvarteretSkjerm: undefined;
-  Games: undefined;
-};
+    Login: undefined
+    Home: undefined
+    Privacy: undefined
+    KvarteretSkjerm: undefined
+    Games: undefined
+}

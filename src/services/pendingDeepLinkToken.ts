@@ -1,15 +1,15 @@
-let pendingDeepLinkToken: string | null = null;
+let pendingDeepLinkToken: string | null = null
 
 export function setPendingDeepLinkToken(token: string): void {
-  pendingDeepLinkToken = token;
+    pendingDeepLinkToken = token
 }
 
 export function consumePendingDeepLinkToken(): string | null {
-  const value = pendingDeepLinkToken;
-  pendingDeepLinkToken = null;
-  return value;
+    const value = pendingDeepLinkToken
+    pendingDeepLinkToken = null
+    return value
 }
 
 export function clearPendingDeepLinkToken(): void {
-  pendingDeepLinkToken = null;
+    pendingDeepLinkToken = null
 }
