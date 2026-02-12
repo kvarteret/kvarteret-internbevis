@@ -3,19 +3,12 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { useQuery } from "@tanstack/react-query"
 import React, { useCallback, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import {
-    ActivityIndicator,
-    AppState,
-    DimensionValue,
-    Image,
-    Linking,
-    ScrollView,
-    Text,
-    View,
-} from "react-native"
+import { ActivityIndicator, AppState, Image, Linking, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { AppButton } from "../components/common/AppButton"
-import { colors } from "../constants/theme"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Text } from "@/components/ui/text"
 import { RootStackParamList } from "../navigation/types"
 import { fetchNowPlaying } from "../services/kvarteretSkjermService"
 
@@ -70,7 +63,6 @@ export function KvarteretSkjermScreen({
 
     const errorMessage = isError ? (error instanceof Error ? error.message : String(error)) : null
 
-    const progressWidth: DimensionValue = `${clampProgress(nowPlaying?.progressPercent ?? 0)}%`
     const hasData = Boolean(nowPlaying)
     const isAuthorized = Boolean(nowPlaying?.authorized)
     const isPlayingTrack = Boolean(nowPlaying?.playing)
@@ -101,53 +93,62 @@ export function KvarteretSkjermScreen({
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
             <ScrollView className="flex-1" contentContainerClassName="flex-grow gap-3 p-4">
                 {isPending ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
-                        <ActivityIndicator color={colors.primaryText} size="large" />
-                        <Text className="font-inter-medium text-base text-text-primary">
+                    <Card className="gap-3 p-4">
+                        <ActivityIndicator color="#111827" size="large" />
+                        <Text className="font-inter-medium text-base text-foreground">
                             {t("nowPlayingLoading")}
                         </Text>
-                    </View>
+                    </Card>
                 ) : null}
 
                 {errorMessage ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
-                        <Text className="font-inter-medium text-base text-text-primary">
+                    <Card className="gap-3 p-4">
+                        <Text className="font-inter-medium text-base text-foreground">
                             {t("nowPlayingError")}
                         </Text>
-                        <Text className="font-inter text-sm text-text-secondary">
+                        <Text className="font-inter text-sm text-muted-foreground">
                             {errorMessage}
                         </Text>
-                        <AppButton text={t("nowPlayingRetry")} onPress={handleManualRefresh} />
-                    </View>
+                        <Button className="h-12 rounded-xl" onPress={handleManualRefresh}>
+                            <Text className="font-inter-semibold text-base leading-5">
+                                {t("nowPlayingRetry")}
+                            </Text>
+                        </Button>
+                    </Card>
                 ) : null}
 
                 {showUnauthorized ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
-                        <Text className="font-inter-medium text-base text-text-primary">
+                    <Card className="gap-3 p-4">
+                        <Text className="font-inter-medium text-base text-foreground">
                             {t("nowPlayingUnauthorized")}
                         </Text>
-                        <AppButton
-                            text={t("nowPlayingConnect")}
-                            onPress={handleOpenSpotifyConnect}
-                        />
-                    </View>
+                        <Button className="h-12 rounded-xl" onPress={handleOpenSpotifyConnect}>
+                            <Text className="font-inter-semibold text-base leading-5">
+                                {t("nowPlayingConnect")}
+                            </Text>
+                        </Button>
+                    </Card>
                 ) : null}
 
                 {showIdle ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
-                        <Text className="font-inter-medium text-base text-text-primary">
+                    <Card className="gap-3 p-4">
+                        <Text className="font-inter-medium text-base text-foreground">
                             {t("nowPlayingIdle")}
                         </Text>
-                        <AppButton
-                            secondary
-                            text={t("nowPlayingRetry")}
+                        <Button
+                            className="h-12 rounded-xl"
+                            variant="outline"
                             onPress={handleManualRefresh}
-                        />
-                    </View>
+                        >
+                            <Text className="font-inter-semibold text-base leading-5 text-foreground">
+                                {t("nowPlayingRetry")}
+                            </Text>
+                        </Button>
+                    </Card>
                 ) : null}
 
                 {showPlaying ? (
-                    <View className="flex-row items-center gap-3 rounded-card border border-border bg-surface p-3">
+                    <Card className="flex-row items-center gap-3 p-3">
                         {nowPlaying.image ? (
                             <Image
                                 className="h-24 w-24 rounded-lg"
@@ -155,28 +156,27 @@ export function KvarteretSkjermScreen({
                             />
                         ) : null}
                         <View className="flex-1 gap-2">
-                            <Text className="font-inter-semibold text-lg text-text-primary">
+                            <Text className="font-inter-semibold text-lg text-foreground">
                                 {nowPlaying.name ?? ""}
                             </Text>
-                            <Text className="font-inter text-sm text-text-secondary">
+                            <Text className="font-inter text-sm text-muted-foreground">
                                 {nowPlaying.artists ?? ""}
                                 {nowPlaying.album ? ` - ${nowPlaying.album}` : ""}
                             </Text>
 
-                            <View className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
-                                <View
-                                    className="h-full rounded-full bg-link"
-                                    style={{ width: progressWidth }}
-                                />
-                            </View>
+                            <Progress
+                                className="h-2 w-full"
+                                indicatorClassName="bg-accent"
+                                value={clampProgress(nowPlaying?.progressPercent ?? 0)}
+                            />
 
-                            <Text className="font-inter text-xs text-text-secondary">
+                            <Text className="font-inter text-xs text-muted-foreground">
                                 {nowPlaying.isPlaying
                                     ? t("nowPlayingPlaying")
                                     : t("nowPlayingPaused")}
                             </Text>
                         </View>
-                    </View>
+                    </Card>
                 ) : null}
             </ScrollView>
         </SafeAreaView>

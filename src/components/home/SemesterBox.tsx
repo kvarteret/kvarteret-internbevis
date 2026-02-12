@@ -1,8 +1,8 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { useTranslation } from "react-i18next"
-import { Pressable, Text, View } from "react-native"
-import { colors } from "../../constants/theme"
+import { Pressable, View } from "react-native"
+import { Text } from "@/components/ui/text"
 import { cn } from "../../utils/cn"
 
 interface SemesterBoxProps {
@@ -30,18 +30,18 @@ function getTierIconName(tier: number): keyof typeof MaterialIcons.glyphMap {
 
 function getTierBackgroundClass(tier: number, isValid: boolean): string {
     if (!isValid) {
-        return "bg-danger"
+        return "bg-destructive"
     }
 
     switch (tier) {
         case 1:
-            return "bg-[#16A34A]"
+            return "bg-green-600"
         case 2:
-            return "bg-[#C2410C]"
+            return "bg-orange-700"
         case 3:
             return "bg-[#1B3A0A]"
         case 4:
-            return "bg-[#1D4ED8]"
+            return "bg-blue-700"
         default:
             return "bg-[#1B3A0A]"
     }
@@ -65,15 +65,17 @@ export function SemesterBox({
             onPress={onPress}
         >
             <View className="flex-row items-center gap-2">
-                <MaterialIcons color={colors.white} name={getTierIconName(tier)} size={24} />
-                <Text className="font-inter-bold text-lg leading-6 text-surface">
+                <MaterialIcons color="#ffffff" name={getTierIconName(tier)} size={24} />
+                <Text className="font-inter-bold text-lg leading-6 text-primary-foreground">
                     {t("tierLabel", { tier })}
                 </Text>
             </View>
 
             <Text className="font-inter-medium text-base leading-6 text-white/80">{status}</Text>
 
-            <Text className="font-inter-extrabold text-xl leading-7 text-surface">{semester}</Text>
+            <Text className="font-inter-extrabold text-xl leading-7 text-primary-foreground">
+                {semester}
+            </Text>
         </Pressable>
     )
 }

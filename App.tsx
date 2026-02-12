@@ -4,10 +4,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import React, { useEffect } from "react"
-import { ActivityIndicator, LogBox, View } from "react-native"
+import { ActivityIndicator, View } from "react-native"
 import "./global.css"
 import "./src/localization/i18n"
-import { colors } from "./src/constants/theme"
+import { THEME } from "./src/lib/theme"
 import { RootStackParamList } from "./src/navigation/types"
 import { GamesScreen } from "./src/screens/GamesScreen"
 import { HomeScreen } from "./src/screens/HomeScreen"
@@ -73,7 +73,7 @@ function RootNavigator(): React.JSX.Element {
     if (userHydrating || languageHydrating || !fontsReady) {
         return (
             <View className="flex-1 items-center justify-center bg-background">
-                <ActivityIndicator color={colors.primaryText} size="large" />
+                <ActivityIndicator color={THEME.light.foreground} size="large" />
             </View>
         )
     }
@@ -83,7 +83,7 @@ function RootNavigator(): React.JSX.Element {
             <Stack.Navigator
                 screenOptions={{
                     headerBackTitle: "",
-                    headerTintColor: colors.primaryText,
+                    headerTintColor: THEME.light.foreground,
                     headerTitleStyle: {
                         fontFamily: "Inter_600SemiBold",
                     },

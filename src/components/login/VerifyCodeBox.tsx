@@ -3,14 +3,16 @@ import Constants from "expo-constants"
 import * as Linking from "expo-linking"
 import React, { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Alert, ScrollView, Text, View } from "react-native"
+import { Alert, Platform, ScrollView, type TextInputProps, View } from "react-native"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Text } from "@/components/ui/text"
 import { extractFriendlyErrorMessage, requestAccessToken } from "../../services/authService"
 import {
     extractAccessTokenFromManualInput,
     extractAccessTokenFromUrl,
 } from "../../services/deepLinkService"
-import { AppButton } from "../common/AppButton"
-import { AppTextField } from "../common/AppTextField"
 
 interface VerifyCodeBoxProps {
     email: string
@@ -29,6 +31,10 @@ export function VerifyCodeBox({
     const [otpFieldErrorText, setOtpFieldErrorText] = useState<string | null>(null)
     const [globalErrorText, setGlobalErrorText] = useState<string | null>(null)
     const handlingDeepLinkRef = useRef(false)
+    const otpAutoComplete = Platform.select({
+        android: "sms-otp",
+        default: "one-time-code",
+    }) as TextInputProps["autoComplete"]
 
     useEffect(() => {
         let mounted = true
@@ -124,14 +130,14 @@ export function VerifyCodeBox({
             contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4"
             keyboardShouldPersistTaps="handled"
         >
-            <View className="w-[92%] max-w-xl rounded-2xl border border-white/35 bg-black/55 px-5 py-7">
-                <Text className="text-center font-inter-medium text-2xl leading-8 text-surface">
+            <Card className="w-[92%] max-w-xl gap-4 rounded-2xl border-white/35 bg-black/55 px-5 py-7">
+                <Text className="text-center font-inter-medium text-2xl leading-8 text-primary-foreground">
                     {t("verifyEmail")}
                 </Text>
 
-                <View className="mx-5 my-2.5 border-b-2 border-white/70" />
+                <View className="mx-5 my-1 border-b-2 border-white/70" />
 
-                <Text className="text-center font-inter text-base leading-6 text-surface">
+                <Text className="text-center font-inter text-base leading-6 text-primary-foreground">
                     {t("enterCodeFromEmail")}
                 </Text>
 
@@ -141,39 +147,72 @@ export function VerifyCodeBox({
                     </Text>
                 ) : null}
 
-                <View className="mt-7 gap-4">
-                    <AppTextField
-                        errorText={otpFieldErrorText}
-                        icon="lock"
-                        placeholder={t("codeFromEmail")}
-                        value={otpCode}
-                        onChangeText={setOtpCode}
-                    />
+                <View className="mt-4 gap-4">
+                    <View>
+                        <Input
+                            autoCapitalize="none"
+                            autoComplete={otpAutoComplete}
+                            autoCorrect={false}
+                            blurOnSubmit
+                            className="font-inter"
+                            onSubmitEditing={() => void handleVerifyCode()}
+                            placeholder={t("codeFromEmail")}
+                            returnKeyType="done"
+                            textContentType="oneTimeCode"
+                            value={otpCode}
+                            onChangeText={setOtpCode}
+                        />
+
+                        {otpFieldErrorText ? (
+                            <Text className="mt-1.5 font-inter text-[13px] text-destructive">
+                                {otpFieldErrorText}
+                            </Text>
+                        ) : null}
+                    </View>
 
                     {globalErrorText ? (
-                        <Text className="font-inter text-[13px] text-[#B91C1C]">
+                        <Text className="font-inter text-[13px] text-destructive">
                             {globalErrorText}
                         </Text>
                     ) : null}
 
                     <View className="gap-3">
-                        <AppButton text={t("confirm")} onPress={() => void handleVerifyCode()} />
-                        <AppButton
-                            secondary
-                            text={t("sendNewCode")}
+                        <Button className="h-12 rounded-xl" onPress={() => void handleVerifyCode()}>
+                            <Text className="font-inter-semibold text-base leading-5">
+                                {t("confirm")}
+                            </Text>
+                        </Button>
+
+                        <Button
+                            className="h-12 rounded-xl"
+                            variant="outline"
                             onPress={() => void handleSendOtp()}
-                        />
+                        >
+                            <Text className="font-inter-semibold text-base leading-5 text-foreground">
+                                {t("sendNewCode")}
+                            </Text>
+                        </Button>
+
                         {isExpoGo ? (
-                            <AppButton
-                                secondary
-                                text={t("useLinkFromClipboard")}
+                            <Button
+                                className="h-12 rounded-xl"
+                                variant="outline"
                                 onPress={() => void handleUseClipboardLink()}
-                            />
+                            >
+                                <Text className="font-inter-semibold text-base leading-5 text-foreground">
+                                    {t("useLinkFromClipboard")}
+                                </Text>
+                            </Button>
                         ) : null}
-                        <AppButton secondary text={t("back")} onPress={onBack} />
+
+                        <Button className="h-12 rounded-xl" variant="outline" onPress={onBack}>
+                            <Text className="font-inter-semibold text-base leading-5 text-foreground">
+                                {t("back")}
+                            </Text>
+                        </Button>
                     </View>
                 </View>
-            </View>
+            </Card>
         </ScrollView>
     )
 }

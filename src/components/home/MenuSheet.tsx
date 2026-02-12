@@ -1,9 +1,10 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { useTranslation } from "react-i18next"
-import { Modal, Pressable, Text, View } from "react-native"
-import { colors } from "../../constants/theme"
-import { cn } from "../../utils/cn"
+import { Modal, Pressable, View } from "react-native"
+import { Button } from "@/components/ui/button"
+import { Text } from "@/components/ui/text"
+import { cn } from "@/lib/utils"
 
 interface MenuSheetProps {
     visible: boolean
@@ -44,7 +45,13 @@ export function MenuSheet({
             icon: "tv",
             onPress: onOpenKvarteretSkjerm,
         },
-        { key: "logout", label: t("logout"), icon: "logout", destructive: true, onPress: onLogout },
+        {
+            key: "logout",
+            label: t("logout"),
+            icon: "logout",
+            destructive: true,
+            onPress: onLogout,
+        },
     ]
 
     const handlePress = (action: Action): void => {
@@ -53,35 +60,42 @@ export function MenuSheet({
     }
 
     return (
-        <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-            <View className="flex-1 justify-end bg-black/20">
-                <Pressable className="absolute inset-0" onPress={onClose} />
-
-                <View className="overflow-hidden rounded-t-2xl border border-border-soft bg-surface pb-5">
+        <Modal
+            animationType="fade"
+            transparent
+            visible={visible}
+            onRequestClose={onClose}
+        >
+            <View className="flex-1 justify-end">
+                <Pressable className="flex-1" onPress={onClose} />
+                <View className="w-full gap-0 overflow-hidden rounded-t-2xl rounded-b-none border border-border bg-card p-0 pb-5">
                     {actions.map((action, index) => (
-                        <Pressable
+                        <Button
                             key={action.key}
                             className={cn(
-                                "flex-row items-center gap-3 px-5 py-4",
-                                index < actions.length - 1 && "border-b border-border-soft",
+                                "min-h-11 h-auto justify-start rounded-none px-5 py-4",
+                                index < actions.length - 1 && "border-b border-border",
                             )}
+                            androidRipple={{ color: "rgba(17, 24, 39, 0.08)", borderless: false }}
+                            haptic="selection"
+                            nativeFeedback="opacity"
+                            variant="ghost"
                             onPress={() => handlePress(action)}
                         >
                             <MaterialIcons
+                                color={action.destructive ? "#dc2626" : "#111827"}
                                 name={action.icon}
                                 size={20}
-                                color={action.destructive ? "#DC2626" : colors.primaryText}
                             />
                             <Text
-                                className={
-                                    action.destructive
-                                        ? "font-inter-medium text-base text-danger-soft"
-                                        : "font-inter-medium text-base text-text-primary"
-                                }
+                                className={cn(
+                                    "font-inter-medium text-base",
+                                    action.destructive ? "text-destructive" : "text-foreground",
+                                )}
                             >
                                 {action.label}
                             </Text>
-                        </Pressable>
+                        </Button>
                     ))}
                 </View>
             </View>

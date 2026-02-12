@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Animated, Image, Pressable, Text, View } from "react-native"
+import { Animated, Image, Pressable, View } from "react-native"
+import { Text } from "@/components/ui/text"
 import { getHighestTier, getHighestTierGroup, getHighestTierName, User } from "../../types/user"
 import { formatDate } from "../../utils/date"
 import { SemesterBox } from "./SemesterBox"
@@ -48,10 +49,10 @@ export function BottomContainer({
     return (
         <View className="w-full items-center justify-center gap-3.5">
             <View className="items-center gap-0.5 px-4">
-                <Text className="text-center font-inter-extrabold text-2xl leading-7 text-text-primary">
+                <Text className="text-center font-inter-extrabold text-2xl leading-7 text-foreground">
                     {getHighestTierGroup(user)}
                 </Text>
-                <Text className="text-center font-inter-medium text-xl leading-6 text-text-secondary">
+                <Text className="text-center font-inter-medium text-xl leading-6 text-muted-foreground">
                     {getHighestTierName(user)}
                 </Text>
             </View>
@@ -64,7 +65,7 @@ export function BottomContainer({
                 tier={getHighestTier(user)}
             />
 
-            <Text className="text-center font-inter-bold text-base leading-6 text-text-primary">
+            <Text className="text-center font-inter-bold text-base leading-6 text-foreground">
                 {active ? t("validUntil", { date: formatDate(user.gyldigTil) }) : ""}
             </Text>
 

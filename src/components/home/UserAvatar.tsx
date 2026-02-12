@@ -1,7 +1,8 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React, { useEffect, useMemo, useRef } from "react"
-import { Animated, Easing, Image, useWindowDimensions, View } from "react-native"
-import { colors } from "../../constants/theme"
+import { Animated, Easing, useWindowDimensions, View } from "react-native"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Text } from "@/components/ui/text"
 
 interface UserAvatarProps {
     imageUrl?: string
@@ -92,32 +93,25 @@ export function UserAvatar({ imageUrl, animationTrigger }: UserAvatarProps): Rea
                     ],
                 }}
             >
-                <View
-                    className="overflow-hidden bg-surface-muted"
+                <Avatar
+                    alt="User avatar"
                     style={{ width: radius * 2, height: radius * 2, borderRadius: radius }}
                 >
                     {localImageSource ? (
-                        <Image
-                            className="h-full w-full"
-                            resizeMode="cover"
-                            source={localImageSource}
-                        />
+                        <AvatarImage resizeMode="cover" source={localImageSource} />
                     ) : null}
 
                     {!localImageSource && hasRemoteImage ? (
-                        <Image
-                            className="h-full w-full"
-                            resizeMode="cover"
-                            source={{ uri: imageUrl }}
-                        />
+                        <AvatarImage resizeMode="cover" source={{ uri: imageUrl }} />
                     ) : null}
 
                     {!localImageSource && !hasRemoteImage ? (
-                        <View className="h-full w-full items-center justify-center">
-                            <MaterialIcons color={colors.gray600} name="person" size={radius} />
-                        </View>
+                        <AvatarFallback>
+                            <MaterialIcons color="#6b7280" name="person" size={radius} />
+                            <Text className="sr-only">User avatar fallback</Text>
+                        </AvatarFallback>
                     ) : null}
-                </View>
+                </Avatar>
             </Animated.View>
         </View>
     )

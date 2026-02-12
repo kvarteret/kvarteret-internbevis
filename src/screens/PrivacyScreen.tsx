@@ -19,7 +19,7 @@ export function PrivacyScreen({
     }, [navigation, t])
 
     return (
-        <ScrollView className="bg-surface" contentContainerClassName="px-4 py-4">
+        <ScrollView className="bg-card" contentContainerClassName="px-4 py-4">
             <Markdown>{markdown}</Markdown>
         </ScrollView>
     )

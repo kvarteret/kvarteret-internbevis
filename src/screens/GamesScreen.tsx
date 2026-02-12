@@ -1,8 +1,11 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { AppState, Pressable, ScrollView, Text, View } from "react-native"
+import { AppState, Pressable, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Text } from "@/components/ui/text"
 import { RootStackParamList } from "../navigation/types"
 import {
     ChessPlayer,
@@ -40,14 +43,14 @@ function getClockCardClass(state: ChessTimerState, player: ChessPlayer): string 
     const isActivePlayer = state.activePlayer === player
 
     if (!isActivePlayer || state.winner) {
-        return "rounded-xl border border-border bg-surface-muted p-3.5"
+        return "rounded-xl border border-border bg-muted p-3.5"
     }
 
     if (state.isRunning) {
-        return "rounded-xl border border-danger bg-danger p-3.5"
+        return "rounded-xl border border-destructive bg-destructive p-3.5"
     }
 
-    return "rounded-xl border border-danger bg-[#AA000073] p-3.5"
+    return "rounded-xl border border-destructive bg-destructive/40 p-3.5"
 }
 
 function getClockLabelClass(state: ChessTimerState, player: ChessPlayer): string {
@@ -56,7 +59,7 @@ function getClockLabelClass(state: ChessTimerState, player: ChessPlayer): string
 
     return [
         "mb-1.5 font-inter-semibold text-sm",
-        isHighlighted ? "text-surface" : "text-text-secondary",
+        isHighlighted ? "text-primary-foreground" : "text-muted-foreground",
     ].join(" ")
 }
 
@@ -64,9 +67,10 @@ function getClockValueClass(state: ChessTimerState, player: ChessPlayer): string
     const isActivePlayer = state.activePlayer === player
     const isHighlighted = isActivePlayer && (state.isRunning || !state.winner)
 
-    return ["font-inter-bold text-5xl", isHighlighted ? "text-surface" : "text-text-primary"].join(
-        " ",
-    )
+    return [
+        "font-inter-bold text-5xl",
+        isHighlighted ? "text-primary-foreground" : "text-foreground",
+    ].join(" ")
 }
 
 export function GamesScreen({
@@ -227,84 +231,69 @@ export function GamesScreen({
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
             <ScrollView className="flex-1" contentContainerClassName="flex-grow gap-4 p-4">
                 <View className="flex-row gap-2.5">
-                    <Pressable
-                        className={[
-                            "flex-1 items-center justify-center rounded-xl border px-3 py-3",
-                            mode === "d6"
-                                ? "border-text-primary bg-text-primary"
-                                : "border-border bg-surface",
-                        ]
-                            .filter(Boolean)
-                            .join(" ")}
+                    <Button
+                        className="flex-1 rounded-xl border px-3 py-3"
+                        variant={mode === "d6" ? "default" : "outline"}
                         onPress={() => setMode("d6")}
                     >
                         <Text
                             className={
                                 mode === "d6"
-                                    ? "font-inter-semibold text-[15px] text-surface"
-                                    : "font-inter-semibold text-[15px] text-text-primary"
+                                    ? "font-inter-semibold text-[15px] text-primary-foreground"
+                                    : "font-inter-semibold text-[15px] text-foreground"
                             }
                         >
                             {t("gamesDice")}
                         </Text>
-                    </Pressable>
+                    </Button>
 
-                    <Pressable
-                        className={[
-                            "flex-1 items-center justify-center rounded-xl border px-3 py-3",
-                            mode === "chess"
-                                ? "border-text-primary bg-text-primary"
-                                : "border-border bg-surface",
-                        ]
-                            .filter(Boolean)
-                            .join(" ")}
+                    <Button
+                        className="flex-1 rounded-xl border px-3 py-3"
+                        variant={mode === "chess" ? "default" : "outline"}
                         onPress={() => setMode("chess")}
                     >
                         <Text
                             className={
                                 mode === "chess"
-                                    ? "font-inter-semibold text-[15px] text-surface"
-                                    : "font-inter-semibold text-[15px] text-text-primary"
+                                    ? "font-inter-semibold text-[15px] text-primary-foreground"
+                                    : "font-inter-semibold text-[15px] text-foreground"
                             }
                         >
                             {t("gamesChessTimer")}
                         </Text>
-                    </Pressable>
+                    </Button>
                 </View>
 
                 {mode === "d6" ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
-                        <Text className="font-inter-bold text-2xl text-text-primary">
+                    <Card className="gap-3 p-4">
+                        <Text className="font-inter-bold text-2xl text-foreground">
                             {t("gamesDice")}
                         </Text>
-                        <Text className="text-center font-inter-bold text-7xl text-text-primary">
+                        <Text className="text-center font-inter-bold text-7xl text-foreground">
                             {diceValue}
                         </Text>
-                        <Text className="text-center font-inter text-sm text-text-secondary">
+                        <Text className="text-center font-inter text-sm text-muted-foreground">
                             {t("gamesDiceRolls", { count: diceRollCount })}
                         </Text>
 
-                        <Pressable
-                            className="items-center rounded-xl border border-text-primary bg-text-primary py-3"
-                            onPress={handleRollDice}
-                        >
-                            <Text className="font-inter-bold text-base text-surface">
+                        <Button className="h-12 rounded-xl" onPress={handleRollDice}>
+                            <Text className="font-inter-bold text-base text-primary-foreground">
                                 {t("gamesRollD6")}
                             </Text>
-                        </Pressable>
-                    </View>
+                        </Button>
+                    </Card>
                 ) : (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
-                        <Text className="font-inter-bold text-2xl text-text-primary">
+                    <Card className="gap-3 p-4">
+                        <Text className="font-inter-bold text-2xl text-foreground">
                             {t("gamesChessTimer")}
                         </Text>
 
                         <Pressable className="gap-3" onPress={handleChessBoxTap}>
                             <View className="flex-row items-center justify-between">
-                                <Text className="font-inter-semibold text-base text-text-secondary">
+                                <Text className="font-inter-semibold text-base text-muted-foreground">
                                     {t("chessTimeControl")}
                                 </Text>
-                                <Text className="font-inter-semibold text-base text-text-secondary">
+                                <Text className="font-inter-semibold text-base text-muted-foreground">
                                     {t("chessMoves", { count: timerState.moveCount })}
                                 </Text>
                             </View>
@@ -328,32 +317,30 @@ export function GamesScreen({
                             </View>
 
                             {winnerLabel ? (
-                                <Text className="font-inter-bold text-base text-[#1B3A0A]">
+                                <Text className="font-inter-bold text-base text-secondary">
                                     {winnerLabel}
                                 </Text>
                             ) : null}
                         </Pressable>
 
                         <View className="mt-1 gap-2.5">
-                            <Pressable
-                                className="items-center rounded-xl border border-text-primary bg-text-primary py-3"
-                                onPress={handleToggleTimer}
-                            >
-                                <Text className="font-inter-bold text-base text-surface">
+                            <Button className="h-12 rounded-xl" onPress={handleToggleTimer}>
+                                <Text className="font-inter-bold text-base text-primary-foreground">
                                     {timerState.isRunning ? t("chessPause") : t("chessStart")}
                                 </Text>
-                            </Pressable>
+                            </Button>
 
-                            <Pressable
-                                className="items-center rounded-xl border border-border bg-surface py-3"
+                            <Button
+                                className="h-12 rounded-xl"
+                                variant="outline"
                                 onPress={handleResetTimer}
                             >
-                                <Text className="font-inter-semibold text-base text-text-primary">
+                                <Text className="font-inter-semibold text-base text-foreground">
                                     {t("chessReset")}
                                 </Text>
-                            </Pressable>
+                            </Button>
                         </View>
-                    </View>
+                    </Card>
                 )}
             </ScrollView>
         </SafeAreaView>

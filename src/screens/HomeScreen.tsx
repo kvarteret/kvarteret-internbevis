@@ -2,21 +2,15 @@ import { MaterialIcons } from "@expo/vector-icons"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import React, { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
-import {
-    ActivityIndicator,
-    Linking,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
-} from "react-native"
+import { ActivityIndicator, Linking, useWindowDimensions, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { Button } from "@/components/ui/button"
+import { Text } from "@/components/ui/text"
 import { BottomContainer } from "../components/home/BottomContainer"
 import { MenuSheet } from "../components/home/MenuSheet"
 import { UserAvatar } from "../components/home/UserAvatar"
 import { UserInfoCard } from "../components/home/UserInfoCard"
 import { LanguageSelectorModal } from "../components/LanguageSelectorModal"
-import { colors } from "../constants/theme"
 import { RootStackParamList } from "../navigation/types"
 import { useUser } from "../state/UserContext"
 import { NotRegisteredScreen } from "./NotRegisteredScreen"
@@ -76,7 +70,7 @@ export function HomeScreen({
     if (isLoading) {
         return (
             <SafeAreaView className="flex-1 items-center justify-center bg-background">
-                <ActivityIndicator color={colors.primaryText} size="large" />
+                <ActivityIndicator color="#111827" size="large" />
             </SafeAreaView>
         )
     }
@@ -92,20 +86,26 @@ export function HomeScreen({
 
                 <Text
                     adjustsFontSizeToFit
-                    className="flex-1 px-2 text-center font-inter-extrabold text-4xl leading-10 tracking-[0.3px] text-text-primary"
+                    className="flex-1 px-2 text-center font-inter-extrabold text-4xl leading-10 tracking-[0.3px] text-foreground"
                     minimumFontScale={0.72}
                     numberOfLines={1}
                 >
                     {t("homeTitle")}
                 </Text>
 
-                <TouchableOpacity
+                <Button
                     accessibilityLabel={t("openMenu")}
-                    className="w-10 items-end"
+                    className="h-11 w-11 items-end p-0"
+                    androidRipple={{ color: "rgba(17, 24, 39, 0.08)", borderless: true }}
+                    haptic="selection"
+                    hitSlop={8}
+                    nativeFeedback="scale"
+                    size="icon"
+                    variant="ghost"
                     onPress={handleOpenMenu}
                 >
-                    <MaterialIcons color={colors.primaryText} name="menu" size={28} />
-                </TouchableOpacity>
+                    <MaterialIcons color="#111827" name="menu" size={28} />
+                </Button>
             </View>
 
             <View className="flex-1 pt-1.5">
@@ -144,7 +144,7 @@ export function HomeScreen({
                 <View className="w-full flex-row flex-nowrap items-center justify-center px-1">
                     <Text
                         adjustsFontSizeToFit
-                        className="shrink font-inter-medium text-lg leading-6 text-text-primary"
+                        className="shrink font-inter-medium text-lg leading-6 text-foreground"
                         ellipsizeMode="tail"
                         minimumFontScale={0.72}
                         numberOfLines={1}
@@ -152,26 +152,28 @@ export function HomeScreen({
                         {t("homeFooterPrefix")}
                     </Text>
                     <Text
-                        className="px-1.5 font-inter text-2xl leading-8 text-text-primary"
+                        className="px-1.5 font-inter text-2xl leading-8 text-foreground"
                         numberOfLines={1}
                     >
                         |
                     </Text>
-                    <TouchableOpacity
-                        accessibilityRole="link"
-                        className="shrink"
+                    <Button
+                        className="min-h-11 shrink p-0"
+                        haptic="selection"
+                        nativeFeedback="opacity"
+                        variant="link"
                         onPress={handleOpenVolunteerPage}
                     >
                         <Text
                             adjustsFontSizeToFit
-                            className="font-inter-extrabold text-lg leading-6 text-text-primary underline"
+                            className="font-inter-extrabold text-lg leading-6 text-foreground underline"
                             ellipsizeMode="tail"
                             minimumFontScale={0.72}
                             numberOfLines={1}
                         >
                             {t("homeFooterVolunteer")}
                         </Text>
-                    </TouchableOpacity>
+                    </Button>
                 </View>
             </View>
 
