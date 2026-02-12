@@ -1,9 +1,7 @@
-import React from 'react';
-import { useWindowDimensions } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { AppText } from '../ui/AppText';
-import { Box } from '../ui/Box';
-import { formatDate } from '../../utils/date';
+import React from "react";
+import { Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { formatDate } from "../../utils/date";
 
 interface UserInfoCardProps {
   firstName: string;
@@ -15,8 +13,8 @@ interface UserInfoCardProps {
 
 function normalizeWordOfTheDay(value: string): string {
   return value
-    .replace(/^dagens ord:\s*/i, '')
-    .replace(/^word of the day:\s*/i, '')
+    .replace(/^dagens ord:\s*/i, "")
+    .replace(/^word of the day:\s*/i, "")
     .trim();
 }
 
@@ -28,51 +26,21 @@ export function UserInfoCard({
   dagensOrd,
 }: UserInfoCardProps): React.JSX.Element {
   const { t } = useTranslation();
-  const { height } = useWindowDimensions();
-  const isSmallScreen = height < 600;
 
   const wordOfTheDayValue = normalizeWordOfTheDay(dagensOrd);
-  const birthDateText = birthDate ? formatDate(birthDate) : '-';
+  const birthDateText = birthDate ? formatDate(birthDate) : "-";
 
   return (
-    <Box className="w-full max-w-[420px] items-center px-5">
-      <AppText
-        className="text-center text-black"
-        style={{
-          fontSize: isSmallScreen ? 20 : 24,
-          lineHeight: isSmallScreen ? 26 : 30,
-        }}
-        variant="subtitle"
-      >
-        {`${firstName} ${lastName}`}
-      </AppText>
+    <View className="w-full max-w-md items-center rounded-card border border-border-soft px-5 py-4">
+      <Text className="text-center font-inter-extrabold text-2xl leading-8 text-text-primary">{`${firstName} ${lastName}`}</Text>
 
-      <AppText
-        className="text-center text-gray-600"
-        style={{
-          fontSize: isSmallScreen ? 18 : 20,
-          lineHeight: isSmallScreen ? 22 : 24,
-        }}
-        variant="body"
-      >
+      <Text className="text-center font-inter-medium text-xl leading-6 text-text-secondary">
         {birthDateText}
-      </AppText>
+      </Text>
 
-      <AppText
-        className="mt-1.5 text-center text-black"
-        style={{ fontSize: isSmallScreen ? 16 : 18 }}
-        variant="meta"
-      >
-        {`${t('pingvinPoints')}: ${pingvinPoengSum}`}
-      </AppText>
+      <Text className="mt-1.5 text-center font-inter-bold text-lg text-text-primary">{`${t("pingvinPoints")}: ${pingvinPoengSum}`}</Text>
 
-      <AppText
-        className="mt-1.5 text-center text-black italic"
-        style={{ fontSize: isSmallScreen ? 18 : 20 }}
-        variant="emphasis"
-      >
-        {`${t('wordOfTheDay')}: ${wordOfTheDayValue}`}
-      </AppText>
-    </Box>
+      <Text className="mt-1.5 text-center font-inter-semibold text-xl italic text-text-primary">{`${t("wordOfTheDay")}: ${wordOfTheDayValue}`}</Text>
+    </View>
   );
 }

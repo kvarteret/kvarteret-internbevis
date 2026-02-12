@@ -9,7 +9,6 @@ import {
   Image,
   Linking,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -153,52 +152,52 @@ export function KvarteretSkjermScreen({
   const showPlaying = !isLoading && !error && nowPlaying && nowPlaying.authorized && nowPlaying.playing;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right', 'bottom']}>
+      <ScrollView className="flex-1" contentContainerClassName="flex-grow gap-3 p-4">
         {isLoading ? (
-          <View style={styles.stateCard}>
-            <ActivityIndicator size="large" color={colors.primaryText} />
-            <Text style={styles.stateText}>{t('nowPlayingLoading')}</Text>
+          <View className="gap-3 rounded-card border border-border bg-surface p-4">
+            <ActivityIndicator color={colors.primaryText} size="large" />
+            <Text className="font-inter-medium text-base text-text-primary">{t('nowPlayingLoading')}</Text>
           </View>
         ) : null}
 
         {error ? (
-          <View style={styles.stateCard}>
-            <Text style={styles.stateText}>{t('nowPlayingError')}</Text>
-            <Text style={styles.errorDetail}>{error}</Text>
+          <View className="gap-3 rounded-card border border-border bg-surface p-4">
+            <Text className="font-inter-medium text-base text-text-primary">{t('nowPlayingError')}</Text>
+            <Text className="font-inter text-sm text-text-secondary">{error}</Text>
             <AppButton text={t('nowPlayingRetry')} onPress={() => void loadNowPlaying(true)} />
           </View>
         ) : null}
 
         {showUnauthorized ? (
-          <View style={styles.stateCard}>
-            <Text style={styles.stateText}>{t('nowPlayingUnauthorized')}</Text>
+          <View className="gap-3 rounded-card border border-border bg-surface p-4">
+            <Text className="font-inter-medium text-base text-text-primary">{t('nowPlayingUnauthorized')}</Text>
             <AppButton text={t('nowPlayingConnect')} onPress={() => void handleOpenSpotifyConnect()} />
           </View>
         ) : null}
 
         {showIdle ? (
-          <View style={styles.stateCard}>
-            <Text style={styles.stateText}>{t('nowPlayingIdle')}</Text>
+          <View className="gap-3 rounded-card border border-border bg-surface p-4">
+            <Text className="font-inter-medium text-base text-text-primary">{t('nowPlayingIdle')}</Text>
             <AppButton secondary text={t('nowPlayingRetry')} onPress={() => void loadNowPlaying(true)} />
           </View>
         ) : null}
 
         {showPlaying ? (
-          <View style={styles.trackCard}>
-            {nowPlaying.image ? <Image source={{ uri: nowPlaying.image }} style={styles.coverImage} /> : null}
-            <View style={styles.trackDetails}>
-              <Text style={styles.trackName}>{nowPlaying.name ?? ''}</Text>
-              <Text style={styles.trackMeta}>
+          <View className="flex-row items-center gap-3 rounded-card border border-border bg-surface p-3">
+            {nowPlaying.image ? <Image className="h-24 w-24 rounded-lg" source={{ uri: nowPlaying.image }} /> : null}
+            <View className="flex-1 gap-2">
+              <Text className="font-inter-semibold text-lg text-text-primary">{nowPlaying.name ?? ''}</Text>
+              <Text className="font-inter text-sm text-text-secondary">
                 {nowPlaying.artists ?? ''}
                 {nowPlaying.album ? ` - ${nowPlaying.album}` : ''}
               </Text>
 
-              <View style={styles.progressBarBackground}>
-                <View style={[styles.progressBarFill, { width: progressWidth }]} />
+              <View className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
+                <View className="h-full rounded-full bg-link" style={{ width: progressWidth }} />
               </View>
 
-              <Text style={styles.playStateText}>
+              <Text className="font-inter text-xs text-text-secondary">
                 {nowPlaying.isPlaying ? t('nowPlayingPlaying') : t('nowPlayingPaused')}
               </Text>
             </View>
@@ -208,74 +207,3 @@ export function KvarteretSkjermScreen({
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    padding: 16,
-    flexGrow: 1,
-  },
-  stateCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.gray300,
-    backgroundColor: colors.white,
-    padding: 16,
-    gap: 12,
-  },
-  stateText: {
-    color: colors.primaryText,
-    fontSize: 16,
-  },
-  errorDetail: {
-    color: colors.gray700,
-    fontSize: 14,
-  },
-  trackCard: {
-    flexDirection: 'row',
-    gap: 12,
-    borderRadius: 12,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.gray300,
-    padding: 12,
-    alignItems: 'center',
-  },
-  coverImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 8,
-  },
-  trackDetails: {
-    flex: 1,
-    gap: 8,
-  },
-  trackName: {
-    color: colors.primaryText,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  trackMeta: {
-    color: colors.gray700,
-    fontSize: 14,
-  },
-  progressBarBackground: {
-    width: '100%',
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: colors.gray200,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: '#2563EB',
-  },
-  playStateText: {
-    color: colors.gray700,
-    fontSize: 12,
-  },
-});

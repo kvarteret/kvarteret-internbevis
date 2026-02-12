@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/theme';
 
@@ -34,37 +34,11 @@ export function MenuSheet({
   const { t } = useTranslation();
 
   const actions: Action[] = [
-    {
-      key: 'privacy',
-      label: t('privacy'),
-      icon: 'privacy-tip',
-      onPress: onOpenPrivacy,
-    },
-    {
-      key: 'language',
-      label: t('language'),
-      icon: 'language',
-      onPress: onOpenLanguage,
-    },
-    {
-      key: 'games',
-      label: t('games'),
-      icon: 'sports-esports',
-      onPress: onOpenGames,
-    },
-    {
-      key: 'kvarteretSkjerm',
-      label: t('kvarteretSkjerm'),
-      icon: 'tv',
-      onPress: onOpenKvarteretSkjerm,
-    },
-    {
-      key: 'logout',
-      label: t('logout'),
-      icon: 'logout',
-      destructive: true,
-      onPress: onLogout,
-    },
+    { key: 'privacy', label: t('privacy'), icon: 'privacy-tip', onPress: onOpenPrivacy },
+    { key: 'language', label: t('language'), icon: 'language', onPress: onOpenLanguage },
+    { key: 'games', label: t('games'), icon: 'sports-esports', onPress: onOpenGames },
+    { key: 'kvarteretSkjerm', label: t('kvarteretSkjerm'), icon: 'tv', onPress: onOpenKvarteretSkjerm },
+    { key: 'logout', label: t('logout'), icon: 'logout', destructive: true, onPress: onLogout },
   ];
 
   const handlePress = (action: Action): void => {
@@ -74,17 +48,25 @@ export function MenuSheet({
 
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.sheet}>
-          {actions.map((action) => (
-            <Pressable key={action.key} style={styles.row} onPress={() => handlePress(action)}>
-              <MaterialIcons
-                name={action.icon}
-                size={20}
-                color={action.destructive ? '#DC2626' : colors.primaryText}
-              />
-              <Text style={[styles.label, action.destructive ? styles.destructiveLabel : null]}>{action.label}</Text>
+      <View className="flex-1 justify-end bg-black/20">
+        <Pressable className="absolute inset-0" onPress={onClose} />
+
+        <View className="overflow-hidden rounded-t-2xl border border-border-soft bg-surface pb-5">
+          {actions.map((action, index) => (
+            <Pressable
+              key={action.key}
+              className={[
+                'flex-row items-center gap-3 px-5 py-4',
+                index < actions.length - 1 ? 'border-b border-border-soft' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onPress={() => handlePress(action)}
+            >
+              <MaterialIcons name={action.icon} size={20} color={action.destructive ? '#DC2626' : colors.primaryText} />
+              <Text className={action.destructive ? 'font-inter-medium text-base text-danger-soft' : 'font-inter-medium text-base text-text-primary'}>
+                {action.label}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -92,33 +74,3 @@ export function MenuSheet({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  sheet: {
-    backgroundColor: colors.white,
-    paddingBottom: 20,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.gray300,
-  },
-  label: {
-    color: colors.primaryText,
-    fontSize: 16,
-  },
-  destructiveLabel: {
-    color: '#DC2626',
-  },
-});

@@ -1,14 +1,7 @@
-import { MaterialIcons } from "@expo/vector-icons";
-import React, { useEffect, useMemo, useRef } from "react";
-import {
-  Animated,
-  Easing,
-  Image,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from "react-native";
-import { colors } from "../../constants/theme";
+import { MaterialIcons } from '@expo/vector-icons';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, Image, View, useWindowDimensions } from 'react-native';
+import { colors } from '../../constants/theme';
 
 interface UserAvatarProps {
   imageUrl?: string;
@@ -16,19 +9,13 @@ interface UserAvatarProps {
 }
 
 const localImageMap: Record<string, number> = {
-  "assets/images/demopingvin.png": require("../../../assets/images/demopingvin.png"),
+  'assets/images/demopingvin.png': require('../../../assets/images/demopingvin.png'),
 };
 
-export function UserAvatar({
-  imageUrl,
-  animationTrigger,
-}: UserAvatarProps): React.JSX.Element {
+export function UserAvatar({ imageUrl, animationTrigger }: UserAvatarProps): React.JSX.Element {
   const { height } = useWindowDimensions();
   const isSmallScreen = height < 600;
-  const radius = useMemo(
-    () => (isSmallScreen ? height * 0.1 : height * 0.1),
-    [height, isSmallScreen],
-  );
+  const radius = useMemo(() => (isSmallScreen ? height * 0.1 : height * 0.1), [height, isSmallScreen]);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const rotationAnim = useRef(new Animated.Value(0)).current;
@@ -88,7 +75,7 @@ export function UserAvatar({
   const hasRemoteImage = Boolean(imageUrl && !localImageSource);
 
   return (
-    <View style={styles.container}>
+    <View className="items-center justify-center">
       <Animated.View
         style={{
           transform: [
@@ -96,61 +83,31 @@ export function UserAvatar({
             {
               rotate: rotationAnim.interpolate({
                 inputRange: [-1, 1],
-                outputRange: ["-1rad", "1rad"],
+                outputRange: ['-1rad', '1rad'],
               }),
             },
           ],
         }}
       >
         <View
-          style={[
-            styles.avatar,
-            { width: radius * 2, height: radius * 2, borderRadius: radius },
-          ]}
+          className="overflow-hidden bg-surface-muted"
+          style={{ width: radius * 2, height: radius * 2, borderRadius: radius }}
         >
           {localImageSource ? (
-            <Image
-              source={localImageSource}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          ) : hasRemoteImage ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.fallback}>
-              <MaterialIcons
-                name="person"
-                size={radius}
-                color={colors.gray600}
-              />
+            <Image className="h-full w-full" resizeMode="cover" source={localImageSource} />
+          ) : null}
+
+          {!localImageSource && hasRemoteImage ? (
+            <Image className="h-full w-full" resizeMode="cover" source={{ uri: imageUrl }} />
+          ) : null}
+
+          {!localImageSource && !hasRemoteImage ? (
+            <View className="h-full w-full items-center justify-center">
+              <MaterialIcons color={colors.gray600} name="person" size={radius} />
             </View>
-          )}
+          ) : null}
         </View>
       </Animated.View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatar: {
-    overflow: "hidden",
-    backgroundColor: colors.gray200,
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  fallback: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

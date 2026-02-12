@@ -1,20 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/theme';
-import {
-  extractFriendlyErrorMessage,
-  requestAccessToken,
-} from '../../services/authService';
+import { extractFriendlyErrorMessage, requestAccessToken } from '../../services/authService';
 import { consumePendingDeepLinkToken } from '../../services/pendingDeepLinkToken';
 import { AppButton } from '../common/AppButton';
 import { AppTextField } from '../common/AppTextField';
@@ -23,10 +11,7 @@ interface LoginBoxProps {
   onOtpRequested: (email: string) => void;
   onDemoLogin: () => void;
   onPrivacyPress: () => void;
-  onLoginWithToken: (
-    email: string,
-    accessToken: string,
-  ) => Promise<{ success: boolean; message?: string }>;
+  onLoginWithToken: (email: string, accessToken: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 function isEmailInputValid(email: string): boolean {
@@ -83,14 +68,11 @@ export function LoginBox({
   };
 
   return (
-    <ScrollView
-      style={styles.scrollView}
-      contentContainerStyle={styles.scrollContainer}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.card}>
-        <Text style={styles.title}>{t('login')}</Text>
-        <View style={styles.fields}>
+    <ScrollView className="w-full" contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4" keyboardShouldPersistTaps="handled">
+      <View className="w-[92%] max-w-xl rounded-card border border-white/35 bg-black/55 p-6 shadow-card">
+        <Text className="text-center font-inter-bold text-3xl leading-9 text-surface">{t('login')}</Text>
+
+        <View className="mt-6 gap-6">
           <AppTextField
             autoCapitalize="none"
             errorText={emailErrorText}
@@ -102,27 +84,37 @@ export function LoginBox({
           />
 
           {sendingOtp ? (
-            <ActivityIndicator color={colors.primaryText} size="small" style={styles.loading} />
+            <View className="my-2">
+              <ActivityIndicator color={colors.white} size="small" />
+            </View>
           ) : (
-            <View style={styles.buttonGroup}>
+            <View className="gap-3">
               <AppButton text={t('login')} onPress={() => void sendOtp()} />
               <AppButton secondary text={t('tryDemo')} onPress={onDemoLogin} />
             </View>
           )}
 
-          <View style={styles.policyRow}>
+          <View className="flex-row items-start">
             <TouchableOpacity
               accessibilityRole="checkbox"
               accessibilityState={{ checked: privacyPolicyChecked }}
-              style={styles.checkbox}
+              className="mt-1"
               onPress={() => setPrivacyPolicyChecked((previous) => !previous)}
             >
-              <View style={[styles.checkboxSquare, privacyPolicyChecked ? styles.checkboxChecked : null]}>
-                {privacyPolicyChecked ? <Text style={styles.checkboxTick}>✓</Text> : null}
+              <View
+                className={[
+                  'h-5 w-5 items-center justify-center rounded border border-white/70 bg-transparent',
+                  privacyPolicyChecked ? 'border-text-primary bg-text-primary' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {privacyPolicyChecked ? <Text className="font-inter-bold text-sm leading-3 text-surface">✓</Text> : null}
               </View>
             </TouchableOpacity>
-            <Pressable onPress={onPrivacyPress} style={styles.policyButton}>
-              <Text style={styles.policyText}>{t('privacyPolicyConsent')}</Text>
+
+            <Pressable className="ml-3 flex-1" onPress={onPrivacyPress}>
+              <Text className="font-inter text-xs text-link underline">{t('privacyPolicyConsent')}</Text>
             </Pressable>
           </View>
         </View>
@@ -130,81 +122,3 @@ export function LoginBox({
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    width: '100%',
-  },
-  scrollContainer: {
-    width: '100%',
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 520,
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
-  },
-  title: {
-    textAlign: 'center',
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.primaryText,
-  },
-  fields: {
-    marginTop: 24,
-    gap: 24,
-  },
-  buttonGroup: {
-    gap: 12,
-  },
-  loading: {
-    marginVertical: 8,
-  },
-  policyRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  checkbox: {
-    marginTop: 4,
-  },
-  checkboxSquare: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderColor: colors.gray600,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.white,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primaryText,
-    borderColor: colors.primaryText,
-  },
-  checkboxTick: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 14,
-  },
-  policyButton: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  policyText: {
-    fontSize: 12,
-    color: '#2563EB',
-    textDecorationLine: 'underline',
-  },
-});

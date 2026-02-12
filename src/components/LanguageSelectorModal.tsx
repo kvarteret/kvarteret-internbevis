@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../constants/theme';
 import { SupportedLanguage, useLanguage } from '../state/LanguageContext';
@@ -32,25 +32,39 @@ export function LanguageSelectorModal({ visible, onClose }: LanguageSelectorModa
 
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.card}>
-          <Text style={styles.title}>{t('language')}</Text>
+      <View className="flex-1 items-center justify-center bg-black/35 px-4">
+        <Pressable className="absolute inset-0" onPress={onClose} />
+
+        <View className="w-[85%] overflow-hidden rounded-2xl border border-border-soft bg-surface">
+          <Text className="border-b border-border-soft px-4 py-4 text-center font-inter-bold text-xl text-text-primary">
+            {t('language')}
+          </Text>
+
           {options.map((option) => {
             const selected = option.code === language;
+
             return (
               <Pressable
                 key={option.code}
-                style={[styles.row, selected ? styles.rowSelected : null]}
+                className={[
+                  'flex-row items-center border-b border-border-soft px-6 py-4',
+                  selected ? 'bg-surface-muted' : 'bg-surface',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 onPress={() => {
                   void handleSelect(option.code);
                 }}
               >
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{option.abbreviation}</Text>
+                <View className="h-9 w-9 items-center justify-center rounded-full bg-surface-muted">
+                  <Text className="font-inter-bold text-[13px] text-text-secondary">{option.abbreviation}</Text>
                 </View>
-                <Text style={[styles.label, selected ? styles.labelSelected : null]}>{option.label}</Text>
-                <View style={styles.spacer} />
+
+                <Text className={['ml-4 text-base text-text-primary', selected ? 'font-inter-bold' : 'font-inter'].join(' ')}>
+                  {option.label}
+                </Text>
+
+                <View className="flex-1" />
                 {selected ? <MaterialIcons name="check" size={20} color={colors.gray700} /> : null}
               </Pressable>
             );
@@ -60,63 +74,3 @@ export function LanguageSelectorModal({ visible, onClose }: LanguageSelectorModa
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-  },
-  card: {
-    width: '85%',
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  title: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontWeight: '700',
-    fontSize: 20,
-    textAlign: 'center',
-    color: colors.primaryText,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.gray300,
-  },
-  row: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.gray300,
-  },
-  rowSelected: {
-    backgroundColor: colors.gray100,
-  },
-  badge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.gray200,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    color: colors.gray700,
-    fontWeight: '700',
-  },
-  label: {
-    marginLeft: 16,
-    color: colors.primaryText,
-    fontSize: 16,
-    fontWeight: '400',
-  },
-  labelSelected: {
-    fontWeight: '700',
-  },
-  spacer: {
-    flex: 1,
-  },
-});

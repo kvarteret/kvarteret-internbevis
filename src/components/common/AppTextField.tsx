@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { KeyboardTypeOptions, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardTypeOptions, Text, TextInput, View } from 'react-native';
 import { colors } from '../../constants/theme';
 
 interface AppTextFieldProps {
@@ -24,48 +24,27 @@ export function AppTextField({
 }: AppTextFieldProps): React.JSX.Element {
   return (
     <View>
-      <View style={[styles.inputWrapper, errorText ? styles.errorWrapper : null]}>
+      <View
+        className={[
+          'min-h-14 flex-row items-center gap-2.5 rounded-xl border border-surface bg-surface-muted px-3',
+          errorText ? 'border-danger-soft' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
         <MaterialIcons name={icon} size={20} color={colors.gray600} />
         <TextInput
           autoCapitalize={autoCapitalize}
           autoCorrect={false}
+          className="flex-1 py-3 font-inter text-base text-text-primary"
           keyboardType={keyboardType}
           placeholder={placeholder}
           placeholderTextColor={colors.gray600}
-          style={styles.input}
           value={value}
           onChangeText={onChangeText}
         />
       </View>
-      {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
+      {errorText ? <Text className="mt-1.5 font-inter text-xs text-[#B91C1C]">{errorText}</Text> : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  inputWrapper: {
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: colors.white,
-    backgroundColor: colors.gray200,
-    minHeight: 52,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.primaryText,
-    paddingVertical: 12,
-  },
-  errorWrapper: {
-    borderColor: '#DC2626',
-  },
-  errorText: {
-    color: '#B91C1C',
-    marginTop: 6,
-    fontSize: 12,
-  },
-});
