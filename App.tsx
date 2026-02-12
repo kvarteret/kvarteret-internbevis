@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { ActivityIndicator, LogBox, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./global.css";
 import "./src/localization/i18n";
 import { colors } from "./src/constants/theme";
@@ -19,6 +20,15 @@ import { LanguageProvider, useLanguage } from "./src/state/LanguageContext";
 import { UserProvider, useUser } from "./src/state/UserContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 500,
+      gcTime: 1000 * 60 * 5,
+    },
+  },
+});
 
 function RootNavigator(): React.JSX.Element {
   const { user, isHydrating: userHydrating } = useUser();
@@ -108,10 +118,12 @@ function RootNavigator(): React.JSX.Element {
 
 export default function App(): React.JSX.Element {
   return (
-    <LanguageProvider>
-      <UserProvider>
-        <RootNavigator />
-      </UserProvider>
-    </LanguageProvider>
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <UserProvider>
+          <RootNavigator />
+        </UserProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
   );
 }
