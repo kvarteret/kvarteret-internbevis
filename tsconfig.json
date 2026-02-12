@@ -1,7 +1,7 @@
 {
-  "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true
-  },
-  "exclude": ["dist"]
+    "extends": "expo/tsconfig.base",
+    "compilerOptions": {
+        "strict": true
+    },
+    "exclude": ["dist"]
 }
