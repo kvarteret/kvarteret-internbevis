@@ -1,15 +1,15 @@
-import { NowPlayingState } from '../types/nowPlaying';
+import { NowPlayingState } from "../types/nowPlaying";
 
-const DEFAULT_KVARTERET_SKJERM_BASE_URL = 'https://kvarteret-skjerm.fly.dev';
+const DEFAULT_KVARTERET_SKJERM_BASE_URL = "https://kvarteret-skjerm.fly.dev";
 
 export function getKvarteretSkjermBaseUrl(): string {
   const configured = process.env.EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL?.trim();
   const base = configured && configured.length > 0 ? configured : DEFAULT_KVARTERET_SKJERM_BASE_URL;
-  return base.endsWith('/') ? base.slice(0, -1) : base;
+  return base.endsWith("/") ? base.slice(0, -1) : base;
 }
 
 export function getSpotifyConnectUrl(connectUrl?: string | null): string {
-  const trimmed = typeof connectUrl === 'string' ? connectUrl.trim() : '';
+  const trimmed = typeof connectUrl === "string" ? connectUrl.trim() : "";
   if (trimmed.length > 0) {
     return trimmed;
   }
@@ -18,7 +18,7 @@ export function getSpotifyConnectUrl(connectUrl?: string | null): string {
 }
 
 function parseRequiredBoolean(value: unknown, field: string): boolean {
-  if (typeof value !== 'boolean') {
+  if (typeof value !== "boolean") {
     throw new Error(`Invalid now playing response: ${field} must be a boolean`);
   }
 
@@ -30,7 +30,7 @@ function parseNullableString(value: unknown): string | null {
     return null;
   }
 
-  return typeof value === 'string' ? value : null;
+  return typeof value === "string" ? value : null;
 }
 
 function parseNullableNumber(value: unknown, field: string): number | null {
@@ -38,7 +38,7 @@ function parseNullableNumber(value: unknown, field: string): number | null {
     return null;
   }
 
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
 
@@ -46,32 +46,32 @@ function parseNullableNumber(value: unknown, field: string): number | null {
 }
 
 function parseNowPlayingResponse(payload: unknown): NowPlayingState {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error('Invalid now playing response payload');
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid now playing response payload");
   }
 
   const value = payload as Record<string, unknown>;
 
   return {
-    authorized: parseRequiredBoolean(value.authorized, 'authorized'),
-    playing: parseRequiredBoolean(value.playing, 'playing'),
-    isPlaying: parseRequiredBoolean(value.isPlaying, 'isPlaying'),
+    authorized: parseRequiredBoolean(value.authorized, "authorized"),
+    playing: parseRequiredBoolean(value.playing, "playing"),
+    isPlaying: parseRequiredBoolean(value.isPlaying, "isPlaying"),
     name: parseNullableString(value.name),
     artists: parseNullableString(value.artists),
     album: parseNullableString(value.album),
     image: parseNullableString(value.image),
-    progressMs: parseNullableNumber(value.progressMs, 'progressMs'),
-    durationMs: parseNullableNumber(value.durationMs, 'durationMs'),
-    progressPercent: parseNullableNumber(value.progressPercent, 'progressPercent'),
+    progressMs: parseNullableNumber(value.progressMs, "progressMs"),
+    durationMs: parseNullableNumber(value.durationMs, "durationMs"),
+    progressPercent: parseNullableNumber(value.progressPercent, "progressPercent"),
     connectUrl: getSpotifyConnectUrl(parseNullableString(value.connectUrl)),
   };
 }
 
 export async function fetchNowPlaying(signal?: AbortSignal): Promise<NowPlayingState> {
   const response = await fetch(`${getKvarteretSkjermBaseUrl()}/api/now-playing`, {
-    method: 'GET',
+    method: "GET",
     headers: {
-      Accept: 'application/json',
+      Accept: "application/json",
     },
     signal,
   });

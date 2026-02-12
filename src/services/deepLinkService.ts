@@ -1,4 +1,4 @@
-import * as Linking from 'expo-linking';
+import * as Linking from "expo-linking";
 
 function extractTokenFromDeepLink(value: string): string | null {
   if (!value) {
@@ -17,18 +17,18 @@ function extractTokenFromDeepLink(value: string): string | null {
   if (!token) {
     try {
       const parsedUrl = new URL(value);
-      token = parsedUrl.searchParams.get('accessToken');
+      token = parsedUrl.searchParams.get("accessToken");
     } catch {
       token = null;
     }
   }
 
-  if (!token && value.includes('accessToken=')) {
-    const [, queryPart] = value.split('accessToken=');
-    token = queryPart?.split('&')[0];
+  if (!token && value.includes("accessToken=")) {
+    const [, queryPart] = value.split("accessToken=");
+    token = queryPart?.split("&")[0];
   }
 
-  if (typeof token === 'string' && token.length > 0) {
+  if (typeof token === "string" && token.length > 0) {
     try {
       return decodeURIComponent(token);
     } catch {
@@ -40,7 +40,7 @@ function extractTokenFromDeepLink(value: string): string | null {
 }
 
 function looksLikeRawToken(value: string): boolean {
-  return !value.includes('://') && !value.includes(' ') && !value.includes('=');
+  return !value.includes("://") && !value.includes(" ") && !value.includes("=");
 }
 
 export function extractAccessTokenFromUrl(url: string): string | null {

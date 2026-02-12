@@ -1,9 +1,9 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { colors } from '../../constants/theme';
-import { cn } from '../../utils/cn';
+import { MaterialIcons } from "@expo/vector-icons";
+import React from "react";
+import { Pressable, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { colors } from "../../constants/theme";
+import { cn } from "../../utils/cn";
 
 interface SemesterBoxProps {
   status: string;
@@ -16,34 +16,34 @@ interface SemesterBoxProps {
 function getTierIconName(tier: number): keyof typeof MaterialIcons.glyphMap {
   switch (tier) {
     case 1:
-      return 'school';
+      return "school";
     case 2:
-      return 'groups';
+      return "groups";
     case 3:
-      return 'home';
+      return "home";
     case 4:
-      return 'business';
+      return "business";
     default:
-      return 'person';
+      return "person";
   }
 }
 
 function getTierBackgroundClass(tier: number, isValid: boolean): string {
   if (!isValid) {
-    return 'bg-danger';
+    return "bg-danger";
   }
 
   switch (tier) {
     case 1:
-      return 'bg-[#16A34A]';
+      return "bg-[#16A34A]";
     case 2:
-      return 'bg-[#C2410C]';
+      return "bg-[#C2410C]";
     case 3:
-      return 'bg-[#1B3A0A]';
+      return "bg-[#1B3A0A]";
     case 4:
-      return 'bg-[#1D4ED8]';
+      return "bg-[#1D4ED8]";
     default:
-      return 'bg-[#1B3A0A]';
+      return "bg-[#1B3A0A]";
   }
 }
 
@@ -53,14 +53,14 @@ export function SemesterBox({ status, semester, isValid, tier, onPress }: Semest
   return (
     <Pressable
       className={cn(
-        'w-[90%] items-center justify-center gap-1.5 rounded-2xl border border-white/20 px-5 py-3.5',
+        "w-[90%] items-center justify-center gap-1.5 rounded-2xl border border-white/20 px-5 py-3.5",
         getTierBackgroundClass(tier, isValid),
       )}
       onPress={onPress}
     >
       <View className="flex-row items-center gap-2">
         <MaterialIcons color={colors.white} name={getTierIconName(tier)} size={24} />
-        <Text className="font-inter-bold text-lg leading-6 text-surface">{t('tierLabel', { tier })}</Text>
+        <Text className="font-inter-bold text-lg leading-6 text-surface">{t("tierLabel", { tier })}</Text>
       </View>
 
       <Text className="font-inter-medium text-base leading-6 text-white/80">{status}</Text>

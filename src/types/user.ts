@@ -22,14 +22,14 @@ export interface User {
 
 const tierMapping: Record<string, number> = {
   null: 0,
-  '1': 1,
-  '0': 2,
-  '2': 3,
-  '3': 4,
+  "1": 1,
+  "0": 2,
+  "2": 3,
+  "3": 4,
 };
 
 function mapTier(rabattTrinn: RabattTrinn): number {
-  const key = rabattTrinn === null ? 'null' : String(rabattTrinn);
+  const key = rabattTrinn === null ? "null" : String(rabattTrinn);
   return tierMapping[key] ?? 0;
 }
 
@@ -55,8 +55,8 @@ function getHighestTierVervInternal(user: User): InternKortVerv | null {
   if (user.pingvinPoengSum >= 14) {
     if (activeVerv.length === 0) {
       highest = {
-        navn: 'Pingvin',
-        gruppe: 'Pingvin Ordenen',
+        navn: "Pingvin",
+        gruppe: "Pingvin Ordenen",
         signertKontrakt: true,
         rabattTrinn: 3,
       };
@@ -65,7 +65,7 @@ function getHighestTierVervInternal(user: User): InternKortVerv | null {
         highest.rabattTrinn = 3;
       }
 
-      if (!highest.navn.toLowerCase().includes('pingvin')) {
+      if (!highest.navn.toLowerCase().includes("pingvin")) {
         highest.navn = `${highest.navn} (Pingvin)`;
       }
     }
@@ -83,36 +83,36 @@ export function getHighestTier(user: User): number {
 
 export function getHighestTierGroup(user: User): string {
   if (user.aktiveVerv.length === 0 && user.pingvinPoengSum < 14) {
-    return '';
+    return "";
   }
-  return getHighestTierVervInternal(user)?.gruppe ?? '';
+  return getHighestTierVervInternal(user)?.gruppe ?? "";
 }
 
 export function getHighestTierName(user: User): string {
   if (user.aktiveVerv.length === 0 && user.pingvinPoengSum < 14) {
-    return '';
+    return "";
   }
-  return getHighestTierVervInternal(user)?.navn ?? '';
+  return getHighestTierVervInternal(user)?.navn ?? "";
 }
 
 export function createDemoUser(): User {
   return {
     id: 0,
-    fornavn: 'Bar',
-    etternavn: 'Pingvin',
+    fornavn: "Bar",
+    etternavn: "Pingvin",
     fodselsdato: new Date(2000, 0, 1),
     opprettet: new Date(),
     gyldigTil: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
     pingvinPoengSum: 42,
     aktiveVerv: [
       {
-        navn: 'Medlem',
-        gruppe: 'PR-Etaten',
+        navn: "Medlem",
+        gruppe: "PR-Etaten",
         signertKontrakt: true,
         rabattTrinn: 2,
       },
     ],
-    dagensOrd: 'Dagens ord: eplepingvin',
-    bildeUrl: 'assets/images/demopingvin.png',
+    dagensOrd: "Dagens ord: eplepingvin",
+    bildeUrl: "assets/images/demopingvin.png",
   };
 }

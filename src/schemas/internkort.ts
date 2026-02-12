@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { InternKortVerv, User } from '../types/user';
+import { z } from "zod";
+import { InternKortVerv, User } from "../types/user";
 
 const nullableStringSchema = z.string().nullable().optional();
 const nullableIntSchema = z.number().int().nullable().optional();
@@ -49,8 +49,8 @@ export const internKortInformationApiSchema = z
     gyldigTil: z
       .string()
       .min(1)
-      .refine((value) => isValidDateTime(value), {
-        message: 'gyldigTil must be a valid date-time string',
+      .refine(value => isValidDateTime(value), {
+        message: "gyldigTil must be a valid date-time string",
       }),
     bildeUrl: nullableStringSchema,
     pingvinPoengSum: z.number().int(),
@@ -61,8 +61,8 @@ export const internKortInformationApiSchema = z
 
 function mapInternKortVerv(value: z.infer<typeof internKortVervApiSchema>): InternKortVerv {
   return {
-    navn: value.navn ?? '',
-    gruppe: value.gruppe ?? '',
+    navn: value.navn ?? "",
+    gruppe: value.gruppe ?? "",
     rabattTrinn: value.rabattTrinn ?? null,
     signertKontrakt: value.signertKontrakt ?? false,
   };
@@ -73,14 +73,14 @@ export function parseInternkortInformation(payload: unknown): User {
 
   return {
     id: parsed.id,
-    fornavn: parsed.fornavn ?? '',
-    etternavn: parsed.etternavn ?? '',
+    fornavn: parsed.fornavn ?? "",
+    etternavn: parsed.etternavn ?? "",
     fodselsdato: parseOptionalDate(parsed.fodselsdato),
     opprettet: parseOptionalDate(parsed.opprettet),
     gyldigTil: new Date(parsed.gyldigTil),
     bildeUrl: parsed.bildeUrl ?? undefined,
     pingvinPoengSum: parsed.pingvinPoengSum,
     aktiveVerv: (parsed.aktiveVerv ?? []).map(mapInternKortVerv),
-    dagensOrd: parsed.dagensOrd ?? '',
+    dagensOrd: parsed.dagensOrd ?? "",
   };
 }

@@ -1,23 +1,14 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useQuery } from '@tanstack/react-query';
-import React, { useCallback, useLayoutEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  AppState,
-  DimensionValue,
-  Image,
-  Linking,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
-import { useFocusEffect } from '@react-navigation/native';
-import { AppButton } from '../components/common/AppButton';
-import { colors } from '../constants/theme';
-import { RootStackParamList } from '../navigation/types';
-import { fetchNowPlaying } from '../services/kvarteretSkjermService';
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useQuery } from "@tanstack/react-query";
+import React, { useCallback, useLayoutEffect, useState } from "react";
+import { ActivityIndicator, AppState, DimensionValue, Image, Linking, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
+import { useFocusEffect } from "@react-navigation/native";
+import { AppButton } from "../components/common/AppButton";
+import { colors } from "../constants/theme";
+import { RootStackParamList } from "../navigation/types";
+import { fetchNowPlaying } from "../services/kvarteretSkjermService";
 
 const POLL_INTERVAL_MS = 1000;
 
@@ -31,18 +22,18 @@ function clampProgress(value: number | null): number {
 
 export function KvarteretSkjermScreen({
   navigation,
-}: NativeStackScreenProps<RootStackParamList, 'KvarteretSkjerm'>): React.JSX.Element {
+}: NativeStackScreenProps<RootStackParamList, "KvarteretSkjerm">): React.JSX.Element {
   const { t } = useTranslation();
-  const [isAppActive, setIsAppActive] = useState(AppState.currentState === 'active');
+  const [isAppActive, setIsAppActive] = useState(AppState.currentState === "active");
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: t('kvarteretSkjerm') });
+    navigation.setOptions({ title: t("kvarteretSkjerm") });
   }, [navigation, t]);
 
   useFocusEffect(
     useCallback(() => {
-      const subscription = AppState.addEventListener('change', (nextState) => {
-        setIsAppActive(nextState === 'active');
+      const subscription = AppState.addEventListener("change", nextState => {
+        setIsAppActive(nextState === "active");
       });
 
       return () => {
@@ -60,7 +51,7 @@ export function KvarteretSkjermScreen({
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['now-playing'],
+    queryKey: ["now-playing"],
     queryFn: ({ signal }) => fetchNowPlaying(signal),
     enabled: queryEnabled,
     refetchInterval: queryEnabled ? POLL_INTERVAL_MS : false,
@@ -68,11 +59,7 @@ export function KvarteretSkjermScreen({
     retry: 1,
   });
 
-  const errorMessage = isError
-    ? error instanceof Error
-      ? error.message
-      : String(error)
-    : null;
+  const errorMessage = isError ? (error instanceof Error ? error.message : String(error)) : null;
 
   const progressWidth: DimensionValue = `${clampProgress(nowPlaying?.progressPercent ?? 0)}%`;
   const hasData = Boolean(nowPlaying);
@@ -102,34 +89,34 @@ export function KvarteretSkjermScreen({
   }, [openSpotifyConnect]);
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
       <ScrollView className="flex-1" contentContainerClassName="flex-grow gap-3 p-4">
         {isPending ? (
           <View className="gap-3 rounded-card border border-border bg-surface p-4">
             <ActivityIndicator color={colors.primaryText} size="large" />
-            <Text className="font-inter-medium text-base text-text-primary">{t('nowPlayingLoading')}</Text>
+            <Text className="font-inter-medium text-base text-text-primary">{t("nowPlayingLoading")}</Text>
           </View>
         ) : null}
 
         {errorMessage ? (
           <View className="gap-3 rounded-card border border-border bg-surface p-4">
-            <Text className="font-inter-medium text-base text-text-primary">{t('nowPlayingError')}</Text>
+            <Text className="font-inter-medium text-base text-text-primary">{t("nowPlayingError")}</Text>
             <Text className="font-inter text-sm text-text-secondary">{errorMessage}</Text>
-            <AppButton text={t('nowPlayingRetry')} onPress={handleManualRefresh} />
+            <AppButton text={t("nowPlayingRetry")} onPress={handleManualRefresh} />
           </View>
         ) : null}
 
         {showUnauthorized ? (
           <View className="gap-3 rounded-card border border-border bg-surface p-4">
-            <Text className="font-inter-medium text-base text-text-primary">{t('nowPlayingUnauthorized')}</Text>
-            <AppButton text={t('nowPlayingConnect')} onPress={handleOpenSpotifyConnect} />
+            <Text className="font-inter-medium text-base text-text-primary">{t("nowPlayingUnauthorized")}</Text>
+            <AppButton text={t("nowPlayingConnect")} onPress={handleOpenSpotifyConnect} />
           </View>
         ) : null}
 
         {showIdle ? (
           <View className="gap-3 rounded-card border border-border bg-surface p-4">
-            <Text className="font-inter-medium text-base text-text-primary">{t('nowPlayingIdle')}</Text>
-            <AppButton secondary text={t('nowPlayingRetry')} onPress={handleManualRefresh} />
+            <Text className="font-inter-medium text-base text-text-primary">{t("nowPlayingIdle")}</Text>
+            <AppButton secondary text={t("nowPlayingRetry")} onPress={handleManualRefresh} />
           </View>
         ) : null}
 
@@ -137,10 +124,10 @@ export function KvarteretSkjermScreen({
           <View className="flex-row items-center gap-3 rounded-card border border-border bg-surface p-3">
             {nowPlaying.image ? <Image className="h-24 w-24 rounded-lg" source={{ uri: nowPlaying.image }} /> : null}
             <View className="flex-1 gap-2">
-              <Text className="font-inter-semibold text-lg text-text-primary">{nowPlaying.name ?? ''}</Text>
+              <Text className="font-inter-semibold text-lg text-text-primary">{nowPlaying.name ?? ""}</Text>
               <Text className="font-inter text-sm text-text-secondary">
-                {nowPlaying.artists ?? ''}
-                {nowPlaying.album ? ` - ${nowPlaying.album}` : ''}
+                {nowPlaying.artists ?? ""}
+                {nowPlaying.album ? ` - ${nowPlaying.album}` : ""}
               </Text>
 
               <View className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
@@ -148,7 +135,7 @@ export function KvarteretSkjermScreen({
               </View>
 
               <Text className="font-inter text-xs text-text-secondary">
-                {nowPlaying.isPlaying ? t('nowPlayingPlaying') : t('nowPlayingPaused')}
+                {nowPlaying.isPlaying ? t("nowPlayingPlaying") : t("nowPlayingPaused")}
               </Text>
             </View>
           </View>

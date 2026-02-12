@@ -8,8 +8,7 @@ export const translations = {
       emailHint: "eksempel@mail.no",
       invalidEmail: "Skriv inn en gyldig e-postadresse.",
       privacyPolicyConsent: "Jeg godtar personvernerklæringen",
-      privacyPolicyConsentAlert:
-        "Du må godta bruksvilkårene og personvernerklæringen før du kan logge inn.",
+      privacyPolicyConsentAlert: "Du må godta bruksvilkårene og personvernerklæringen før du kan logge inn.",
       privacyPolicyConsentAlertHeader: "Oops!",
       verifyEmail: "Bekreft epost",
       enterCodeFromEmail: "Skriv inn koden du mottok på epost",
@@ -66,10 +65,8 @@ export const translations = {
       failedFetchUserData: "Kunne ikke hente brukerdata. Vennligst prøv igjen.",
       invalidAccessToken: "Ugyldig eller utløpt kode. Vennligst prøv igjen.",
       useLinkFromClipboard: "Bruk lenke fra utklippstavle",
-      expoGoHint:
-        "I Expo Go kan du lime inn innloggingslenken fra e-post for automatisk verifisering.",
-      expoGoClipboardNoToken:
-        "Fant ingen gyldig innloggingslenke i utklippstavlen.",
+      expoGoHint: "I Expo Go kan du lime inn innloggingslenken fra e-post for automatisk verifisering.",
+      expoGoClipboardNoToken: "Fant ingen gyldig innloggingslenke i utklippstavlen.",
       close: "Lukk",
     },
   },
@@ -82,8 +79,7 @@ export const translations = {
       emailHint: "example@mail.com",
       invalidEmail: "Enter a valid email address.",
       privacyPolicyConsent: "I accept the terms and privacy policy",
-      privacyPolicyConsentAlert:
-        "You must accept the terms and privacy policy before you can login.",
+      privacyPolicyConsentAlert: "You must accept the terms and privacy policy before you can login.",
       privacyPolicyConsentAlertHeader: "Oops!",
       verifyEmail: "Verify email",
       enterCodeFromEmail: "Enter the code you received by email",
@@ -140,8 +136,7 @@ export const translations = {
       failedFetchUserData: "Failed to fetch user data. Please try again.",
       invalidAccessToken: "Invalid or expired code. Please try again.",
       useLinkFromClipboard: "Use link from clipboard",
-      expoGoHint:
-        "In Expo Go, paste the login link from email to verify automatically.",
+      expoGoHint: "In Expo Go, paste the login link from email to verify automatically.",
       expoGoClipboardNoToken: "No valid login link found in clipboard.",
       close: "Close",
     },

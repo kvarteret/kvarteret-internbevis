@@ -1,4 +1,4 @@
-import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from "react";
 import {
   AuthResult,
   authResultFromError,
@@ -9,9 +9,9 @@ import {
   initializeAuthStorage,
   saveAccessToken,
   saveDeepLinkToken,
-} from '../services/authService';
-import { User } from '../types/user';
-import { getHydrationErrorMessage, shouldClearCredentialsOnHydrationError } from './authErrorHandling';
+} from "../services/authService";
+import { User } from "../types/user";
+import { getHydrationErrorMessage, shouldClearCredentialsOnHydrationError } from "./authErrorHandling";
 
 interface UserContextValue {
   user: User | null;
@@ -106,7 +106,7 @@ export function UserProvider({ children }: PropsWithChildren): React.JSX.Element
 export function useUser(): UserContextValue {
   const context = useContext(UserContext);
   if (!context) {
-    throw new Error('useUser must be used within a UserProvider');
+    throw new Error("useUser must be used within a UserProvider");
   }
 
   return context;

@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Pressable, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { User, getHighestTier, getHighestTierGroup, getHighestTierName } from '../../types/user';
-import { formatDate } from '../../utils/date';
-import { SemesterBox } from './SemesterBox';
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, Image, Pressable, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { User, getHighestTier, getHighestTierGroup, getHighestTierName } from "../../types/user";
+import { formatDate } from "../../utils/date";
+import { SemesterBox } from "./SemesterBox";
 
 interface BottomContainerProps {
   user: User;
@@ -28,7 +28,7 @@ export function BottomContainer({ user, onSemesterBoxTap }: BottomContainerProps
 
   const handleTap = (): void => {
     onSemesterBoxTap();
-    setTapCount((previous) => {
+    setTapCount(previous => {
       const next = previous + 1;
       if (next >= 10) {
         setShowPenguin(true);
@@ -56,13 +56,13 @@ export function BottomContainer({ user, onSemesterBoxTap }: BottomContainerProps
       <SemesterBox
         isValid={active}
         onPress={handleTap}
-        semester={active ? t('validProof') : t('invalidProof')}
-        status={t('status')}
+        semester={active ? t("validProof") : t("invalidProof")}
+        status={t("status")}
         tier={getHighestTier(user)}
       />
 
       <Text className="text-center font-inter-bold text-base leading-6 text-text-primary">
-        {active ? t('validUntil', { date: formatDate(user.gyldigTil) }) : ''}
+        {active ? t("validUntil", { date: formatDate(user.gyldigTil) }) : ""}
       </Text>
 
       {showPenguin ? (
@@ -73,7 +73,7 @@ export function BottomContainer({ user, onSemesterBoxTap }: BottomContainerProps
           }}
         >
           <Pressable onPress={resetPenguin}>
-            <Image className="h-24 w-24" source={require('../../../assets/images/penguin-eg.png')} />
+            <Image className="h-24 w-24" source={require("../../../assets/images/penguin-eg.png")} />
           </Pressable>
         </Animated.View>
       ) : null}

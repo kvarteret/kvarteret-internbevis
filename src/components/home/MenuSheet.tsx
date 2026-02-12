@@ -1,9 +1,9 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { colors } from '../../constants/theme';
-import { cn } from '../../utils/cn';
+import { MaterialIcons } from "@expo/vector-icons";
+import React from "react";
+import { Modal, Pressable, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { colors } from "../../constants/theme";
+import { cn } from "../../utils/cn";
 
 interface MenuSheetProps {
   visible: boolean;
@@ -16,7 +16,7 @@ interface MenuSheetProps {
 }
 
 interface Action {
-  key: 'privacy' | 'games' | 'kvarteretSkjerm' | 'language' | 'logout';
+  key: "privacy" | "games" | "kvarteretSkjerm" | "language" | "logout";
   label: string;
   icon: keyof typeof MaterialIcons.glyphMap;
   destructive?: boolean;
@@ -35,11 +35,11 @@ export function MenuSheet({
   const { t } = useTranslation();
 
   const actions: Action[] = [
-    { key: 'privacy', label: t('privacy'), icon: 'privacy-tip', onPress: onOpenPrivacy },
-    { key: 'language', label: t('language'), icon: 'language', onPress: onOpenLanguage },
-    { key: 'games', label: t('games'), icon: 'sports-esports', onPress: onOpenGames },
-    { key: 'kvarteretSkjerm', label: t('kvarteretSkjerm'), icon: 'tv', onPress: onOpenKvarteretSkjerm },
-    { key: 'logout', label: t('logout'), icon: 'logout', destructive: true, onPress: onLogout },
+    { key: "privacy", label: t("privacy"), icon: "privacy-tip", onPress: onOpenPrivacy },
+    { key: "language", label: t("language"), icon: "language", onPress: onOpenLanguage },
+    { key: "games", label: t("games"), icon: "sports-esports", onPress: onOpenGames },
+    { key: "kvarteretSkjerm", label: t("kvarteretSkjerm"), icon: "tv", onPress: onOpenKvarteretSkjerm },
+    { key: "logout", label: t("logout"), icon: "logout", destructive: true, onPress: onLogout },
   ];
 
   const handlePress = (action: Action): void => {
@@ -57,13 +57,19 @@ export function MenuSheet({
             <Pressable
               key={action.key}
               className={cn(
-                'flex-row items-center gap-3 px-5 py-4',
-                index < actions.length - 1 && 'border-b border-border-soft',
+                "flex-row items-center gap-3 px-5 py-4",
+                index < actions.length - 1 && "border-b border-border-soft",
               )}
               onPress={() => handlePress(action)}
             >
-              <MaterialIcons name={action.icon} size={20} color={action.destructive ? '#DC2626' : colors.primaryText} />
-              <Text className={action.destructive ? 'font-inter-medium text-base text-danger-soft' : 'font-inter-medium text-base text-text-primary'}>
+              <MaterialIcons name={action.icon} size={20} color={action.destructive ? "#DC2626" : colors.primaryText} />
+              <Text
+                className={
+                  action.destructive
+                    ? "font-inter-medium text-base text-danger-soft"
+                    : "font-inter-medium text-base text-text-primary"
+                }
+              >
                 {action.label}
               </Text>
             </Pressable>

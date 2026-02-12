@@ -34,9 +34,7 @@ export function UserInfoCard({
     <View className="w-full max-w-md items-center rounded-card border border-border-soft px-5 py-4">
       <Text className="text-center font-inter-extrabold text-2xl leading-8 text-text-primary">{`${firstName} ${lastName}`}</Text>
 
-      <Text className="text-center font-inter-medium text-xl leading-6 text-text-secondary">
-        {birthDateText}
-      </Text>
+      <Text className="text-center font-inter-medium text-xl leading-6 text-text-secondary">{birthDateText}</Text>
 
       <Text className="mt-1.5 text-center font-inter-bold text-lg text-text-primary">{`${t("pingvinPoints")}: ${pingvinPoengSum}`}</Text>
 

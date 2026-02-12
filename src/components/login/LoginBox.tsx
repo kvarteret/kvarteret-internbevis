@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { colors } from '../../constants/theme';
-import { extractFriendlyErrorMessage, requestAccessToken } from '../../services/authService';
-import { consumePendingDeepLinkToken } from '../../services/pendingDeepLinkToken';
-import { AppButton } from '../common/AppButton';
-import { AppTextField } from '../common/AppTextField';
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { colors } from "../../constants/theme";
+import { extractFriendlyErrorMessage, requestAccessToken } from "../../services/authService";
+import { consumePendingDeepLinkToken } from "../../services/pendingDeepLinkToken";
+import { AppButton } from "../common/AppButton";
+import { AppTextField } from "../common/AppTextField";
 
 interface LoginBoxProps {
   onOtpRequested: (email: string) => void;
@@ -26,7 +26,7 @@ export function LoginBox({
   onLoginWithToken,
 }: LoginBoxProps): React.JSX.Element {
   const { t } = useTranslation();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [emailErrorText, setEmailErrorText] = useState<string | null>(null);
   const [sendingOtp, setSendingOtp] = useState(false);
   const [privacyPolicyChecked, setPrivacyPolicyChecked] = useState(false);
@@ -37,12 +37,12 @@ export function LoginBox({
     setEmailErrorText(null);
 
     if (!privacyPolicyChecked) {
-      Alert.alert(t('privacyPolicyConsentAlertHeader'), t('privacyPolicyConsentAlert'));
+      Alert.alert(t("privacyPolicyConsentAlertHeader"), t("privacyPolicyConsentAlert"));
       return;
     }
 
     if (!isEmailInputValid(normalizedEmail)) {
-      setEmailErrorText(t('invalidEmail'));
+      setEmailErrorText(t("invalidEmail"));
       return;
     }
 
@@ -68,9 +68,13 @@ export function LoginBox({
   };
 
   return (
-    <ScrollView className="w-full" contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4" keyboardShouldPersistTaps="handled">
+    <ScrollView
+      className="w-full"
+      contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4"
+      keyboardShouldPersistTaps="handled"
+    >
       <View className="w-[92%] max-w-xl rounded-card border border-white/35 bg-black/55 p-6 shadow-card">
-        <Text className="text-center font-inter-bold text-3xl leading-9 text-surface">{t('login')}</Text>
+        <Text className="text-center font-inter-bold text-3xl leading-9 text-surface">{t("login")}</Text>
 
         <View className="mt-6 gap-6">
           <AppTextField
@@ -78,7 +82,7 @@ export function LoginBox({
             errorText={emailErrorText}
             icon="mail"
             keyboardType="email-address"
-            placeholder={t('emailHint')}
+            placeholder={t("emailHint")}
             value={email}
             onChangeText={setEmail}
           />
@@ -89,8 +93,8 @@ export function LoginBox({
             </View>
           ) : (
             <View className="gap-3">
-              <AppButton text={t('login')} onPress={() => void sendOtp()} />
-              <AppButton secondary text={t('tryDemo')} onPress={onDemoLogin} />
+              <AppButton text={t("login")} onPress={() => void sendOtp()} />
+              <AppButton secondary text={t("tryDemo")} onPress={onDemoLogin} />
             </View>
           )}
 
@@ -99,22 +103,24 @@ export function LoginBox({
               accessibilityRole="checkbox"
               accessibilityState={{ checked: privacyPolicyChecked }}
               className="mt-1"
-              onPress={() => setPrivacyPolicyChecked((previous) => !previous)}
+              onPress={() => setPrivacyPolicyChecked(previous => !previous)}
             >
               <View
                 className={[
-                  'h-5 w-5 items-center justify-center rounded border border-white/70 bg-transparent',
-                  privacyPolicyChecked ? 'border-text-primary bg-text-primary' : '',
+                  "h-5 w-5 items-center justify-center rounded border border-white/70 bg-transparent",
+                  privacyPolicyChecked ? "border-text-primary bg-text-primary" : "",
                 ]
                   .filter(Boolean)
-                  .join(' ')}
+                  .join(" ")}
               >
-                {privacyPolicyChecked ? <Text className="font-inter-bold text-sm leading-3 text-surface">✓</Text> : null}
+                {privacyPolicyChecked ? (
+                  <Text className="font-inter-bold text-sm leading-3 text-surface">✓</Text>
+                ) : null}
               </View>
             </TouchableOpacity>
 
             <Pressable className="ml-3 flex-1" onPress={onPrivacyPress}>
-              <Text className="font-inter text-xs text-link underline">{t('privacyPolicyConsent')}</Text>
+              <Text className="font-inter text-xs text-link underline">{t("privacyPolicyConsent")}</Text>
             </Pressable>
           </View>
         </View>

@@ -1,14 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Linking,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { ActivityIndicator, Linking, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LanguageSelectorModal } from "../components/LanguageSelectorModal";
@@ -21,9 +14,7 @@ import { RootStackParamList } from "../navigation/types";
 import { useUser } from "../state/UserContext";
 import { NotRegisteredScreen } from "./NotRegisteredScreen";
 
-export function HomeScreen({
-  navigation,
-}: NativeStackScreenProps<RootStackParamList, "Home">): React.JSX.Element {
+export function HomeScreen({ navigation }: NativeStackScreenProps<RootStackParamList, "Home">): React.JSX.Element {
   const { t } = useTranslation();
   const { user, isLoading, logout } = useUser();
   const { height } = useWindowDimensions();
@@ -70,7 +61,7 @@ export function HomeScreen({
   }, [logout]);
 
   const handleSemesterBoxTap = useCallback((): void => {
-    setAnimationTrigger((previous) => previous + 1);
+    setAnimationTrigger(previous => previous + 1);
   }, []);
 
   if (isLoading) {
@@ -99,27 +90,14 @@ export function HomeScreen({
           {t("homeTitle")}
         </Text>
 
-        <TouchableOpacity
-          accessibilityLabel={t('openMenu')}
-          className="w-10 items-end"
-          onPress={handleOpenMenu}
-        >
+        <TouchableOpacity accessibilityLabel={t("openMenu")} className="w-10 items-end" onPress={handleOpenMenu}>
           <MaterialIcons color={colors.primaryText} name="menu" size={28} />
         </TouchableOpacity>
       </View>
 
       <View className="flex-1 pt-1.5">
-        <View
-          className={
-            isSmallScreen
-              ? "flex-[30] justify-center pb-2"
-              : "flex-[35] justify-center pb-2"
-          }
-        >
-          <UserAvatar
-            animationTrigger={animationTrigger}
-            imageUrl={user.bildeUrl}
-          />
+        <View className={isSmallScreen ? "flex-[30] justify-center pb-2" : "flex-[35] justify-center pb-2"}>
+          <UserAvatar animationTrigger={animationTrigger} imageUrl={user.bildeUrl} />
         </View>
 
         <View className="flex-[25] justify-center px-2">
@@ -132,13 +110,7 @@ export function HomeScreen({
           />
         </View>
 
-        <View
-          className={
-            isSmallScreen
-              ? "flex-[45] justify-center pb-1"
-              : "flex-[40] justify-center pb-1"
-          }
-        >
+        <View className={isSmallScreen ? "flex-[45] justify-center pb-1" : "flex-[40] justify-center pb-1"}>
           <BottomContainer user={user} onSemesterBoxTap={handleSemesterBoxTap} />
         </View>
       </View>
@@ -181,10 +153,7 @@ export function HomeScreen({
         onLogout={handleLogout}
       />
 
-      <LanguageSelectorModal
-        visible={languageSelectorVisible}
-        onClose={handleCloseLanguage}
-      />
+      <LanguageSelectorModal visible={languageSelectorVisible} onClose={handleCloseLanguage} />
     </SafeAreaView>
   );
 }

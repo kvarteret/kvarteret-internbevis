@@ -1,7 +1,7 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { KeyboardTypeOptions, Text, TextInput, View } from 'react-native';
-import { colors } from '../../constants/theme';
+import { MaterialIcons } from "@expo/vector-icons";
+import React from "react";
+import { KeyboardTypeOptions, Text, TextInput, View } from "react-native";
+import { colors } from "../../constants/theme";
 
 interface AppTextFieldProps {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -9,7 +9,7 @@ interface AppTextFieldProps {
   value: string;
   onChangeText: (value: string) => void;
   errorText?: string | null;
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
   keyboardType?: KeyboardTypeOptions;
 }
 
@@ -19,18 +19,18 @@ export function AppTextField({
   value,
   onChangeText,
   errorText,
-  autoCapitalize = 'none',
-  keyboardType = 'default',
+  autoCapitalize = "none",
+  keyboardType = "default",
 }: AppTextFieldProps): React.JSX.Element {
   return (
     <View>
       <View
         className={[
-          'min-h-14 flex-row items-center gap-2.5 rounded-xl border border-surface bg-surface-muted px-3',
-          errorText ? 'border-danger-soft' : '',
+          "min-h-14 flex-row items-center gap-2.5 rounded-xl border border-surface bg-surface-muted px-3",
+          errorText ? "border-danger-soft" : "",
         ]
           .filter(Boolean)
-          .join(' ')}
+          .join(" ")}
       >
         <MaterialIcons name={icon} size={20} color={colors.gray600} />
         <TextInput

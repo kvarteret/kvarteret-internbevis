@@ -1,5 +1,5 @@
-import React from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import React from "react";
+import { Text, TouchableOpacity } from "react-native";
 
 interface AppButtonProps {
   text: string;
@@ -19,21 +19,21 @@ export function AppButton({
   textClassName,
 }: AppButtonProps): React.JSX.Element {
   const containerClassName = [
-    'h-12 w-full items-center justify-center rounded-xl border',
-    secondary ? 'border-border bg-surface' : 'border-text-primary bg-text-primary',
-    disabled ? 'opacity-65' : '',
-    className ?? '',
+    "h-12 w-full items-center justify-center rounded-xl border",
+    secondary ? "border-border bg-surface" : "border-text-primary bg-text-primary",
+    disabled ? "opacity-65" : "",
+    className ?? "",
   ]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 
   const labelClassName = [
-    'font-inter-semibold text-base leading-5',
-    secondary ? 'text-text-primary' : 'text-surface',
-    textClassName ?? '',
+    "font-inter-semibold text-base leading-5",
+    secondary ? "text-text-primary" : "text-surface",
+    textClassName ?? "",
   ]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 
   return (
     <TouchableOpacity accessibilityRole="button" className={containerClassName} disabled={disabled} onPress={onPress}>

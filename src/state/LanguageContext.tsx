@@ -1,9 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Localization from 'expo-localization';
-import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
-import i18n from '../localization/i18n';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Localization from "expo-localization";
+import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from "react";
+import i18n from "../localization/i18n";
 
-export type SupportedLanguage = 'no' | 'en';
+export type SupportedLanguage = "no" | "en";
 
 interface LanguageContextValue {
   language: SupportedLanguage;
@@ -11,13 +11,13 @@ interface LanguageContextValue {
   changeLanguage: (nextLanguage: SupportedLanguage) => Promise<void>;
 }
 
-const STORAGE_KEY = 'selected_language';
+const STORAGE_KEY = "selected_language";
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
 function getInitialLanguage(): SupportedLanguage {
-  const locale = Localization.getLocales()[0]?.languageCode ?? 'no';
-  return locale === 'en' ? 'en' : 'no';
+  const locale = Localization.getLocales()[0]?.languageCode ?? "no";
+  return locale === "en" ? "en" : "no";
 }
 
 export function LanguageProvider({ children }: PropsWithChildren): React.JSX.Element {
@@ -28,7 +28,7 @@ export function LanguageProvider({ children }: PropsWithChildren): React.JSX.Ele
     async function hydrateLanguage(): Promise<void> {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        const nextLanguage: SupportedLanguage = stored === 'en' ? 'en' : 'no';
+        const nextLanguage: SupportedLanguage = stored === "en" ? "en" : "no";
         setLanguage(nextLanguage);
         await i18n.changeLanguage(nextLanguage);
       } finally {
@@ -60,7 +60,7 @@ export function LanguageProvider({ children }: PropsWithChildren): React.JSX.Ele
 export function useLanguage(): LanguageContextValue {
   const context = useContext(LanguageContext);
   if (!context) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    throw new Error("useLanguage must be used within a LanguageProvider");
   }
 
   return context;

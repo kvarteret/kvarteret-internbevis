@@ -1,7 +1,7 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Image, View, useWindowDimensions } from 'react-native';
-import { colors } from '../../constants/theme';
+import { MaterialIcons } from "@expo/vector-icons";
+import React, { useEffect, useMemo, useRef } from "react";
+import { Animated, Easing, Image, View, useWindowDimensions } from "react-native";
+import { colors } from "../../constants/theme";
 
 interface UserAvatarProps {
   imageUrl?: string;
@@ -9,7 +9,7 @@ interface UserAvatarProps {
 }
 
 const localImageMap: Record<string, number> = {
-  'assets/images/demopingvin.png': require('../../../assets/images/demopingvin.png'),
+  "assets/images/demopingvin.png": require("../../../assets/images/demopingvin.png"),
 };
 
 export function UserAvatar({ imageUrl, animationTrigger }: UserAvatarProps): React.JSX.Element {
@@ -83,7 +83,7 @@ export function UserAvatar({ imageUrl, animationTrigger }: UserAvatarProps): Rea
             {
               rotate: rotationAnim.interpolate({
                 inputRange: [-1, 1],
-                outputRange: ['-1rad', '1rad'],
+                outputRange: ["-1rad", "1rad"],
               }),
             },
           ],
@@ -93,9 +93,7 @@ export function UserAvatar({ imageUrl, animationTrigger }: UserAvatarProps): Rea
           className="overflow-hidden bg-surface-muted"
           style={{ width: radius * 2, height: radius * 2, borderRadius: radius }}
         >
-          {localImageSource ? (
-            <Image className="h-full w-full" resizeMode="cover" source={localImageSource} />
-          ) : null}
+          {localImageSource ? <Image className="h-full w-full" resizeMode="cover" source={localImageSource} /> : null}
 
           {!localImageSource && hasRemoteImage ? (
             <Image className="h-full w-full" resizeMode="cover" source={{ uri: imageUrl }} />

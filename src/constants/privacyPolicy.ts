@@ -1,4 +1,4 @@
-import { SupportedLanguage } from '../state/LanguageContext';
+import { SupportedLanguage } from "../state/LanguageContext";
 
 export const PRIVACY_POLICY_MARKDOWN: Record<SupportedLanguage, string> = {
   no: `# Personvernerklæring for Studentersamfunnet Internbevis

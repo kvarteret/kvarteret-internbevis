@@ -60,12 +60,9 @@ function RootNavigator(): React.JSX.Element {
       }
     });
 
-    const subscription = Linking.addEventListener(
-      "url",
-      (event: { url: string }) => {
-        void handleUrl(event.url);
-      },
-    );
+    const subscription = Linking.addEventListener("url", (event: { url: string }) => {
+      void handleUrl(event.url);
+    });
 
     return () => {
       mounted = false;
@@ -93,23 +90,12 @@ function RootNavigator(): React.JSX.Element {
         }}
       >
         {user ? (
-          <Stack.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
         ) : (
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         )}
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
-        <Stack.Screen
-          name="KvarteretSkjerm"
-          component={KvarteretSkjermScreen}
-        />
+        <Stack.Screen name="KvarteretSkjerm" component={KvarteretSkjermScreen} />
         <Stack.Screen name="Games" component={GamesScreen} />
       </Stack.Navigator>
     </NavigationContainer>

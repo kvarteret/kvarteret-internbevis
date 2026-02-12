@@ -1,4 +1,4 @@
-export type ChessPlayer = 'white' | 'black';
+export type ChessPlayer = "white" | "black";
 
 export interface ChessTimerState {
   whiteMs: number;
@@ -25,7 +25,7 @@ export function resetTimer(initialMs: number, incrementMs = 0): ChessTimerState 
   return {
     whiteMs: clampedInitial,
     blackMs: clampedInitial,
-    activePlayer: 'white',
+    activePlayer: "white",
     isRunning: false,
     winner: null,
     moveCount: 0,
@@ -43,9 +43,9 @@ export function tick(state: ChessTimerState, elapsedMs: number): ChessTimerState
     return state;
   }
 
-  if (state.activePlayer === 'white') {
+  if (state.activePlayer === "white") {
     const whiteMs = clampMs(state.whiteMs - elapsed);
-    const winner: ChessPlayer | null = whiteMs === 0 ? 'black' : null;
+    const winner: ChessPlayer | null = whiteMs === 0 ? "black" : null;
 
     return {
       ...state,
@@ -56,7 +56,7 @@ export function tick(state: ChessTimerState, elapsedMs: number): ChessTimerState
   }
 
   const blackMs = clampMs(state.blackMs - elapsed);
-  const winner: ChessPlayer | null = blackMs === 0 ? 'white' : null;
+  const winner: ChessPlayer | null = blackMs === 0 ? "white" : null;
 
   return {
     ...state,
@@ -71,11 +71,11 @@ export function completeMove(state: ChessTimerState): ChessTimerState {
     return state;
   }
 
-  if (state.activePlayer === 'white') {
+  if (state.activePlayer === "white") {
     return {
       ...state,
       whiteMs: state.whiteMs + state.incrementMs,
-      activePlayer: 'black',
+      activePlayer: "black",
       moveCount: state.moveCount + 1,
       isRunning: true,
     };
@@ -84,7 +84,7 @@ export function completeMove(state: ChessTimerState): ChessTimerState {
   return {
     ...state,
     blackMs: state.blackMs + state.incrementMs,
-    activePlayer: 'white',
+    activePlayer: "white",
     moveCount: state.moveCount + 1,
     isRunning: true,
   };
