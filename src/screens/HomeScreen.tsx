@@ -1,6 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -33,9 +33,45 @@ export function HomeScreen({
 
   const isSmallScreen = height < 600;
 
-  const handleOpenVolunteerPage = (): void => {
+  const handleOpenVolunteerPage = useCallback((): void => {
     void Linking.openURL("https://blifrivillig.no");
-  };
+  }, []);
+
+  const handleOpenMenu = useCallback((): void => {
+    setMenuVisible(true);
+  }, []);
+
+  const handleCloseMenu = useCallback((): void => {
+    setMenuVisible(false);
+  }, []);
+
+  const handleOpenLanguage = useCallback((): void => {
+    setLanguageSelectorVisible(true);
+  }, []);
+
+  const handleCloseLanguage = useCallback((): void => {
+    setLanguageSelectorVisible(false);
+  }, []);
+
+  const handleOpenGames = useCallback((): void => {
+    navigation.navigate("Games");
+  }, [navigation]);
+
+  const handleOpenKvarteretSkjerm = useCallback((): void => {
+    navigation.navigate("KvarteretSkjerm");
+  }, [navigation]);
+
+  const handleOpenPrivacy = useCallback((): void => {
+    navigation.navigate("Privacy");
+  }, [navigation]);
+
+  const handleLogout = useCallback((): void => {
+    void logout();
+  }, [logout]);
+
+  const handleSemesterBoxTap = useCallback((): void => {
+    setAnimationTrigger((previous) => previous + 1);
+  }, []);
 
   if (isLoading) {
     return (
@@ -64,9 +100,9 @@ export function HomeScreen({
         </Text>
 
         <TouchableOpacity
-          accessibilityLabel="Open menu"
+          accessibilityLabel={t('openMenu')}
           className="w-10 items-end"
-          onPress={() => setMenuVisible(true)}
+          onPress={handleOpenMenu}
         >
           <MaterialIcons color={colors.primaryText} name="menu" size={28} />
         </TouchableOpacity>
@@ -103,12 +139,7 @@ export function HomeScreen({
               : "flex-[40] justify-center pb-1"
           }
         >
-          <BottomContainer
-            user={user}
-            onSemesterBoxTap={() => {
-              setAnimationTrigger((previous) => previous + 1);
-            }}
-          />
+          <BottomContainer user={user} onSemesterBoxTap={handleSemesterBoxTap} />
         </View>
       </View>
 
@@ -142,19 +173,17 @@ export function HomeScreen({
 
       <MenuSheet
         visible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-        onOpenLanguage={() => setLanguageSelectorVisible(true)}
-        onOpenGames={() => navigation.navigate("Games")}
-        onOpenKvarteretSkjerm={() => navigation.navigate("KvarteretSkjerm")}
-        onOpenPrivacy={() => navigation.navigate("Privacy")}
-        onLogout={() => {
-          void logout();
-        }}
+        onClose={handleCloseMenu}
+        onOpenLanguage={handleOpenLanguage}
+        onOpenGames={handleOpenGames}
+        onOpenKvarteretSkjerm={handleOpenKvarteretSkjerm}
+        onOpenPrivacy={handleOpenPrivacy}
+        onLogout={handleLogout}
       />
 
       <LanguageSelectorModal
         visible={languageSelectorVisible}
-        onClose={() => setLanguageSelectorVisible(false)}
+        onClose={handleCloseLanguage}
       />
     </SafeAreaView>
   );
