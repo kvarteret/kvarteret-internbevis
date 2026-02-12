@@ -3,6 +3,7 @@ import React from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/theme';
+import { cn } from '../../utils/cn';
 
 interface MenuSheetProps {
   visible: boolean;
@@ -55,12 +56,10 @@ export function MenuSheet({
           {actions.map((action, index) => (
             <Pressable
               key={action.key}
-              className={[
+              className={cn(
                 'flex-row items-center gap-3 px-5 py-4',
-                index < actions.length - 1 ? 'border-b border-border-soft' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
+                index < actions.length - 1 && 'border-b border-border-soft',
+              )}
               onPress={() => handlePress(action)}
             >
               <MaterialIcons name={action.icon} size={20} color={action.destructive ? '#DC2626' : colors.primaryText} />

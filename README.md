@@ -18,6 +18,24 @@ npm run start
 
 3. Open the project in Expo Go by scanning the QR code.
 
+## Class name utility (`cn`)
+
+Use `cn` to compose `className` values with conditionals and automatically
+resolve conflicting Tailwind utilities (last one wins).
+
+```tsx
+import { Pressable } from 'react-native';
+import { cn } from './src/utils/cn';
+
+<Pressable
+  className={cn(
+    'rounded-xl px-4 py-3 bg-green-600',
+    isDisabled && 'opacity-50',
+    isPrimary ? 'bg-green-600' : 'bg-slate-600',
+  )}
+/>;
+```
+
 ## Expo Go login-link support
 
 Expo Go cannot register the production custom URL scheme the same way as a standalone app.
