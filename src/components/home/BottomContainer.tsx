@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable } from 'react-native';
+import { Animated, Image, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { getHighestTier, getHighestTierGroup, getHighestTierName, User } from '../../types/user';
+import { User, getHighestTier, getHighestTierGroup, getHighestTierName } from '../../types/user';
 import { formatDate } from '../../utils/date';
 import { SemesterBox } from './SemesterBox';
-import { AppText } from '../ui/AppText';
-import { Box } from '../ui/Box';
 
 interface BottomContainerProps {
   user: User;
@@ -45,35 +43,40 @@ export function BottomContainer({ user, onSemesterBoxTap }: BottomContainerProps
   };
 
   return (
-    <Box className="w-full items-center justify-center gap-3.5">
-      <Box className="items-center gap-0.5 px-4">
-        <AppText className="text-center text-black" style={{ fontSize: 22, lineHeight: 28 }} variant="subtitle">
+    <View className="w-full items-center justify-center gap-3.5">
+      <View className="items-center gap-0.5 px-4">
+        <Text className="text-center font-inter-extrabold text-2xl leading-7 text-text-primary">
           {getHighestTierGroup(user)}
-        </AppText>
-        <AppText className="text-center text-gray-600" style={{ fontSize: 20, lineHeight: 26 }} variant="body">
+        </Text>
+        <Text className="text-center font-inter-medium text-xl leading-6 text-text-secondary">
           {getHighestTierName(user)}
-        </AppText>
-      </Box>
+        </Text>
+      </View>
 
       <SemesterBox
-        status={t('status')}
-        semester={active ? t('validProof') : t('invalidProof')}
         isValid={active}
-        tier={getHighestTier(user)}
         onPress={handleTap}
+        semester={active ? t('validProof') : t('invalidProof')}
+        status={t('status')}
+        tier={getHighestTier(user)}
       />
 
-      <AppText className="text-center text-black" variant="meta">
+      <Text className="text-center font-inter-bold text-base leading-6 text-text-primary">
         {active ? t('validUntil', { date: formatDate(user.gyldigTil) }) : ''}
-      </AppText>
+      </Text>
 
       {showPenguin ? (
-        <Animated.View style={{ opacity: opacityAnim, marginTop: 4, alignItems: 'center', justifyContent: 'center' }}>
+        <Animated.View
+          className="mt-1 items-center justify-center"
+          style={{
+            opacity: opacityAnim,
+          }}
+        >
           <Pressable onPress={resetPenguin}>
-            <Animated.Image source={require('../../../assets/images/penguin-eg.png')} style={{ width: 100, height: 100 }} />
+            <Image className="h-24 w-24" source={require('../../../assets/images/penguin-eg.png')} />
           </Pressable>
         </Animated.View>
       ) : null}
-    </Box>
+    </View>
   );
 }

@@ -2,9 +2,8 @@ import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors } from '../../constants/theme';
 import { extractFriendlyErrorMessage, requestAccessToken } from '../../services/authService';
 import { extractAccessTokenFromManualInput, extractAccessTokenFromUrl } from '../../services/deepLinkService';
 import { AppButton } from '../common/AppButton';
@@ -13,9 +12,7 @@ import { AppTextField } from '../common/AppTextField';
 interface VerifyCodeBoxProps {
   email: string;
   onBack: () => void;
-  onLoginWithToken: (
-    accessToken: string,
-  ) => Promise<{ success: boolean; message?: string }>;
+  onLoginWithToken: (accessToken: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 export function VerifyCodeBox({ email, onBack, onLoginWithToken }: VerifyCodeBoxProps): React.JSX.Element {
@@ -115,18 +112,17 @@ export function VerifyCodeBox({ email, onBack, onLoginWithToken }: VerifyCodeBox
   };
 
   return (
-    <ScrollView
-      style={styles.scrollView}
-      contentContainerStyle={styles.scrollContainer}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.card}>
-        <Text style={styles.title}>{t('verifyEmail')}</Text>
-        <View style={styles.separator} />
-        <Text style={styles.subtitle}>{t('enterCodeFromEmail')}</Text>
-        {isExpoGo ? <Text style={styles.expoGoHint}>{t('expoGoHint')}</Text> : null}
+    <ScrollView className="w-full" contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4" keyboardShouldPersistTaps="handled">
+      <View className="w-[92%] max-w-xl rounded-2xl border border-white/35 bg-black/55 px-5 py-7">
+        <Text className="text-center font-inter-medium text-2xl leading-8 text-surface">{t('verifyEmail')}</Text>
 
-        <View style={styles.form}>
+        <View className="mx-5 my-2.5 border-b-2 border-white/70" />
+
+        <Text className="text-center font-inter text-base leading-6 text-surface">{t('enterCodeFromEmail')}</Text>
+
+        {isExpoGo ? <Text className="mt-2.5 text-center font-inter text-[13px] text-white/80">{t('expoGoHint')}</Text> : null}
+
+        <View className="mt-7 gap-4">
           <AppTextField
             errorText={otpFieldErrorText}
             icon="lock"
@@ -135,17 +131,13 @@ export function VerifyCodeBox({ email, onBack, onLoginWithToken }: VerifyCodeBox
             onChangeText={setOtpCode}
           />
 
-          {globalErrorText ? <Text style={styles.globalErrorText}>{globalErrorText}</Text> : null}
+          {globalErrorText ? <Text className="font-inter text-[13px] text-[#B91C1C]">{globalErrorText}</Text> : null}
 
-          <View style={styles.buttonGroup}>
+          <View className="gap-3">
             <AppButton text={t('confirm')} onPress={() => void handleVerifyCode()} />
             <AppButton secondary text={t('sendNewCode')} onPress={() => void handleSendOtp()} />
             {isExpoGo ? (
-              <AppButton
-                secondary
-                text={t('useLinkFromClipboard')}
-                onPress={() => void handleUseClipboardLink()}
-              />
+              <AppButton secondary text={t('useLinkFromClipboard')} onPress={() => void handleUseClipboardLink()} />
             ) : null}
             <AppButton secondary text={t('back')} onPress={onBack} />
           </View>
@@ -154,61 +146,3 @@ export function VerifyCodeBox({ email, onBack, onLoginWithToken }: VerifyCodeBox
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    width: '100%',
-  },
-  scrollContainer: {
-    width: '100%',
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 520,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.gray300,
-    backgroundColor: colors.white,
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-  },
-  title: {
-    textAlign: 'center',
-    fontSize: 25,
-    fontWeight: '500',
-    color: colors.primaryText,
-  },
-  separator: {
-    marginTop: 10,
-    marginBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primaryText,
-    marginHorizontal: 20,
-  },
-  subtitle: {
-    textAlign: 'center',
-    color: colors.primaryText,
-  },
-  expoGoHint: {
-    marginTop: 10,
-    textAlign: 'center',
-    color: colors.gray700,
-    fontSize: 13,
-  },
-  form: {
-    marginTop: 30,
-    gap: 16,
-  },
-  globalErrorText: {
-    color: '#B91C1C',
-    fontSize: 13,
-  },
-  buttonGroup: {
-    gap: 12,
-  },
-});

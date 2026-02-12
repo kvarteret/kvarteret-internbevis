@@ -1,58 +1,43 @@
 import React from 'react';
-import { StyleProp, StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
-import { colors } from '../../constants/theme';
+import { Text, TouchableOpacity } from 'react-native';
 
 interface AppButtonProps {
   text: string;
   onPress: () => void;
   secondary?: boolean;
   disabled?: boolean;
-  style?: StyleProp<ViewStyle>;
+  className?: string;
+  textClassName?: string;
 }
 
-export function AppButton({ text, onPress, secondary = false, disabled = false, style }: AppButtonProps): React.JSX.Element {
+export function AppButton({
+  text,
+  onPress,
+  secondary = false,
+  disabled = false,
+  className,
+  textClassName,
+}: AppButtonProps): React.JSX.Element {
+  const containerClassName = [
+    'h-12 w-full items-center justify-center rounded-xl border',
+    secondary ? 'border-border bg-surface' : 'border-text-primary bg-text-primary',
+    disabled ? 'opacity-65' : '',
+    className ?? '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const labelClassName = [
+    'font-inter-semibold text-base leading-5',
+    secondary ? 'text-text-primary' : 'text-surface',
+    textClassName ?? '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <TouchableOpacity
-      accessibilityRole="button"
-      onPress={onPress}
-      disabled={disabled}
-      style={[
-        styles.button,
-        secondary ? styles.secondaryButton : styles.primaryButton,
-        disabled ? styles.disabled : null,
-        style,
-      ]}
-    >
-      <Text style={[styles.text, secondary ? styles.secondaryText : styles.primaryText]}>{text}</Text>
+    <TouchableOpacity accessibilityRole="button" className={containerClassName} disabled={disabled} onPress={onPress}>
+      <Text className={labelClassName}>{text}</Text>
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    width: '100%',
-    height: 50,
-    borderRadius: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButton: {
-    backgroundColor: colors.primaryText,
-  },
-  secondaryButton: {
-    backgroundColor: colors.gray300,
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  primaryText: {
-    color: colors.white,
-  },
-  secondaryText: {
-    color: colors.primaryText,
-  },
-  disabled: {
-    opacity: 0.65,
-  },
-});

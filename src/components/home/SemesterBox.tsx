@@ -1,9 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, useWindowDimensions } from 'react-native';
-import { colors, getTierBackgroundColor } from '../../constants/theme';
-import { AppText } from '../ui/AppText';
-import { Box } from '../ui/Box';
+import { Pressable, Text, View } from 'react-native';
+import { colors } from '../../constants/theme';
 
 interface SemesterBoxProps {
   status: string;
@@ -28,30 +26,44 @@ function getTierIconName(tier: number): keyof typeof MaterialIcons.glyphMap {
   }
 }
 
-export function SemesterBox({ status, semester, isValid, tier, onPress }: SemesterBoxProps): React.JSX.Element {
-  const { width } = useWindowDimensions();
-  const containerWidth = width < 600 ? width * 0.9 : width * 0.7;
+function getTierBackgroundClass(tier: number, isValid: boolean): string {
+  if (!isValid) {
+    return 'bg-danger';
+  }
 
+  switch (tier) {
+    case 1:
+      return 'bg-[#16A34A]';
+    case 2:
+      return 'bg-[#C2410C]';
+    case 3:
+      return 'bg-[#1B3A0A]';
+    case 4:
+      return 'bg-[#1D4ED8]';
+    default:
+      return 'bg-[#1B3A0A]';
+  }
+}
+
+export function SemesterBox({ status, semester, isValid, tier, onPress }: SemesterBoxProps): React.JSX.Element {
   return (
     <Pressable
-      className="items-center justify-center gap-[7px] rounded-[15px] px-5 py-3.5"
+      className={[
+        'w-[90%] items-center justify-center gap-1.5 rounded-2xl border border-white/20 px-5 py-3.5',
+        getTierBackgroundClass(tier, isValid),
+      ]
+        .filter(Boolean)
+        .join(' ')}
       onPress={onPress}
-      style={{ width: containerWidth, backgroundColor: getTierBackgroundColor(tier, isValid) }}
     >
-      <Box className="flex-row items-center gap-2">
-        <MaterialIcons name={getTierIconName(tier)} size={24} color={colors.white} />
-        <AppText className="text-white" style={{ fontSize: 18, lineHeight: 24 }} variant="meta">
-          {`Trinn ${tier}`}
-        </AppText>
-      </Box>
+      <View className="flex-row items-center gap-2">
+        <MaterialIcons color={colors.white} name={getTierIconName(tier)} size={24} />
+        <Text className="font-inter-bold text-lg leading-6 text-surface">{`Trinn ${tier}`}</Text>
+      </View>
 
-      <AppText className="text-white/80" style={{ fontSize: 16, lineHeight: 22 }} variant="body">
-        {status}
-      </AppText>
+      <Text className="font-inter-medium text-base leading-6 text-white/80">{status}</Text>
 
-      <AppText className="text-white" style={{ fontSize: 20, lineHeight: 26 }} variant="subtitle">
-        {semester}
-      </AppText>
+      <Text className="font-inter-extrabold text-xl leading-7 text-surface">{semester}</Text>
     </Pressable>
   );
 }
