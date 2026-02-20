@@ -18,6 +18,59 @@ npm run start
 
 3. Open the project in Expo Go by scanning the QR code.
 
+## Development builds (installable dev clients)
+
+Expo Go is useful for fast iteration, but development builds are required when
+you need native modules/config that Expo Go does not include and when you want
+to share installable test builds with teammates.
+
+This repo now includes dedicated EAS build profiles:
+- `development-android`
+- `development-ios` (physical iPhone/iPad, Ad Hoc)
+- `development-ios-simulator`
+
+### Build commands
+
+```bash
+npx eas build --platform android --profile development-android
+npx eas build --platform ios --profile development-ios
+npx eas build --platform ios --profile development-ios-simulator
+```
+
+Or use npm scripts:
+
+```bash
+npm run build:dev:android
+npm run build:dev:ios
+npm run build:dev:ios-simulator
+```
+
+### Run locally in a development build
+
+After installing the dev client build on your device/simulator:
+
+```bash
+npx expo start --dev-client
+# or
+npm run start:dev-client
+```
+
+### Sharing strategy by platform
+
+1. Android: share the EAS install link from the build details page.
+2. iOS device: testers must be on the Ad Hoc provisioning profile (UDID
+   registered via Apple Developer/EAS).
+3. iOS simulator: teammates can install with `npx eas build:run --platform ios --profile development-ios-simulator`.
+4. Web: development builds do not apply to web. Keep using PR previews/deploy previews for browser testing.
+
+### Optional: run all dev builds via EAS Workflow
+
+```bash
+npx eas workflow:run .eas/workflows/create-development-builds.yml --wait
+# or
+npm run workflow:dev-builds
+```
+
 ## Class name utility (`cn`)
 
 Use `cn` to compose `className` values with conditionals and automatically
@@ -45,8 +98,8 @@ This repository is configured for hybrid previews:
 ### One-time setup required
 
 1. Create or select the dedicated Firebase preview project.
-2. Register Android app id `com.kvarteret.internbevis.internbevisrn` in Firebase App Distribution.
-3. Register iOS app id `com.kvarteret.internbevis.internbevisrn` in Firebase App Distribution.
+2. Register Android app id `com.samfunnetibergen.samfunnet` in Firebase App Distribution.
+3. Register iOS app id `com.samfunnetibergen.samfunnet` in Firebase App Distribution.
 4. Create Firebase tester group `internal-qa`.
 5. Link the Expo project to EAS and get the project id UUID.
 6. Verify `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/app.json` contains:

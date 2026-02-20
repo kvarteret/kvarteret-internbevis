@@ -1,61 +1,64 @@
 {
-    "expo": {
-        "name": "Kvarteret Internbevis",
-        "slug": "studentersamfunnet-app",
-        "version": "1.0.0",
-        "runtimeVersion": {
-            "policy": "appVersion"
-        },
-        "updates": {
-            "url": "https://u.expo.dev/8e46104c-a94c-4205-9884-4f813b6371c3"
-        },
-        "orientation": "portrait",
-        "icon": "./assets/icon.png",
-        "scheme": "internbeviskvarteret",
-        "userInterfaceStyle": "light",
-        "newArchEnabled": true,
-        "splash": {
-            "image": "./assets/images/launch.png",
-            "resizeMode": "contain",
-            "backgroundColor": "#000000"
-        },
-        "ios": {
-            "supportsTablet": false,
-            "bundleIdentifier": "com.kvarteret.internbevis.internbevisrn"
-        },
-        "android": {
-            "adaptiveIcon": {
-                "foregroundImage": "./assets/adaptive-icon.png",
-                "backgroundColor": "#ffffff"
-            },
-            "package": "com.kvarteret.internbevis.internbevisrn",
-            "edgeToEdgeEnabled": true,
-            "predictiveBackGestureEnabled": false
-        },
-        "web": {
-            "favicon": "./assets/favicon.png"
-        },
-        "plugins": [
-            "expo-localization",
-            [
-                "expo-font",
-                {
-                    "fonts": [
-                        "./assets/fonts/inter/Inter_400Regular.ttf",
-                        "./assets/fonts/inter/Inter_500Medium.ttf",
-                        "./assets/fonts/inter/Inter_600SemiBold.ttf",
-                        "./assets/fonts/inter/Inter_700Bold.ttf",
-                        "./assets/fonts/inter/Inter_800ExtraBold.ttf"
-                    ]
-                }
-            ],
-            "expo-secure-store"
-        ],
-        "extra": {
-            "eas": {
-                "projectId": "8e46104c-a94c-4205-9884-4f813b6371c3"
-            }
-        },
-        "owner": "studentersamfunnet-bergen"
-    }
+  "expo": {
+    "name": "Samfunnet i Bergen",
+    "slug": "studentersamfunnet-app",
+    "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8e46104c-a94c-4205-9884-4f813b6371c3"
+    },
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "internbeviskvarteret",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/launch.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.samfunnetibergen.samfunnet",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.samfunnetibergen.samfunnet",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-localization",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/inter/Inter_400Regular.ttf",
+            "./assets/fonts/inter/Inter_500Medium.ttf",
+            "./assets/fonts/inter/Inter_600SemiBold.ttf",
+            "./assets/fonts/inter/Inter_700Bold.ttf",
+            "./assets/fonts/inter/Inter_800ExtraBold.ttf"
+          ]
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8e46104c-a94c-4205-9884-4f813b6371c3"
+      }
+    },
+    "owner": "studentersamfunnet-bergen"
+  }
 }

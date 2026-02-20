@@ -1,0 +1,20 @@
+name: Create Development Builds
+
+jobs:
+  build_android_device:
+    type: build
+    params:
+      platform: android
+      profile: development-android
+
+  build_ios_device:
+    type: build
+    params:
+      platform: ios
+      profile: development-ios
+
+  build_ios_simulator:
+    type: build
+    params:
+      platform: ios
+      profile: development-ios-simulator

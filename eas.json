@@ -3,16 +3,49 @@
         "version": ">= 13.0.0"
     },
     "build": {
-        "preview-android": {
+        "production": {
+            "channel": "production"
+        },
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal"
+        },
+        "development-android": {
+            "extends": "development",
+            "android": {
+                "buildType": "apk"
+            }
+        },
+        "development-ios": {
+            "extends": "development",
+            "ios": {
+                "simulator": false
+            }
+        },
+        "development-ios-simulator": {
+            "extends": "development",
+            "ios": {
+                "simulator": true
+            }
+        },
+        "preview": {
             "distribution": "internal",
             "channel": "preview",
+            "android": {
+                "buildType": "apk"
+            },
+            "ios": {
+                "simulator": false
+            }
+        },
+        "preview-android": {
+            "extends": "preview",
             "android": {
                 "buildType": "apk"
             }
         },
         "preview-ios": {
-            "distribution": "internal",
-            "channel": "preview",
+            "extends": "preview",
             "ios": {
                 "simulator": false
             }
