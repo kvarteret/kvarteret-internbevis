@@ -15,6 +15,98 @@ import { fetchEventById, selectEventTranslation } from "../services/eventsServic
 import { triggerSoftImpactHaptic } from "../utils/haptics"
 import { toRenderableHtml } from "../utils/html"
 
+const eventHtmlTagsStyles = {
+    body: {
+        color: "#111827",
+        fontSize: 16,
+        lineHeight: 25,
+    },
+    p: {
+        color: "#111827",
+        marginTop: 0,
+        marginBottom: 12,
+    },
+    h1: {
+        color: "#000000",
+        fontSize: 30,
+        lineHeight: 36,
+        fontWeight: "700" as const,
+        marginTop: 8,
+        marginBottom: 10,
+    },
+    h2: {
+        color: "#000000",
+        fontSize: 24,
+        lineHeight: 30,
+        fontWeight: "700" as const,
+        marginTop: 8,
+        marginBottom: 10,
+    },
+    h3: {
+        color: "#000000",
+        fontSize: 20,
+        lineHeight: 26,
+        fontWeight: "600" as const,
+        marginTop: 6,
+        marginBottom: 8,
+    },
+    h4: {
+        color: "#000000",
+        fontSize: 18,
+        lineHeight: 24,
+        fontWeight: "600" as const,
+        marginTop: 6,
+        marginBottom: 8,
+    },
+    ul: {
+        marginTop: 0,
+        marginBottom: 12,
+        paddingLeft: 20,
+    },
+    ol: {
+        marginTop: 0,
+        marginBottom: 12,
+        paddingLeft: 20,
+    },
+    li: {
+        color: "#111827",
+        marginBottom: 6,
+    },
+    blockquote: {
+        color: "#374151",
+        borderLeftWidth: 3,
+        borderLeftColor: "#AA0000",
+        paddingLeft: 12,
+        marginTop: 4,
+        marginBottom: 12,
+    },
+    strong: {
+        color: "#000000",
+        fontWeight: "700" as const,
+    },
+    b: {
+        color: "#000000",
+        fontWeight: "700" as const,
+    },
+    em: {
+        fontStyle: "italic" as const,
+    },
+    i: {
+        fontStyle: "italic" as const,
+    },
+    a: {
+        color: "#AA0000",
+        textDecorationLine: "underline" as const,
+        fontWeight: "600" as const,
+    },
+}
+
+const eventHtmlClassesStyles = {
+    "ql-align-center": { textAlign: "center" as const },
+    "ql-align-right": { textAlign: "right" as const },
+    "ql-align-justify": { textAlign: "justify" as const },
+}
+
 function formatDateTime(date: Date): string {
     return new Intl.DateTimeFormat(undefined, {
         dateStyle: "medium",
@@ -98,7 +190,7 @@ export function EventDetailsScreen({
         ? toRenderableHtml(translation.value.description)
         : ""
     const contentHtml = translation.value.content ? toRenderableHtml(translation.value.content) : ""
-    const detailsHtml = [descriptionHtml, contentHtml].filter(Boolean).join("<br/>")
+    const detailsHtml = Array.from(new Set([descriptionHtml, contentHtml].filter(Boolean))).join("")
 
     return (
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
@@ -146,17 +238,22 @@ export function EventDetailsScreen({
                 <NativeSurface className="p-4" variant="grouped">
                     {detailsHtml ? (
                         <RenderHTML
+                            classesStyles={eventHtmlClassesStyles}
                             contentWidth={width - 64}
+                            defaultTextProps={{ selectable: true }}
+                            enableCSSInlineProcessing
+                            enableExperimentalMarginCollapsing
                             source={{ html: detailsHtml }}
-                            tagsStyles={{
-                                body: {
-                                    color: "#000000",
-                                    fontSize: 14,
-                                    lineHeight: 22,
-                                },
-                                p: {
-                                    marginTop: 0,
-                                    marginBottom: 10,
+                            tagsStyles={eventHtmlTagsStyles}
+                            renderersProps={{
+                                a: {
+                                    onPress: (_event, href) => {
+                                        if (!href) {
+                                            return
+                                        }
+
+                                        void handleOpenLink(href)
+                                    },
                                 },
                             }}
                         />
@@ -172,6 +269,8 @@ export function EventDetailsScreen({
                         {event.ticket_url ? (
                             <Button
                                 accessibilityLabel={t("eventDetailsTickets")}
+                                className="border-0 bg-danger"
+                                variant="destructive"
                                 onPress={() => handleOpenLink(event.ticket_url)}
                             >
                                 <Text className="font-inter-semibold text-base leading-5 text-surface">

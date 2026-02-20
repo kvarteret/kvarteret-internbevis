@@ -55,7 +55,11 @@ function EventCard({
     const accessibilityLabel = `${translation.value.title}. ${formattedDate}.`
 
     return (
-        <NativeSurface className="mr-3" style={{ width: cardWidth }} variant="grouped">
+        <NativeSurface
+            className="mr-3"
+            style={{ borderWidth: 0, width: cardWidth }}
+            variant="grouped"
+        >
             <Pressable
                 accessibilityHint={accessibilityOpenHint}
                 accessibilityLabel={accessibilityLabel}
