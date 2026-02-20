@@ -98,8 +98,8 @@ This repository is configured for hybrid previews:
 ### One-time setup required
 
 1. Create or select the dedicated Firebase preview project.
-2. Register Android app id `com.samfunnetibergen.samfunnet` in Firebase App Distribution.
-3. Register iOS app id `com.samfunnetibergen.samfunnet` in Firebase App Distribution.
+2. Register Android app id `com.kvarteret.internbevis.internbevisrn` in Firebase App Distribution.
+3. Register iOS app id `com.kvarteret.internbevis.internbevisrn` in Firebase App Distribution.
 4. Create Firebase tester group `internal-qa`.
 5. Link the Expo project to EAS and get the project id UUID.
 6. Verify `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/app.json` contains:
@@ -127,6 +127,39 @@ This repository is configured for hybrid previews:
 1. Collect tester UDIDs.
 2. Register devices through EAS/Apple Developer for the preview provisioning profile.
 3. Re-run preview build after adding devices so new testers can install the iOS build from Firebase App Distribution.
+
+## Production releases (manual dispatch CI)
+
+This repository now uses a controlled release workflow:
+- `.github/workflows/release-submit.yml` builds production binaries and submits to TestFlight internal + Play internal testing.
+- `.github/workflows/release-promote-checklist.yml` creates the manual promotion checklist for App Store Connect and Google Play.
+
+### Required release secrets
+
+1. `EXPO_TOKEN`
+2. `APP_STORE_CONNECT_ISSUER_ID`
+3. `APP_STORE_CONNECT_KEY_ID`
+4. `APP_STORE_CONNECT_API_KEY_P8`
+5. `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
+6. `TESTFLIGHT_INTERNAL_GROUPS` (optional, comma-separated)
+
+### Release versioning
+
+Release workflow version/build is date-driven:
+1. App version: `YYYY.M.<build-sequence>`
+2. iOS `buildNumber`: unix timestamp (seconds)
+3. Android `versionCode`: unix timestamp (seconds)
+
+### How to release
+
+1. Push a release ref/tag.
+2. Run `release-submit.yml` with:
+   - `release_tag`
+   - `platform` (`all|ios|android`)
+   - `publish_update` (`true|false`)
+   - `release_notes` (optional)
+3. Validate in TestFlight internal + Play internal.
+4. Run `release-promote-checklist.yml` and complete manual production promotion in store consoles.
 
 ## Local backend (infra + Personaldatabase)
 

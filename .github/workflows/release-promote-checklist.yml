@@ -1,0 +1,71 @@
+name: Release promote checklist
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release ref/tag that was submitted to TestFlight/Play internal"
+        required: true
+        type: string
+      ios_submit_url:
+        description: "Optional Expo submit URL for iOS"
+        required: false
+        type: string
+      android_submit_url:
+        description: "Optional Expo submit URL for Android"
+        required: false
+        type: string
+      notes:
+        description: "Optional release notes for approvers"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  promotion_checklist:
+    name: Manual promotion checklist
+    runs-on: ubuntu-latest
+    environment: production-release
+    steps:
+      - name: Create promotion summary
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          IOS_SUBMIT_URL: ${{ inputs.ios_submit_url }}
+          ANDROID_SUBMIT_URL: ${{ inputs.android_submit_url }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          {
+            echo "## Manual Production Promotion Checklist"
+            echo ""
+            echo "- Release ref/tag: \`${RELEASE_TAG}\`"
+            echo "- iOS submit URL: ${IOS_SUBMIT_URL:-n/a}"
+            echo "- Android submit URL: ${ANDROID_SUBMIT_URL:-n/a}"
+            echo ""
+            echo "### Pre-promotion checks"
+            echo "- [ ] TestFlight internal validation completed"
+            echo "- [ ] Google Play internal validation completed"
+            echo "- [ ] Crash/error dashboards reviewed"
+            echo "- [ ] Release notes approved"
+            echo ""
+            echo "### Promote in App Store Connect"
+            echo "- [ ] Select submitted build for app version"
+            echo "- [ ] Verify metadata/screenshots/privacy answers"
+            echo "- [ ] Submit/release according to rollout policy"
+            echo ""
+            echo "### Promote in Google Play Console"
+            echo "- [ ] Promote internal build to production track"
+            echo "- [ ] Configure staged rollout percentage"
+            echo "- [ ] Confirm country/device targeting"
+            echo ""
+            echo "### Post-release checks"
+            echo "- [ ] Verify install/launch on iOS and Android"
+            echo "- [ ] Monitor crash-free sessions and API health"
+            echo "- [ ] Communicate release status"
+            if [ -n "${NOTES}" ]; then
+              echo ""
+              echo "### Notes"
+              echo "${NOTES}"
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"

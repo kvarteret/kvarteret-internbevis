@@ -1,0 +1,352 @@
+name: Release submit
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Git tag or ref to release (for example release-2026-04-20)"
+        required: true
+        type: string
+      platform:
+        description: "Platforms to build and submit"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      publish_update:
+        description: "Publish EAS Update to production branch"
+        required: true
+        default: false
+        type: boolean
+      release_notes:
+        description: "Optional release notes used for TestFlight what-to-test and update message"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-submit-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  release_submit:
+    name: Build and submit release
+    runs-on: ubuntu-latest
+    environment: production-release
+    steps:
+      - name: Checkout release ref
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.release_tag }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required secrets
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          for var_name in EXPO_TOKEN APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_ID APP_STORE_CONNECT_API_KEY_P8 GOOGLE_PLAY_SERVICE_ACCOUNT_JSON; do
+            if [ -z "${!var_name}" ]; then
+              echo "Missing required secret: ${var_name}"
+              exit 1
+            fi
+          done
+
+      - name: Compute release version metadata
+        id: release_meta
+        run: |
+          set -euo pipefail
+          YEAR="$(date -u +%Y)"
+          MONTH="$((10#$(date -u +%m)))"
+          BUILD_SEQUENCE="${GITHUB_RUN_NUMBER}"
+          VERSION="${YEAR}.${MONTH}.${BUILD_SEQUENCE}"
+          BUILD_NUMBER="$(date -u +%s)"
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "build_number=${BUILD_NUMBER}" >> "${GITHUB_OUTPUT}"
+
+      - name: Patch app.json version/build (runner only)
+        env:
+          RELEASE_VERSION: ${{ steps.release_meta.outputs.version }}
+          RELEASE_BUILD_NUMBER: ${{ steps.release_meta.outputs.build_number }}
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+
+          const path = "app.json";
+          const version = process.env.RELEASE_VERSION;
+          const buildNumber = process.env.RELEASE_BUILD_NUMBER;
+          const app = JSON.parse(fs.readFileSync(path, "utf8"));
+
+          app.expo.version = version;
+          app.expo.ios = app.expo.ios || {};
+          app.expo.ios.buildNumber = String(buildNumber);
+          app.expo.android = app.expo.android || {};
+          app.expo.android.versionCode = Number(buildNumber);
+
+          fs.writeFileSync(path, `${JSON.stringify(app, null, 2)}\n`);
+          NODE
+
+      - name: Write submit credential files
+        env:
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          mkdir -p .secrets
+          printf "%s" "${APP_STORE_CONNECT_API_KEY_P8}" > .secrets/app_store_connect_api_key.p8
+          printf "%s" "${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON}" > .secrets/google-play-service-account.json
+          chmod 600 .secrets/app_store_connect_api_key.p8 .secrets/google-play-service-account.json
+
+      - name: Patch eas submit credentials (runner only)
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+
+          const path = "eas.json";
+          const eas = JSON.parse(fs.readFileSync(path, "utf8"));
+          eas.submit = eas.submit || {};
+          eas.submit["production-ios"] = eas.submit["production-ios"] || {};
+          eas.submit["production-ios"].ios = eas.submit["production-ios"].ios || {};
+          eas.submit["production-ios"].ios.ascApiKeyPath = ".secrets/app_store_connect_api_key.p8";
+          eas.submit["production-ios"].ios.ascApiKeyIssuerId = process.env.APP_STORE_CONNECT_ISSUER_ID;
+          eas.submit["production-ios"].ios.ascApiKeyId = process.env.APP_STORE_CONNECT_KEY_ID;
+
+          eas.submit["production-android"] = eas.submit["production-android"] || {};
+          eas.submit["production-android"].android = eas.submit["production-android"].android || {};
+          eas.submit["production-android"].android.serviceAccountKeyPath =
+            ".secrets/google-play-service-account.json";
+
+          fs.writeFileSync(path, `${JSON.stringify(eas, null, 2)}\n`);
+          NODE
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS production binary
+        if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
+        id: ios_build
+        run: |
+          set -euo pipefail
+          eas build \
+            --platform ios \
+            --profile production \
+            --non-interactive \
+            --wait \
+            --json | tee ios-build.json
+
+          node <<'NODE'
+          const fs = require("fs");
+
+          const raw = fs.readFileSync("ios-build.json", "utf8").trim();
+          if (!raw) {
+            throw new Error("iOS build output was empty");
+          }
+
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+          const buildId = build.id || build.buildId;
+          const buildUrl =
+            build.buildDetailsPageUrl || build.detailsPageUrl || (build.logs && build.logs.buildDetailsPageUrl) || build.url || "";
+          const artifactUrl =
+            (build.artifacts && (build.artifacts.applicationArchiveUrl || build.artifacts.buildUrl)) ||
+            build.applicationArchiveUrl ||
+            build.buildArtifactUrl ||
+            "";
+
+          if (!buildId) {
+            throw new Error("Could not find iOS build id in EAS output");
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `ios_build_id=${buildId}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `ios_build_url=${buildUrl}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `ios_artifact_url=${artifactUrl}\n`);
+          NODE
+
+      - name: Build Android production binary
+        if: ${{ inputs.platform == 'all' || inputs.platform == 'android' }}
+        id: android_build
+        run: |
+          set -euo pipefail
+          eas build \
+            --platform android \
+            --profile production \
+            --non-interactive \
+            --wait \
+            --json | tee android-build.json
+
+          node <<'NODE'
+          const fs = require("fs");
+
+          const raw = fs.readFileSync("android-build.json", "utf8").trim();
+          if (!raw) {
+            throw new Error("Android build output was empty");
+          }
+
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+          const buildId = build.id || build.buildId;
+          const buildUrl =
+            build.buildDetailsPageUrl || build.detailsPageUrl || (build.logs && build.logs.buildDetailsPageUrl) || build.url || "";
+          const artifactUrl =
+            (build.artifacts && (build.artifacts.applicationArchiveUrl || build.artifacts.buildUrl)) ||
+            build.applicationArchiveUrl ||
+            build.buildArtifactUrl ||
+            "";
+
+          if (!buildId) {
+            throw new Error("Could not find Android build id in EAS output");
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `android_build_id=${buildId}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `android_build_url=${buildUrl}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `android_artifact_url=${artifactUrl}\n`);
+          NODE
+
+      - name: Submit iOS to TestFlight internal
+        if: ${{ (inputs.platform == 'all' || inputs.platform == 'ios') && steps.ios_build.outputs.ios_build_id != '' }}
+        id: ios_submit
+        env:
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          TESTFLIGHT_INTERNAL_GROUPS: ${{ secrets.TESTFLIGHT_INTERNAL_GROUPS }}
+        run: |
+          set -euo pipefail
+          WHAT_TO_TEST="${RELEASE_NOTES:-Release ${RELEASE_TAG} (${GITHUB_SHA})}"
+
+          GROUP_FLAGS=()
+          if [ -n "${TESTFLIGHT_INTERNAL_GROUPS:-}" ]; then
+            IFS=',' read -ra groups <<< "${TESTFLIGHT_INTERNAL_GROUPS}"
+            for group_name in "${groups[@]}"; do
+              trimmed="$(echo "${group_name}" | xargs)"
+              if [ -n "${trimmed}" ]; then
+                GROUP_FLAGS+=(--groups "${trimmed}")
+              fi
+            done
+          fi
+
+          eas submit \
+            --platform ios \
+            --profile production-ios \
+            --id "${{ steps.ios_build.outputs.ios_build_id }}" \
+            --what-to-test "${WHAT_TO_TEST}" \
+            --wait \
+            --non-interactive \
+            "${GROUP_FLAGS[@]}" | tee ios-submit.log
+
+          SUBMIT_URL="$(grep -Eo 'https://expo\.dev/[^ ]+/submissions/[^ ]+' ios-submit.log | head -n 1 || true)"
+          echo "ios_submit_url=${SUBMIT_URL}" >> "${GITHUB_OUTPUT}"
+
+      - name: Submit Android to Play internal testing
+        if: ${{ (inputs.platform == 'all' || inputs.platform == 'android') && steps.android_build.outputs.android_build_id != '' }}
+        id: android_submit
+        run: |
+          set -euo pipefail
+          eas submit \
+            --platform android \
+            --profile production-android \
+            --id "${{ steps.android_build.outputs.android_build_id }}" \
+            --wait \
+            --non-interactive | tee android-submit.log
+
+          SUBMIT_URL="$(grep -Eo 'https://expo\.dev/[^ ]+/submissions/[^ ]+' android-submit.log | head -n 1 || true)"
+          echo "android_submit_url=${SUBMIT_URL}" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish production EAS Update
+        if: ${{ inputs.publish_update == true }}
+        id: ota_update
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          set -euo pipefail
+          MESSAGE="Release ${RELEASE_TAG} @ ${GITHUB_SHA}"
+          if [ -n "${RELEASE_NOTES}" ]; then
+            MESSAGE="${MESSAGE} - ${RELEASE_NOTES}"
+          fi
+
+          eas update \
+            --branch production \
+            --platform all \
+            --message "${MESSAGE}" \
+            --non-interactive \
+            --json | tee eas-update.json
+
+          node <<'NODE'
+          const fs = require("fs");
+
+          const raw = fs.readFileSync("eas-update.json", "utf8").trim();
+          if (!raw) {
+            throw new Error("eas update output was empty");
+          }
+
+          const parsed = JSON.parse(raw);
+          const updates = Array.isArray(parsed) ? parsed : [parsed];
+          const dashboardUrl =
+            updates.map(item => item.dashboardUrl || item.detailsPageUrl || item.url).find(Boolean) || "";
+          const groups = [...new Set(updates.map(item => item.group).filter(Boolean))];
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `update_dashboard_url=${dashboardUrl}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `update_group_ids=${groups.join(",")}\n`);
+          NODE
+
+      - name: Release summary
+        if: always()
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          TARGET_PLATFORM: ${{ inputs.platform }}
+          PUBLISH_UPDATE: ${{ inputs.publish_update }}
+          RELEASE_VERSION: ${{ steps.release_meta.outputs.version }}
+          RELEASE_BUILD_NUMBER: ${{ steps.release_meta.outputs.build_number }}
+          IOS_BUILD_URL: ${{ steps.ios_build.outputs.ios_build_url }}
+          ANDROID_BUILD_URL: ${{ steps.android_build.outputs.android_build_url }}
+          IOS_SUBMIT_URL: ${{ steps.ios_submit.outputs.ios_submit_url }}
+          ANDROID_SUBMIT_URL: ${{ steps.android_submit.outputs.android_submit_url }}
+          UPDATE_DASHBOARD_URL: ${{ steps.ota_update.outputs.update_dashboard_url }}
+          UPDATE_GROUP_IDS: ${{ steps.ota_update.outputs.update_group_ids }}
+        run: |
+          {
+            echo "## Release Submit Summary"
+            echo ""
+            echo "- Release ref: \`${RELEASE_TAG}\`"
+            echo "- Platforms: \`${TARGET_PLATFORM}\`"
+            echo "- Version: \`${RELEASE_VERSION}\`"
+            echo "- Build number/versionCode: \`${RELEASE_BUILD_NUMBER}\`"
+            echo "- Publish OTA update: \`${PUBLISH_UPDATE}\`"
+            echo ""
+            echo "### Build details"
+            echo "- iOS EAS build: ${IOS_BUILD_URL:-n/a}"
+            echo "- Android EAS build: ${ANDROID_BUILD_URL:-n/a}"
+            echo ""
+            echo "### Submit details"
+            echo "- iOS submit: ${IOS_SUBMIT_URL:-n/a}"
+            echo "- Android submit: ${ANDROID_SUBMIT_URL:-n/a}"
+            echo ""
+            echo "### OTA update"
+            echo "- Dashboard: ${UPDATE_DASHBOARD_URL:-not-published}"
+            echo "- Update groups: ${UPDATE_GROUP_IDS:-not-published}"
+          } >> "${GITHUB_STEP_SUMMARY}"

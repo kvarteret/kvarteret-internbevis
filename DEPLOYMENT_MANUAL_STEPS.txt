@@ -1,0 +1,90 @@
+Deployment strategy (chosen)
+============================
+Use an Expo-first pipeline:
+- Build and OTA updates with EAS (Expo).
+- Internal QA distribution with Firebase App Distribution.
+- Store testing with TestFlight internal (iOS) and Play internal testing (Android).
+- Production promotion done manually in App Store Connect and Google Play (phase 1).
+
+Why this strategy:
+- Lowest maintenance for the current Expo app.
+- Uses your existing stack (Expo, Firebase, App Store Connect, Google Play).
+- Gives control via manual dispatch and environment approvals.
+
+
+Keep old app IDs
+================
+- iOS bundle id: com.kvarteret.internbevis.internbevisrn
+- Android package: com.kvarteret.internbevis.internbevisrn
+
+
+Versioning model (date-driven)
+==============================
+Release workflow calculates version/build automatically:
+- marketing version: YYYY.M.<build-sequence>  (example: 2026.4.128)
+- iOS buildNumber: unix timestamp in seconds
+- Android versionCode: unix timestamp in seconds
+
+No manual version bump in app.json is required for CI releases.
+
+
+One-time setup (manual)
+=======================
+1) App Store Connect / Apple Developer
+- Confirm app still uses bundle id com.kvarteret.internbevis.internbevisrn.
+- Update app display name/logo/store metadata.
+- Create App Store Connect API key for CI submit.
+
+2) Google Play Console
+- Confirm app uses package com.kvarteret.internbevis.internbevisrn.
+- Update app title/logo/store listing.
+- Create Google Play service account and grant release permissions.
+
+3) Expo / EAS
+- Confirm app.json IDs are the old IDs above.
+- Confirm extra.eas.projectId = 8e46104c-a94c-4205-9884-4f813b6371c3.
+- Confirm production build profile exists in eas.json.
+
+4) GitHub environments
+- Create environment: production-release
+- Add required reviewers/approvers for this environment.
+
+5) GitHub secrets for release-submit workflow
+- EXPO_TOKEN
+- APP_STORE_CONNECT_ISSUER_ID
+- APP_STORE_CONNECT_KEY_ID
+- APP_STORE_CONNECT_API_KEY_P8
+- GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+- Optional: TESTFLIGHT_INTERNAL_GROUPS (comma-separated)
+
+
+How to run a release (CI)
+=========================
+1) Create/push a release ref/tag in git.
+2) Run workflow: .github/workflows/release-submit.yml
+3) Inputs:
+- release_tag: ref/tag to build from
+- platform: all / ios / android
+- publish_update: true/false
+- release_notes: optional
+4) Workflow will:
+- build production binaries via EAS,
+- submit iOS to TestFlight internal,
+- submit Android to Play internal testing,
+- optionally publish EAS Update to production branch.
+
+
+How to promote to production (manual)
+=====================================
+1) Run workflow: .github/workflows/release-promote-checklist.yml
+2) Use generated checklist to complete promotion steps in:
+- App Store Connect
+- Google Play Console
+3) Verify rollout, monitor metrics, and communicate release status.
+
+
+Operational notes
+=================
+- Do not change iOS bundle id or Android package if you want to keep the same store app.
+- Renaming app title/logo is safe; changing IDs creates a new app in both stores.
+- Keep release refs/tags and workflow runs as your release audit trail.
