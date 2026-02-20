@@ -4,6 +4,7 @@ import React, { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
     ActivityIndicator,
+    Image,
     Linking,
     Text,
     TouchableOpacity,
@@ -26,12 +27,13 @@ export function HomeScreen({
 }: NativeStackScreenProps<RootStackParamList, "Home">): React.JSX.Element {
     const { t } = useTranslation()
     const { user, isLoading, logout } = useUser()
-    const { height } = useWindowDimensions()
+    const { height, width } = useWindowDimensions()
     const [menuVisible, setMenuVisible] = useState(false)
     const [languageSelectorVisible, setLanguageSelectorVisible] = useState(false)
     const [animationTrigger, setAnimationTrigger] = useState(0)
 
     const isSmallScreen = height < 600
+    const headerLogoWidth = Math.min(280, Math.max(170, width - 120))
 
     const handleOpenVolunteerPage = useCallback((): void => {
         void Linking.openURL("https://blifrivillig.no")
@@ -90,14 +92,14 @@ export function HomeScreen({
             <View className="h-18 flex-row items-center px-4 pt-1.5">
                 <View className="w-10" />
 
-                <Text
-                    adjustsFontSizeToFit
-                    className="flex-1 px-2 text-center font-inter-extrabold text-4xl leading-10 tracking-[0.3px] text-text-primary"
-                    minimumFontScale={0.72}
-                    numberOfLines={1}
-                >
-                    {t("homeTitle")}
-                </Text>
+                <View className="flex-1 items-center px-2">
+                    <Image
+                        accessibilityLabel={t("homeTitle")}
+                        resizeMode="contain"
+                        source={require("../../assets/images/studentersamfunnet-logo.png")}
+                        style={{ width: headerLogoWidth, height: 34 }}
+                    />
+                </View>
 
                 <TouchableOpacity
                     accessibilityLabel={t("openMenu")}

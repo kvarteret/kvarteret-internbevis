@@ -10,7 +10,13 @@ import {
     TOKEN_STORAGE_KEYS,
 } from "./tokenStorage"
 
-const BASE_URL = "https://api.kvarteret.no/api/DigitalInternkort"
+const DEFAULT_INTERNKORT_BASE_URL = "https://api.kvarteret.no/api/DigitalInternkort"
+
+export function getInternkortBaseUrl(): string {
+    const configured = process.env.EXPO_PUBLIC_INTERNKORT_BASE_URL?.trim()
+    const base = configured && configured.length > 0 ? configured : DEFAULT_INTERNKORT_BASE_URL
+    return base.endsWith("/") ? base.slice(0, -1) : base
+}
 
 export interface AuthResult {
     success: boolean
@@ -19,7 +25,7 @@ export interface AuthResult {
 }
 
 async function postJson(path: string, body: Record<string, unknown>): Promise<Response> {
-    return fetch(`${BASE_URL}/${path}`, {
+    return fetch(`${getInternkortBaseUrl()}/${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
