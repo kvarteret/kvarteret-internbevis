@@ -15,98 +15,6 @@ import { fetchEventById, selectEventTranslation } from "../services/eventsServic
 import { triggerSoftImpactHaptic } from "../utils/haptics"
 import { toRenderableHtml } from "../utils/html"
 
-const eventHtmlTagsStyles = {
-    body: {
-        color: "#111827",
-        fontSize: 16,
-        lineHeight: 25,
-    },
-    p: {
-        color: "#111827",
-        marginTop: 0,
-        marginBottom: 12,
-    },
-    h1: {
-        color: "#000000",
-        fontSize: 30,
-        lineHeight: 36,
-        fontWeight: "700" as const,
-        marginTop: 8,
-        marginBottom: 10,
-    },
-    h2: {
-        color: "#000000",
-        fontSize: 24,
-        lineHeight: 30,
-        fontWeight: "700" as const,
-        marginTop: 8,
-        marginBottom: 10,
-    },
-    h3: {
-        color: "#000000",
-        fontSize: 20,
-        lineHeight: 26,
-        fontWeight: "600" as const,
-        marginTop: 6,
-        marginBottom: 8,
-    },
-    h4: {
-        color: "#000000",
-        fontSize: 18,
-        lineHeight: 24,
-        fontWeight: "600" as const,
-        marginTop: 6,
-        marginBottom: 8,
-    },
-    ul: {
-        marginTop: 0,
-        marginBottom: 12,
-        paddingLeft: 20,
-    },
-    ol: {
-        marginTop: 0,
-        marginBottom: 12,
-        paddingLeft: 20,
-    },
-    li: {
-        color: "#111827",
-        marginBottom: 6,
-    },
-    blockquote: {
-        color: "#374151",
-        borderLeftWidth: 3,
-        borderLeftColor: "#AA0000",
-        paddingLeft: 12,
-        marginTop: 4,
-        marginBottom: 12,
-    },
-    strong: {
-        color: "#000000",
-        fontWeight: "700" as const,
-    },
-    b: {
-        color: "#000000",
-        fontWeight: "700" as const,
-    },
-    em: {
-        fontStyle: "italic" as const,
-    },
-    i: {
-        fontStyle: "italic" as const,
-    },
-    a: {
-        color: "#AA0000",
-        textDecorationLine: "underline" as const,
-        fontWeight: "600" as const,
-    },
-}
-
-const eventHtmlClassesStyles = {
-    "ql-align-center": { textAlign: "center" as const },
-    "ql-align-right": { textAlign: "right" as const },
-    "ql-align-justify": { textAlign: "justify" as const },
-}
-
 function formatDateTime(date: Date): string {
     return new Intl.DateTimeFormat(undefined, {
         dateStyle: "medium",
@@ -238,13 +146,12 @@ export function EventDetailsScreen({
                 <NativeSurface className="p-4" variant="grouped">
                     {detailsHtml ? (
                         <RenderHTML
-                            classesStyles={eventHtmlClassesStyles}
                             contentWidth={width - 64}
                             defaultTextProps={{ selectable: true }}
                             enableCSSInlineProcessing
                             enableExperimentalMarginCollapsing
+                            baseStyle={{ color: "#111827", fontSize: 16, lineHeight: 24 }}
                             source={{ html: detailsHtml }}
-                            tagsStyles={eventHtmlTagsStyles}
                             renderersProps={{
                                 a: {
                                     onPress: (_event, href) => {
