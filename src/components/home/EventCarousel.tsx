@@ -5,15 +5,19 @@ import {
     FlatList,
     Image,
     ListRenderItem,
+    Platform,
     Pressable,
     Text,
     useWindowDimensions,
     View,
 } from "react-native"
+import { platformUi } from "../../constants/platformUi"
 import { fetchHomeEvents, selectEventTranslation } from "../../services/eventsService"
 import { FirestoreEventDocument } from "../../types/event"
+import { triggerSelectionHaptic, triggerSoftImpactHaptic } from "../../utils/haptics"
 import { stripHtml } from "../../utils/html"
 import { AppButton } from "../common/AppButton"
+import { NativeSurface } from "../common/NativeSurface"
 
 interface EventCarouselProps {
     onEventPress: (eventId: string) => void
@@ -30,10 +34,12 @@ function EventCard({
     event,
     cardWidth,
     onPress,
+    accessibilityOpenHint,
 }: {
     event: FirestoreEventDocument
     cardWidth: number
     onPress: (eventId: string) => void
+    accessibilityOpenHint: string
 }): React.JSX.Element | null {
     const translation = selectEventTranslation(event.translations)
     if (!translation) {
@@ -44,35 +50,59 @@ function EventCard({
         ? stripHtml(translation.value.description)
         : ""
 
-    return (
-        <Pressable
-            className="mr-3 rounded-card border border-border bg-surface p-3"
-            style={{ width: cardWidth }}
-            onPress={() => onPress(event.id)}
-        >
-            {event.image?.url ? (
-                <Image className="mb-3 h-36 w-full rounded-lg" source={{ uri: event.image.url }} />
-            ) : null}
+    const formattedDate = formatEventStart(event.event_start.toDate())
+    const accessibilityLabel = `${translation.value.title}. ${formattedDate}.`
 
-            <Text className="font-inter-semibold text-base text-text-primary" numberOfLines={2}>
-                {translation.value.title}
-            </Text>
-            <Text className="mt-1 font-inter text-xs text-text-secondary" numberOfLines={1}>
-                {formatEventStart(event.event_start.toDate())}
-            </Text>
-            {descriptionPreview ? (
-                <Text className="mt-2 font-inter text-sm text-text-secondary" numberOfLines={3}>
-                    {descriptionPreview}
+    return (
+        <NativeSurface className="mr-3" style={{ width: cardWidth }} variant="grouped">
+            <Pressable
+                accessibilityHint={accessibilityOpenHint}
+                accessibilityLabel={accessibilityLabel}
+                accessibilityRole="button"
+                android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+                className="p-3"
+                onPress={() => {
+                    void triggerSelectionHaptic()
+                    onPress(event.id)
+                }}
+                style={({ pressed }) => [
+                    Platform.OS === "ios"
+                        ? {
+                              opacity: pressed ? 0.78 : 1,
+                          }
+                        : null,
+                ]}
+            >
+                {event.image?.url ? (
+                    <Image
+                        className="mb-3 h-36 w-full rounded-xl"
+                        source={{ uri: event.image.url }}
+                    />
+                ) : null}
+
+                <Text className="font-inter-semibold text-base text-text-primary" numberOfLines={2}>
+                    {translation.value.title}
                 </Text>
-            ) : null}
-        </Pressable>
+                <Text className="mt-1 font-inter text-xs text-text-secondary" numberOfLines={1}>
+                    {formattedDate}
+                </Text>
+                {descriptionPreview ? (
+                    <Text className="mt-2 font-inter text-sm text-text-secondary" numberOfLines={3}>
+                        {descriptionPreview}
+                    </Text>
+                ) : null}
+            </Pressable>
+        </NativeSurface>
     )
 }
 
 export function EventCarousel({ onEventPress }: EventCarouselProps): React.JSX.Element {
     const { t } = useTranslation()
     const { width } = useWindowDimensions()
-    const cardWidth = Math.max(width * 0.78, 240)
+    const cardWidth = Math.max(
+        width * platformUi.carouselCardWidthRatio,
+        platformUi.minCarouselCardWidth,
+    )
 
     const {
         data: events,
@@ -87,7 +117,12 @@ export function EventCarousel({ onEventPress }: EventCarouselProps): React.JSX.E
     })
 
     const renderItem: ListRenderItem<FirestoreEventDocument> = ({ item }) => (
-        <EventCard event={item} cardWidth={cardWidth} onPress={onEventPress} />
+        <EventCard
+            accessibilityOpenHint={t("homeEventsOpenHint")}
+            event={item}
+            cardWidth={cardWidth}
+            onPress={onEventPress}
+        />
     )
 
     return (
@@ -103,18 +138,20 @@ export function EventCarousel({ onEventPress }: EventCarouselProps): React.JSX.E
             ) : null}
 
             {isError ? (
-                <View className="rounded-card border border-border bg-surface p-3">
+                <NativeSurface className="p-3" variant="grouped">
                     <Text className="mb-3 font-inter text-sm text-text-secondary">
                         {t("homeEventsError")}
                     </Text>
                     <AppButton
+                        accessibilityLabel={t("homeEventsRetry")}
                         secondary
                         text={t("homeEventsRetry")}
                         onPress={() => {
+                            void triggerSoftImpactHaptic()
                             void refetch()
                         }}
                     />
-                </View>
+                </NativeSurface>
             ) : null}
 
             {!isPending && !isError && (!events || events.length === 0) ? (
@@ -126,13 +163,14 @@ export function EventCarousel({ onEventPress }: EventCarouselProps): React.JSX.E
             {!isPending && !isError && events && events.length > 0 ? (
                 <FlatList
                     horizontal
+                    contentContainerStyle={{ paddingRight: platformUi.carouselCardGap }}
                     data={events}
                     keyExtractor={item => item.id}
                     renderItem={renderItem}
                     showsHorizontalScrollIndicator={false}
                     snapToAlignment="start"
                     decelerationRate="fast"
-                    snapToInterval={cardWidth + 12}
+                    snapToInterval={cardWidth + platformUi.carouselCardGap}
                 />
             ) : null}
         </View>

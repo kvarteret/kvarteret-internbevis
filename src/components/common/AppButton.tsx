@@ -8,6 +8,8 @@ interface AppButtonProps {
     disabled?: boolean
     className?: string
     textClassName?: string
+    accessibilityLabel?: string
+    accessibilityHint?: string
 }
 
 export function AppButton({
@@ -17,6 +19,8 @@ export function AppButton({
     disabled = false,
     className,
     textClassName,
+    accessibilityLabel,
+    accessibilityHint,
 }: AppButtonProps): React.JSX.Element {
     const containerClassName = [
         "h-12 w-full items-center justify-center rounded-xl border",
@@ -37,6 +41,8 @@ export function AppButton({
 
     return (
         <TouchableOpacity
+            accessibilityHint={accessibilityHint}
+            accessibilityLabel={accessibilityLabel}
             accessibilityRole="button"
             className={containerClassName}
             disabled={disabled}

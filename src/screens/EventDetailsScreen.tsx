@@ -6,8 +6,11 @@ import { Image, Linking, ScrollView, Text, useWindowDimensions, View } from "rea
 import RenderHTML from "react-native-render-html"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { AppButton } from "../components/common/AppButton"
+import { NativeSurface } from "../components/common/NativeSurface"
+import { platformUi } from "../constants/platformUi"
 import { RootStackParamList } from "../navigation/types"
 import { fetchEventById, selectEventTranslation } from "../services/eventsService"
+import { triggerSoftImpactHaptic } from "../utils/haptics"
 import { toRenderableHtml } from "../utils/html"
 
 function formatDateTime(date: Date): string {
@@ -48,6 +51,7 @@ export function EventDetailsScreen({
             return
         }
 
+        void triggerSoftImpactHaptic()
         void Linking.openURL(url)
     }, [])
 
@@ -69,9 +73,11 @@ export function EventDetailsScreen({
                         {t("eventDetailsError")}
                     </Text>
                     <AppButton
+                        accessibilityLabel={t("eventDetailsRetry")}
                         secondary
                         text={t("eventDetailsRetry")}
                         onPress={() => {
+                            void triggerSoftImpactHaptic()
                             void refetch()
                         }}
                     />
@@ -91,12 +97,21 @@ export function EventDetailsScreen({
 
     return (
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
-            <ScrollView className="flex-1" contentContainerClassName="gap-3 p-4">
+            <ScrollView
+                className="flex-1"
+                contentContainerClassName="gap-3 p-4"
+                contentInsetAdjustmentBehavior="automatic"
+            >
                 {event.image?.url ? (
-                    <Image className="h-56 w-full rounded-card" source={{ uri: event.image.url }} />
+                    <NativeSurface variant="elevated">
+                        <Image
+                            className="h-56 w-full rounded-card"
+                            source={{ uri: event.image.url }}
+                        />
+                    </NativeSurface>
                 ) : null}
 
-                <View className="rounded-card border border-border bg-surface p-4">
+                <NativeSurface className="p-4" variant="grouped">
                     <Text className="font-inter-bold text-2xl text-text-primary">
                         {translation.value.title}
                     </Text>
@@ -122,9 +137,9 @@ export function EventDetailsScreen({
                             {t("eventDetailsPrice")}: {event.price}
                         </Text>
                     ) : null}
-                </View>
+                </NativeSurface>
 
-                <View className="rounded-card border border-border bg-surface p-4">
+                <NativeSurface className="p-4" variant="grouped">
                     {detailsHtml ? (
                         <RenderHTML
                             contentWidth={width - 64}
@@ -146,22 +161,30 @@ export function EventDetailsScreen({
                             {t("eventDetailsNoDescription")}
                         </Text>
                     )}
-                </View>
+                </NativeSurface>
 
-                {event.ticket_url ? (
-                    <AppButton
-                        text={t("eventDetailsTickets")}
-                        onPress={() => handleOpenLink(event.ticket_url)}
-                    />
+                {event.ticket_url || event.facebook_url ? (
+                    <NativeSurface className="gap-3 p-4" variant="grouped">
+                        {event.ticket_url ? (
+                            <AppButton
+                                accessibilityLabel={t("eventDetailsTickets")}
+                                text={t("eventDetailsTickets")}
+                                onPress={() => handleOpenLink(event.ticket_url)}
+                            />
+                        ) : null}
+
+                        {event.facebook_url ? (
+                            <AppButton
+                                accessibilityLabel={t("eventDetailsFacebook")}
+                                secondary
+                                text={t("eventDetailsFacebook")}
+                                onPress={() => handleOpenLink(event.facebook_url)}
+                            />
+                        ) : null}
+                    </NativeSurface>
                 ) : null}
 
-                {event.facebook_url ? (
-                    <AppButton
-                        secondary
-                        text={t("eventDetailsFacebook")}
-                        onPress={() => handleOpenLink(event.facebook_url)}
-                    />
-                ) : null}
+                <View style={{ height: platformUi.sectionSpacing }} />
             </ScrollView>
         </SafeAreaView>
     )

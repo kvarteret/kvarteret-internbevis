@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import React, { useEffect } from "react"
-import { ActivityIndicator, LogBox, View } from "react-native"
+import { ActivityIndicator, Platform, View } from "react-native"
 import "./global.css"
 import "./src/localization/i18n"
 import { colors } from "./src/constants/theme"
@@ -106,7 +106,19 @@ function RootNavigator(): React.JSX.Element {
                 <Stack.Screen name="Privacy" component={PrivacyScreen} />
                 <Stack.Screen name="KvarteretSkjerm" component={KvarteretSkjermScreen} />
                 <Stack.Screen name="Games" component={GamesScreen} />
-                <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+                <Stack.Screen
+                    name="EventDetails"
+                    component={EventDetailsScreen}
+                    options={{
+                        ...(Platform.OS === "ios"
+                            ? {
+                                  headerLargeTitle: true,
+                                  headerBackButtonDisplayMode: "minimal",
+                                  headerLargeTitleShadowVisible: false,
+                              }
+                            : {}),
+                    }}
+                />
             </Stack.Navigator>
         </NavigationContainer>
     )
