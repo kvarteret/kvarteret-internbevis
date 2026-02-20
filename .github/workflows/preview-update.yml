@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   preview-update:
-    if: github.event.pull_request.head.repo.fork == false
+    if: github.event.pull_request.head.repo.fork == false && secrets.EXPO_TOKEN != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,16 +31,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate required secret
+      - name: Validate required secret values
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
         run: |
-          if [ -z "${EXPO_TOKEN}" ]; then
-            echo "Missing required secret: EXPO_TOKEN"
-            exit 1
-          fi
-
           if grep -q "REPLACE_WITH_EXPO_PROJECT_ID" app.json && [ -z "${EXPO_PROJECT_ID}" ]; then
             echo "Missing required secret: EXPO_PROJECT_ID (app.json uses placeholder project id)"
             exit 1
