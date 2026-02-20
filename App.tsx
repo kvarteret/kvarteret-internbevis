@@ -9,6 +9,7 @@ import "./global.css"
 import "./src/localization/i18n"
 import { colors } from "./src/constants/theme"
 import { RootStackParamList } from "./src/navigation/types"
+import { EventDetailsScreen } from "./src/screens/EventDetailsScreen"
 import { GamesScreen } from "./src/screens/GamesScreen"
 import { HomeScreen } from "./src/screens/HomeScreen"
 import { KvarteretSkjermScreen } from "./src/screens/KvarteretSkjermScreen"
@@ -105,6 +106,7 @@ function RootNavigator(): React.JSX.Element {
                 <Stack.Screen name="Privacy" component={PrivacyScreen} />
                 <Stack.Screen name="KvarteretSkjerm" component={KvarteretSkjermScreen} />
                 <Stack.Screen name="Games" component={GamesScreen} />
+                <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
             </Stack.Navigator>
         </NavigationContainer>
     )

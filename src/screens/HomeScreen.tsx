@@ -6,6 +6,7 @@ import {
     ActivityIndicator,
     Image,
     Linking,
+    ScrollView,
     Text,
     TouchableOpacity,
     useWindowDimensions,
@@ -13,6 +14,7 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { BottomContainer } from "../components/home/BottomContainer"
+import { EventCarousel } from "../components/home/EventCarousel"
 import { MenuSheet } from "../components/home/MenuSheet"
 import { UserAvatar } from "../components/home/UserAvatar"
 import { UserInfoCard } from "../components/home/UserInfoCard"
@@ -67,6 +69,13 @@ export function HomeScreen({
         navigation.navigate("Privacy")
     }, [navigation])
 
+    const handleOpenEventDetails = useCallback(
+        (eventId: string): void => {
+            navigation.navigate("EventDetails", { eventId })
+        },
+        [navigation],
+    )
+
     const handleLogout = useCallback((): void => {
         void logout()
     }, [logout])
@@ -110,72 +119,66 @@ export function HomeScreen({
                 </TouchableOpacity>
             </View>
 
-            <View className="flex-1 pt-1.5">
-                <View
-                    className={
-                        isSmallScreen
-                            ? "flex-[30] justify-center pb-2"
-                            : "flex-[35] justify-center pb-2"
-                    }
-                >
-                    <UserAvatar animationTrigger={animationTrigger} imageUrl={user.bildeUrl} />
+            <ScrollView className="flex-1" contentContainerClassName="px-2 pb-4 pt-1.5">
+                <View className={isSmallScreen ? "pb-2" : "pb-4"}>
+                    <View className="items-center pb-2">
+                        <UserAvatar animationTrigger={animationTrigger} imageUrl={user.bildeUrl} />
+                    </View>
+
+                    <View className="justify-center px-2">
+                        <UserInfoCard
+                            birthDate={user.fodselsdato}
+                            dagensOrd={user.dagensOrd}
+                            firstName={user.fornavn}
+                            lastName={user.etternavn}
+                            pingvinPoengSum={user.pingvinPoengSum}
+                        />
+                    </View>
+
+                    <View className="justify-center pb-2 pt-3">
+                        <BottomContainer user={user} onSemesterBoxTap={handleSemesterBoxTap} />
+                    </View>
                 </View>
 
-                <View className="flex-[25] justify-center px-2">
-                    <UserInfoCard
-                        birthDate={user.fodselsdato}
-                        dagensOrd={user.dagensOrd}
-                        firstName={user.fornavn}
-                        lastName={user.etternavn}
-                        pingvinPoengSum={user.pingvinPoengSum}
-                    />
+                <View className="px-2 pb-4">
+                    <EventCarousel onEventPress={handleOpenEventDetails} />
                 </View>
 
-                <View
-                    className={
-                        isSmallScreen
-                            ? "flex-[45] justify-center pb-1"
-                            : "flex-[40] justify-center pb-1"
-                    }
-                >
-                    <BottomContainer user={user} onSemesterBoxTap={handleSemesterBoxTap} />
-                </View>
-            </View>
-
-            <View className="w-full items-center justify-center pb-4 pt-2">
-                <View className="w-full flex-row flex-nowrap items-center justify-center px-1">
-                    <Text
-                        adjustsFontSizeToFit
-                        className="shrink font-inter-medium text-lg leading-6 text-text-primary"
-                        ellipsizeMode="tail"
-                        minimumFontScale={0.72}
-                        numberOfLines={1}
-                    >
-                        {t("homeFooterPrefix")}
-                    </Text>
-                    <Text
-                        className="px-1.5 font-inter text-2xl leading-8 text-text-primary"
-                        numberOfLines={1}
-                    >
-                        |
-                    </Text>
-                    <TouchableOpacity
-                        accessibilityRole="link"
-                        className="shrink"
-                        onPress={handleOpenVolunteerPage}
-                    >
+                <View className="w-full items-center justify-center pb-4 pt-2">
+                    <View className="w-full flex-row flex-nowrap items-center justify-center px-1">
                         <Text
                             adjustsFontSizeToFit
-                            className="font-inter-extrabold text-lg leading-6 text-text-primary underline"
+                            className="shrink font-inter-medium text-lg leading-6 text-text-primary"
                             ellipsizeMode="tail"
                             minimumFontScale={0.72}
                             numberOfLines={1}
                         >
-                            {t("homeFooterVolunteer")}
+                            {t("homeFooterPrefix")}
                         </Text>
-                    </TouchableOpacity>
+                        <Text
+                            className="px-1.5 font-inter text-2xl leading-8 text-text-primary"
+                            numberOfLines={1}
+                        >
+                            |
+                        </Text>
+                        <TouchableOpacity
+                            accessibilityRole="link"
+                            className="shrink"
+                            onPress={handleOpenVolunteerPage}
+                        >
+                            <Text
+                                adjustsFontSizeToFit
+                                className="font-inter-extrabold text-lg leading-6 text-text-primary underline"
+                                ellipsizeMode="tail"
+                                minimumFontScale={0.72}
+                                numberOfLines={1}
+                            >
+                                {t("homeFooterVolunteer")}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
+            </ScrollView>
 
             <MenuSheet
                 visible={menuVisible}

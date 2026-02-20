@@ -1,7 +1,7 @@
-import { useFocusEffect } from "@react-navigation/native"
+import { useIsFocused } from "@react-navigation/native"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { useQuery } from "@tanstack/react-query"
-import React, { useCallback, useLayoutEffect, useState } from "react"
+import React, { useCallback, useEffect, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
     ActivityIndicator,
@@ -33,25 +33,24 @@ export function KvarteretSkjermScreen({
     navigation,
 }: NativeStackScreenProps<RootStackParamList, "KvarteretSkjerm">): React.JSX.Element {
     const { t } = useTranslation()
+    const isFocused = useIsFocused()
     const [isAppActive, setIsAppActive] = useState(AppState.currentState === "active")
 
     useLayoutEffect(() => {
         navigation.setOptions({ title: t("kvarteretSkjerm") })
     }, [navigation, t])
 
-    useFocusEffect(
-        useCallback(() => {
-            const subscription = AppState.addEventListener("change", nextState => {
-                setIsAppActive(nextState === "active")
-            })
+    useEffect(() => {
+        const subscription = AppState.addEventListener("change", nextState => {
+            setIsAppActive(nextState === "active")
+        })
 
-            return () => {
-                subscription.remove()
-            }
-        }, []),
-    )
+        return () => {
+            subscription.remove()
+        }
+    }, [])
 
-    const queryEnabled = isAppActive
+    const queryEnabled = isFocused && isAppActive
 
     const {
         data: nowPlaying,

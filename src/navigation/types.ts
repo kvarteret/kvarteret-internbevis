@@ -4,4 +4,5 @@ export type RootStackParamList = {
     Privacy: undefined
     KvarteretSkjerm: undefined
     Games: undefined
+    EventDetails: { eventId: string }
 }

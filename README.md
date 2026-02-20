@@ -180,6 +180,15 @@ Create `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/.env.local`:
 EXPO_PUBLIC_INTERNKORT_BASE_URL=http://<LAN-IP>:5001/api/DigitalInternkort
 # Optional (defaults to production if not set)
 EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL=http://<LAN-IP>:<PORT>
+
+# Optional overrides for Firestore-backed event feed
+# (defaults use the shared frontend-eventside Firebase project)
+EXPO_PUBLIC_FIREBASE_API_KEY=<firebase-api-key>
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=<project>.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=<firebase-project-id>
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=<project>.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=<messaging-sender-id>
+EXPO_PUBLIC_FIREBASE_APP_ID=<firebase-app-id>
 ```
 
 Then start the app:
