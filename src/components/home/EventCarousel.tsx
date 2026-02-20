@@ -17,6 +17,7 @@ import { FirestoreEventDocument } from "../../types/event"
 import { triggerSelectionHaptic, triggerSoftImpactHaptic } from "../../utils/haptics"
 import { stripHtml } from "../../utils/html"
 import { NativeSurface } from "../common/NativeSurface"
+import { StateSurface } from "../common/StateSurface"
 import { Button } from "../ui/button"
 
 interface EventCarouselProps {
@@ -138,7 +139,7 @@ export function EventCarousel({ onEventPress }: EventCarouselProps): React.JSX.E
             ) : null}
 
             {isError ? (
-                <NativeSurface className="p-3" variant="grouped">
+                <StateSurface className="p-3">
                     <Text className="mb-3 font-inter text-sm text-text-secondary">
                         {t("homeEventsError")}
                     </Text>
@@ -154,7 +155,7 @@ export function EventCarousel({ onEventPress }: EventCarouselProps): React.JSX.E
                             {t("homeEventsRetry")}
                         </Text>
                     </Button>
-                </NativeSurface>
+                </StateSurface>
             ) : null}
 
             {!isPending && !isError && (!events || events.length === 0) ? (

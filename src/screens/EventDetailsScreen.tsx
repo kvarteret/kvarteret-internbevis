@@ -5,7 +5,9 @@ import { useTranslation } from "react-i18next"
 import { Image, Linking, ScrollView, Text, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { LabeledValueRow } from "../components/common/LabeledValueRow"
 import { NativeSurface } from "../components/common/NativeSurface"
+import { StateSurface } from "../components/common/StateSurface"
 import { Button } from "../components/ui/button"
 import { platformUi } from "../constants/platformUi"
 import { RootStackParamList } from "../navigation/types"
@@ -68,7 +70,7 @@ export function EventDetailsScreen({
     if (isError || !event || !translation) {
         return (
             <SafeAreaView className="flex-1 bg-background p-4">
-                <View className="rounded-card border border-border bg-surface p-4">
+                <StateSurface>
                     <Text className="mb-3 font-inter text-base text-text-primary">
                         {t("eventDetailsError")}
                     </Text>
@@ -84,7 +86,7 @@ export function EventDetailsScreen({
                             {t("eventDetailsRetry")}
                         </Text>
                     </Button>
-                </View>
+                </StateSurface>
             </SafeAreaView>
         )
     }
@@ -119,26 +121,25 @@ export function EventDetailsScreen({
                         {translation.value.title}
                     </Text>
 
-                    <Text className="mt-2 font-inter-medium text-sm text-text-secondary">
-                        {t("eventDetailsWhen")}: {start} - {end}
-                    </Text>
+                    <LabeledValueRow
+                        className="mt-2"
+                        label={t("eventDetailsWhen")}
+                        value={`${start} - ${end}`}
+                    />
 
                     {event.organizer?.name ? (
-                        <Text className="mt-1 font-inter text-sm text-text-secondary">
-                            {t("eventDetailsOrganizer")}: {event.organizer.name}
-                        </Text>
+                        <LabeledValueRow
+                            label={t("eventDetailsOrganizer")}
+                            value={event.organizer.name}
+                        />
                     ) : null}
 
                     {categories.length > 0 ? (
-                        <Text className="mt-1 font-inter text-sm text-text-secondary">
-                            {t("eventDetailsCategories")}: {categories}
-                        </Text>
+                        <LabeledValueRow label={t("eventDetailsCategories")} value={categories} />
                     ) : null}
 
                     {event.price ? (
-                        <Text className="mt-1 font-inter text-sm text-text-secondary">
-                            {t("eventDetailsPrice")}: {event.price}
-                        </Text>
+                        <LabeledValueRow label={t("eventDetailsPrice")} value={event.price} />
                     ) : null}
                 </NativeSurface>
 

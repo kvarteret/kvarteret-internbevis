@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { useTranslation } from "react-i18next"
 import { AppState, Pressable, ScrollView, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { StateSurface } from "../components/common/StateSurface"
 import { RootStackParamList } from "../navigation/types"
 import {
     ChessPlayer,
@@ -273,7 +274,7 @@ export function GamesScreen({
                 </View>
 
                 {mode === "d6" ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
+                    <StateSurface>
                         <Text className="font-inter-bold text-2xl text-text-primary">
                             {t("gamesDice")}
                         </Text>
@@ -292,9 +293,9 @@ export function GamesScreen({
                                 {t("gamesRollD6")}
                             </Text>
                         </Pressable>
-                    </View>
+                    </StateSurface>
                 ) : (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
+                    <StateSurface>
                         <Text className="font-inter-bold text-2xl text-text-primary">
                             {t("gamesChessTimer")}
                         </Text>
@@ -353,7 +354,7 @@ export function GamesScreen({
                                 </Text>
                             </Pressable>
                         </View>
-                    </View>
+                    </StateSurface>
                 )}
             </ScrollView>
         </SafeAreaView>

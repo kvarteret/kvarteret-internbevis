@@ -1,4 +1,3 @@
-import { MaterialIcons } from "@expo/vector-icons"
 import React, { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
@@ -10,12 +9,11 @@ import {
     TouchableOpacity,
     View,
 } from "react-native"
+import { IconInputField } from "../common/IconInputField"
 import { colors } from "../../constants/theme"
 import { extractFriendlyErrorMessage, requestAccessToken } from "../../services/authService"
 import { consumePendingDeepLinkToken } from "../../services/pendingDeepLinkToken"
-import { cn } from "../../utils/cn"
 import { Button } from "../ui/button"
-import { Input } from "../ui/input"
 
 interface LoginBoxProps {
     onOtpRequested: (email: string) => void
@@ -92,29 +90,15 @@ export function LoginBox({
                 </Text>
 
                 <View className="mt-6 gap-6">
-                    <View>
-                        <View
-                            className={cn(
-                                "min-h-14 flex-row items-center gap-2.5 rounded-xl border border-surface bg-surface-muted px-3",
-                                emailErrorText && "border-danger-soft",
-                            )}
-                        >
-                            <MaterialIcons name="mail" size={20} color={colors.gray600} />
-                            <Input
-                                autoCapitalize="none"
-                                className="flex-1 border-0 bg-transparent px-0 py-3 text-base text-text-primary"
-                                keyboardType="email-address"
-                                placeholder={t("emailHint")}
-                                value={email}
-                                onChangeText={setEmail}
-                            />
-                        </View>
-                        {emailErrorText ? (
-                            <Text className="mt-1.5 font-inter text-xs text-[#B91C1C]">
-                                {emailErrorText}
-                            </Text>
-                        ) : null}
-                    </View>
+                    <IconInputField
+                        autoCapitalize="none"
+                        errorText={emailErrorText}
+                        iconName="mail"
+                        keyboardType="email-address"
+                        placeholder={t("emailHint")}
+                        value={email}
+                        onChangeText={setEmail}
+                    />
 
                     {sendingOtp ? (
                         <View className="my-2">

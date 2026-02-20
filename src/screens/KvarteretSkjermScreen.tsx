@@ -14,6 +14,7 @@ import {
     View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { StateSurface } from "../components/common/StateSurface"
 import { Button } from "../components/ui/button"
 import { colors } from "../constants/theme"
 import { RootStackParamList } from "../navigation/types"
@@ -100,16 +101,16 @@ export function KvarteretSkjermScreen({
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
             <ScrollView className="flex-1" contentContainerClassName="flex-grow gap-3 p-4">
                 {isPending ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
+                    <StateSurface>
                         <ActivityIndicator color={colors.primaryText} size="large" />
                         <Text className="font-inter-medium text-base text-text-primary">
                             {t("nowPlayingLoading")}
                         </Text>
-                    </View>
+                    </StateSurface>
                 ) : null}
 
                 {errorMessage ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
+                    <StateSurface>
                         <Text className="font-inter-medium text-base text-text-primary">
                             {t("nowPlayingError")}
                         </Text>
@@ -121,11 +122,11 @@ export function KvarteretSkjermScreen({
                                 {t("nowPlayingRetry")}
                             </Text>
                         </Button>
-                    </View>
+                    </StateSurface>
                 ) : null}
 
                 {showUnauthorized ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
+                    <StateSurface>
                         <Text className="font-inter-medium text-base text-text-primary">
                             {t("nowPlayingUnauthorized")}
                         </Text>
@@ -134,11 +135,11 @@ export function KvarteretSkjermScreen({
                                 {t("nowPlayingConnect")}
                             </Text>
                         </Button>
-                    </View>
+                    </StateSurface>
                 ) : null}
 
                 {showIdle ? (
-                    <View className="gap-3 rounded-card border border-border bg-surface p-4">
+                    <StateSurface>
                         <Text className="font-inter-medium text-base text-text-primary">
                             {t("nowPlayingIdle")}
                         </Text>
@@ -147,11 +148,11 @@ export function KvarteretSkjermScreen({
                                 {t("nowPlayingRetry")}
                             </Text>
                         </Button>
-                    </View>
+                    </StateSurface>
                 ) : null}
 
                 {showPlaying ? (
-                    <View className="flex-row items-center gap-3 rounded-card border border-border bg-surface p-3">
+                    <StateSurface className="flex-row items-center gap-3 p-3">
                         {nowPlaying.image ? (
                             <Image
                                 className="h-24 w-24 rounded-lg"
@@ -180,7 +181,7 @@ export function KvarteretSkjermScreen({
                                     : t("nowPlayingPaused")}
                             </Text>
                         </View>
-                    </View>
+                    </StateSurface>
                 ) : null}
             </ScrollView>
         </SafeAreaView>

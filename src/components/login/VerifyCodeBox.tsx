@@ -1,19 +1,16 @@
-import { MaterialIcons } from "@expo/vector-icons"
 import * as Clipboard from "expo-clipboard"
 import Constants from "expo-constants"
 import * as Linking from "expo-linking"
 import React, { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Alert, ScrollView, Text, View } from "react-native"
-import { colors } from "../../constants/theme"
+import { IconInputField } from "../common/IconInputField"
 import { extractFriendlyErrorMessage, requestAccessToken } from "../../services/authService"
 import {
     extractAccessTokenFromManualInput,
     extractAccessTokenFromUrl,
 } from "../../services/deepLinkService"
-import { cn } from "../../utils/cn"
 import { Button } from "../ui/button"
-import { Input } from "../ui/input"
 
 interface VerifyCodeBoxProps {
     email: string
@@ -145,27 +142,13 @@ export function VerifyCodeBox({
                 ) : null}
 
                 <View className="mt-7 gap-4">
-                    <View>
-                        <View
-                            className={cn(
-                                "min-h-14 flex-row items-center gap-2.5 rounded-xl border border-surface bg-surface-muted px-3",
-                                otpFieldErrorText && "border-danger-soft",
-                            )}
-                        >
-                            <MaterialIcons name="lock" size={20} color={colors.gray600} />
-                            <Input
-                                className="flex-1 border-0 bg-transparent px-0 py-3 text-base text-text-primary"
-                                placeholder={t("codeFromEmail")}
-                                value={otpCode}
-                                onChangeText={setOtpCode}
-                            />
-                        </View>
-                        {otpFieldErrorText ? (
-                            <Text className="mt-1.5 font-inter text-xs text-[#B91C1C]">
-                                {otpFieldErrorText}
-                            </Text>
-                        ) : null}
-                    </View>
+                    <IconInputField
+                        errorText={otpFieldErrorText}
+                        iconName="lock"
+                        placeholder={t("codeFromEmail")}
+                        value={otpCode}
+                        onChangeText={setOtpCode}
+                    />
 
                     {globalErrorText ? (
                         <Text className="font-inter text-[13px] text-[#B91C1C]">
