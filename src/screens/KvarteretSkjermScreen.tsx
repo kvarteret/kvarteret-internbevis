@@ -14,7 +14,7 @@ import {
     View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { AppButton } from "../components/common/AppButton"
+import { Button } from "../components/ui/button"
 import { colors } from "../constants/theme"
 import { RootStackParamList } from "../navigation/types"
 import { fetchNowPlaying } from "../services/kvarteretSkjermService"
@@ -116,7 +116,11 @@ export function KvarteretSkjermScreen({
                         <Text className="font-inter text-sm text-text-secondary">
                             {errorMessage}
                         </Text>
-                        <AppButton text={t("nowPlayingRetry")} onPress={handleManualRefresh} />
+                        <Button onPress={handleManualRefresh}>
+                            <Text className="font-inter-semibold text-base leading-5 text-surface">
+                                {t("nowPlayingRetry")}
+                            </Text>
+                        </Button>
                     </View>
                 ) : null}
 
@@ -125,10 +129,11 @@ export function KvarteretSkjermScreen({
                         <Text className="font-inter-medium text-base text-text-primary">
                             {t("nowPlayingUnauthorized")}
                         </Text>
-                        <AppButton
-                            text={t("nowPlayingConnect")}
-                            onPress={handleOpenSpotifyConnect}
-                        />
+                        <Button onPress={handleOpenSpotifyConnect}>
+                            <Text className="font-inter-semibold text-base leading-5 text-surface">
+                                {t("nowPlayingConnect")}
+                            </Text>
+                        </Button>
                     </View>
                 ) : null}
 
@@ -137,11 +142,11 @@ export function KvarteretSkjermScreen({
                         <Text className="font-inter-medium text-base text-text-primary">
                             {t("nowPlayingIdle")}
                         </Text>
-                        <AppButton
-                            secondary
-                            text={t("nowPlayingRetry")}
-                            onPress={handleManualRefresh}
-                        />
+                        <Button variant="secondary" onPress={handleManualRefresh}>
+                            <Text className="font-inter-semibold text-base leading-5 text-text-primary">
+                                {t("nowPlayingRetry")}
+                            </Text>
+                        </Button>
                     </View>
                 ) : null}
 

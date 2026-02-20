@@ -1,16 +1,19 @@
+import { MaterialIcons } from "@expo/vector-icons"
 import * as Clipboard from "expo-clipboard"
 import Constants from "expo-constants"
 import * as Linking from "expo-linking"
 import React, { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Alert, ScrollView, Text, View } from "react-native"
+import { colors } from "../../constants/theme"
 import { extractFriendlyErrorMessage, requestAccessToken } from "../../services/authService"
 import {
     extractAccessTokenFromManualInput,
     extractAccessTokenFromUrl,
 } from "../../services/deepLinkService"
-import { AppButton } from "../common/AppButton"
-import { AppTextField } from "../common/AppTextField"
+import { cn } from "../../utils/cn"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
 
 interface VerifyCodeBoxProps {
     email: string
@@ -142,13 +145,27 @@ export function VerifyCodeBox({
                 ) : null}
 
                 <View className="mt-7 gap-4">
-                    <AppTextField
-                        errorText={otpFieldErrorText}
-                        icon="lock"
-                        placeholder={t("codeFromEmail")}
-                        value={otpCode}
-                        onChangeText={setOtpCode}
-                    />
+                    <View>
+                        <View
+                            className={cn(
+                                "min-h-14 flex-row items-center gap-2.5 rounded-xl border border-surface bg-surface-muted px-3",
+                                otpFieldErrorText && "border-danger-soft",
+                            )}
+                        >
+                            <MaterialIcons name="lock" size={20} color={colors.gray600} />
+                            <Input
+                                className="flex-1 border-0 bg-transparent px-0 py-3 text-base text-text-primary"
+                                placeholder={t("codeFromEmail")}
+                                value={otpCode}
+                                onChangeText={setOtpCode}
+                            />
+                        </View>
+                        {otpFieldErrorText ? (
+                            <Text className="mt-1.5 font-inter text-xs text-[#B91C1C]">
+                                {otpFieldErrorText}
+                            </Text>
+                        ) : null}
+                    </View>
 
                     {globalErrorText ? (
                         <Text className="font-inter text-[13px] text-[#B91C1C]">
@@ -157,20 +174,31 @@ export function VerifyCodeBox({
                     ) : null}
 
                     <View className="gap-3">
-                        <AppButton text={t("confirm")} onPress={() => void handleVerifyCode()} />
-                        <AppButton
-                            secondary
-                            text={t("sendNewCode")}
-                            onPress={() => void handleSendOtp()}
-                        />
+                        <Button onPress={() => void handleVerifyCode()}>
+                            <Text className="font-inter-semibold text-base leading-5 text-surface">
+                                {t("confirm")}
+                            </Text>
+                        </Button>
+                        <Button variant="secondary" onPress={() => void handleSendOtp()}>
+                            <Text className="font-inter-semibold text-base leading-5 text-text-primary">
+                                {t("sendNewCode")}
+                            </Text>
+                        </Button>
                         {isExpoGo ? (
-                            <AppButton
-                                secondary
-                                text={t("useLinkFromClipboard")}
+                            <Button
+                                variant="secondary"
                                 onPress={() => void handleUseClipboardLink()}
-                            />
+                            >
+                                <Text className="font-inter-semibold text-base leading-5 text-text-primary">
+                                    {t("useLinkFromClipboard")}
+                                </Text>
+                            </Button>
                         ) : null}
-                        <AppButton secondary text={t("back")} onPress={onBack} />
+                        <Button variant="secondary" onPress={onBack}>
+                            <Text className="font-inter-semibold text-base leading-5 text-text-primary">
+                                {t("back")}
+                            </Text>
+                        </Button>
                     </View>
                 </View>
             </View>

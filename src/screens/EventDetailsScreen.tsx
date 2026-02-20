@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next"
 import { Image, Linking, ScrollView, Text, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { AppButton } from "../components/common/AppButton"
 import { NativeSurface } from "../components/common/NativeSurface"
+import { Button } from "../components/ui/button"
 import { platformUi } from "../constants/platformUi"
 import { RootStackParamList } from "../navigation/types"
 import { fetchEventById, selectEventTranslation } from "../services/eventsService"
@@ -72,15 +72,18 @@ export function EventDetailsScreen({
                     <Text className="mb-3 font-inter text-base text-text-primary">
                         {t("eventDetailsError")}
                     </Text>
-                    <AppButton
+                    <Button
                         accessibilityLabel={t("eventDetailsRetry")}
-                        secondary
-                        text={t("eventDetailsRetry")}
+                        variant="secondary"
                         onPress={() => {
                             void triggerSoftImpactHaptic()
                             void refetch()
                         }}
-                    />
+                    >
+                        <Text className="font-inter-semibold text-base leading-5 text-text-primary">
+                            {t("eventDetailsRetry")}
+                        </Text>
+                    </Button>
                 </View>
             </SafeAreaView>
         )
@@ -166,20 +169,26 @@ export function EventDetailsScreen({
                 {event.ticket_url || event.facebook_url ? (
                     <NativeSurface className="gap-3 p-4" variant="grouped">
                         {event.ticket_url ? (
-                            <AppButton
+                            <Button
                                 accessibilityLabel={t("eventDetailsTickets")}
-                                text={t("eventDetailsTickets")}
                                 onPress={() => handleOpenLink(event.ticket_url)}
-                            />
+                            >
+                                <Text className="font-inter-semibold text-base leading-5 text-surface">
+                                    {t("eventDetailsTickets")}
+                                </Text>
+                            </Button>
                         ) : null}
 
                         {event.facebook_url ? (
-                            <AppButton
+                            <Button
                                 accessibilityLabel={t("eventDetailsFacebook")}
-                                secondary
-                                text={t("eventDetailsFacebook")}
+                                variant="secondary"
                                 onPress={() => handleOpenLink(event.facebook_url)}
-                            />
+                            >
+                                <Text className="font-inter-semibold text-base leading-5 text-text-primary">
+                                    {t("eventDetailsFacebook")}
+                                </Text>
+                            </Button>
                         ) : null}
                     </NativeSurface>
                 ) : null}

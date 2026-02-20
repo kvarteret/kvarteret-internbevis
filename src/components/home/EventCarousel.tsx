@@ -16,8 +16,8 @@ import { fetchHomeEvents, selectEventTranslation } from "../../services/eventsSe
 import { FirestoreEventDocument } from "../../types/event"
 import { triggerSelectionHaptic, triggerSoftImpactHaptic } from "../../utils/haptics"
 import { stripHtml } from "../../utils/html"
-import { AppButton } from "../common/AppButton"
 import { NativeSurface } from "../common/NativeSurface"
+import { Button } from "../ui/button"
 
 interface EventCarouselProps {
     onEventPress: (eventId: string) => void
@@ -142,15 +142,18 @@ export function EventCarousel({ onEventPress }: EventCarouselProps): React.JSX.E
                     <Text className="mb-3 font-inter text-sm text-text-secondary">
                         {t("homeEventsError")}
                     </Text>
-                    <AppButton
+                    <Button
                         accessibilityLabel={t("homeEventsRetry")}
-                        secondary
-                        text={t("homeEventsRetry")}
+                        variant="secondary"
                         onPress={() => {
                             void triggerSoftImpactHaptic()
                             void refetch()
                         }}
-                    />
+                    >
+                        <Text className="font-inter-semibold text-base leading-5 text-text-primary">
+                            {t("homeEventsRetry")}
+                        </Text>
+                    </Button>
                 </NativeSurface>
             ) : null}
 

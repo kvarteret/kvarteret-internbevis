@@ -1,3 +1,4 @@
+import { MaterialIcons } from "@expo/vector-icons"
 import React, { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
@@ -12,8 +13,9 @@ import {
 import { colors } from "../../constants/theme"
 import { extractFriendlyErrorMessage, requestAccessToken } from "../../services/authService"
 import { consumePendingDeepLinkToken } from "../../services/pendingDeepLinkToken"
-import { AppButton } from "../common/AppButton"
-import { AppTextField } from "../common/AppTextField"
+import { cn } from "../../utils/cn"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
 
 interface LoginBoxProps {
     onOtpRequested: (email: string) => void
@@ -90,15 +92,29 @@ export function LoginBox({
                 </Text>
 
                 <View className="mt-6 gap-6">
-                    <AppTextField
-                        autoCapitalize="none"
-                        errorText={emailErrorText}
-                        icon="mail"
-                        keyboardType="email-address"
-                        placeholder={t("emailHint")}
-                        value={email}
-                        onChangeText={setEmail}
-                    />
+                    <View>
+                        <View
+                            className={cn(
+                                "min-h-14 flex-row items-center gap-2.5 rounded-xl border border-surface bg-surface-muted px-3",
+                                emailErrorText && "border-danger-soft",
+                            )}
+                        >
+                            <MaterialIcons name="mail" size={20} color={colors.gray600} />
+                            <Input
+                                autoCapitalize="none"
+                                className="flex-1 border-0 bg-transparent px-0 py-3 text-base text-text-primary"
+                                keyboardType="email-address"
+                                placeholder={t("emailHint")}
+                                value={email}
+                                onChangeText={setEmail}
+                            />
+                        </View>
+                        {emailErrorText ? (
+                            <Text className="mt-1.5 font-inter text-xs text-[#B91C1C]">
+                                {emailErrorText}
+                            </Text>
+                        ) : null}
+                    </View>
 
                     {sendingOtp ? (
                         <View className="my-2">
@@ -106,8 +122,16 @@ export function LoginBox({
                         </View>
                     ) : (
                         <View className="gap-3">
-                            <AppButton text={t("login")} onPress={() => void sendOtp()} />
-                            <AppButton secondary text={t("tryDemo")} onPress={onDemoLogin} />
+                            <Button onPress={() => void sendOtp()}>
+                                <Text className="font-inter-semibold text-base leading-5 text-surface">
+                                    {t("login")}
+                                </Text>
+                            </Button>
+                            <Button variant="secondary" onPress={onDemoLogin}>
+                                <Text className="font-inter-semibold text-base leading-5 text-text-primary">
+                                    {t("tryDemo")}
+                                </Text>
+                            </Button>
                         </View>
                     )}
 
