@@ -116,16 +116,8 @@ export function EventDetailsScreen({
                     </NativeSurface>
                 ) : null}
 
-                <NativeSurface className="p-4" variant="grouped">
-                    <Text className="font-inter-bold text-2xl text-text-primary">
-                        {translation.value.title}
-                    </Text>
-
-                    <LabeledValueRow
-                        className="mt-2"
-                        label={t("eventDetailsWhen")}
-                        value={`${start} - ${end}`}
-                    />
+                <NativeSurface className="p-4" nativeEffect="liquid" variant="grouped">
+                    <LabeledValueRow label={t("eventDetailsWhen")} value={`${start} - ${end}`} />
 
                     {event.organizer?.name ? (
                         <LabeledValueRow
@@ -143,7 +135,7 @@ export function EventDetailsScreen({
                     ) : null}
                 </NativeSurface>
 
-                <NativeSurface className="p-4" variant="grouped">
+                <NativeSurface className="p-4" nativeEffect="liquid" variant="grouped">
                     {detailsHtml ? (
                         <RenderHTML
                             contentWidth={width - 64}
@@ -172,7 +164,7 @@ export function EventDetailsScreen({
                 </NativeSurface>
 
                 {event.ticket_url || event.facebook_url ? (
-                    <NativeSurface className="gap-3 p-4" variant="grouped">
+                    <NativeSurface className="gap-3 p-4" nativeEffect="liquid" variant="grouped">
                         {event.ticket_url ? (
                             <Button
                                 accessibilityLabel={t("eventDetailsTickets")}
