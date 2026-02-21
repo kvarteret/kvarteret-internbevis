@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import React, { useEffect } from "react"
-import { ActivityIndicator, Platform, View } from "react-native"
+import { ActivityIndicator, LogBox, Platform, View } from "react-native"
 import "./global.css"
 import "./src/localization/i18n"
 import { colors } from "./src/constants/theme"
@@ -21,6 +21,8 @@ import { LanguageProvider, useLanguage } from "./src/state/LanguageContext"
 import { UserProvider, useUser } from "./src/state/UserContext"
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
+
+LogBox.ignoreLogs(["SafeAreaView has been deprecated and will be removed in a future release."])
 
 const queryClient = new QueryClient({
     defaultOptions: {

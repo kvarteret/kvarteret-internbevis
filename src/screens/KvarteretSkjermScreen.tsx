@@ -8,7 +8,6 @@ import {
     AppState,
     DimensionValue,
     Image,
-    Linking,
     ScrollView,
     Text,
     View,
@@ -19,6 +18,7 @@ import { Button } from "../components/ui/button"
 import { colors } from "../constants/theme"
 import { RootStackParamList } from "../navigation/types"
 import { fetchNowPlaying } from "../services/kvarteretSkjermService"
+import { tryOpenExternalUrl } from "../utils/externalLink"
 
 const POLL_INTERVAL_MS = 1000
 
@@ -84,7 +84,7 @@ export function KvarteretSkjermScreen({
             return
         }
 
-        await Linking.openURL(nowPlaying.connectUrl)
+        await tryOpenExternalUrl(nowPlaying.connectUrl)
     }, [nowPlaying?.connectUrl])
 
     const handleManualRefresh = useCallback((): void => {

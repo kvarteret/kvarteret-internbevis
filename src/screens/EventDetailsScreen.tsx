@@ -1,8 +1,8 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { useQuery } from "@tanstack/react-query"
-import React, { useCallback, useLayoutEffect } from "react"
+import React, { useCallback, useLayoutEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { Image, Linking, ScrollView, Text, useWindowDimensions, View } from "react-native"
+import { Image, ScrollView, Text, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { LabeledValueRow } from "../components/common/LabeledValueRow"
@@ -13,7 +13,11 @@ import { platformUi } from "../constants/platformUi"
 import { RootStackParamList } from "../navigation/types"
 import { fetchEventById, selectEventTranslation } from "../services/eventsService"
 import { triggerSoftImpactHaptic } from "../utils/haptics"
+import { tryOpenExternalUrl } from "../utils/externalLink"
 import { toRenderableHtml } from "../utils/html"
+
+const htmlBaseStyle = { color: "#111827", fontSize: 16, lineHeight: 24 }
+const htmlDefaultTextProps = { selectable: true }
 
 function formatDateTime(date: Date): string {
     return new Intl.DateTimeFormat(undefined, {
@@ -54,7 +58,7 @@ export function EventDetailsScreen({
         }
 
         void triggerSoftImpactHaptic()
-        void Linking.openURL(url)
+        void tryOpenExternalUrl(url)
     }, [])
 
     if (isPending) {
@@ -99,6 +103,21 @@ export function EventDetailsScreen({
         : ""
     const contentHtml = translation.value.content ? toRenderableHtml(translation.value.content) : ""
     const detailsHtml = Array.from(new Set([descriptionHtml, contentHtml].filter(Boolean))).join("")
+    const htmlSource = useMemo(() => ({ html: detailsHtml }), [detailsHtml])
+    const renderersProps = useMemo(
+        () => ({
+            a: {
+                onPress: (_event: unknown, href: string | undefined) => {
+                    if (!href) {
+                        return
+                    }
+
+                    void handleOpenLink(href)
+                },
+            },
+        }),
+        [handleOpenLink],
+    )
 
     return (
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
@@ -139,22 +158,12 @@ export function EventDetailsScreen({
                     {detailsHtml ? (
                         <RenderHTML
                             contentWidth={width - 64}
-                            defaultTextProps={{ selectable: true }}
+                            defaultTextProps={htmlDefaultTextProps}
                             enableCSSInlineProcessing
                             enableExperimentalMarginCollapsing
-                            baseStyle={{ color: "#111827", fontSize: 16, lineHeight: 24 }}
-                            source={{ html: detailsHtml }}
-                            renderersProps={{
-                                a: {
-                                    onPress: (_event, href) => {
-                                        if (!href) {
-                                            return
-                                        }
-
-                                        void handleOpenLink(href)
-                                    },
-                                },
-                            }}
+                            baseStyle={htmlBaseStyle}
+                            source={htmlSource}
+                            renderersProps={renderersProps}
                         />
                     ) : (
                         <Text className="font-inter text-sm leading-6 text-text-primary">

@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next"
 import {
     ActivityIndicator,
     Image,
-    Linking,
     ScrollView,
     Text,
     TouchableOpacity,
@@ -22,6 +21,7 @@ import { LanguageSelectorModal } from "../components/LanguageSelectorModal"
 import { colors } from "../constants/theme"
 import { RootStackParamList } from "../navigation/types"
 import { useUser } from "../state/UserContext"
+import { tryOpenExternalUrl } from "../utils/externalLink"
 import { NotRegisteredScreen } from "./NotRegisteredScreen"
 
 export function HomeScreen({
@@ -38,7 +38,7 @@ export function HomeScreen({
     const headerLogoWidth = Math.min(280, Math.max(170, width - 120))
 
     const handleOpenVolunteerPage = useCallback((): void => {
-        void Linking.openURL("https://blifrivillig.no")
+        void tryOpenExternalUrl("https://blifrivillig.no")
     }, [])
 
     const handleOpenMenu = useCallback((): void => {
