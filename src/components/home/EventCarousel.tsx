@@ -65,7 +65,6 @@ function EventCard({
                 accessibilityLabel={accessibilityLabel}
                 accessibilityRole="button"
                 android_ripple={{ color: "rgba(0,0,0,0.08)" }}
-                className="p-3"
                 onPress={() => {
                     void triggerSelectionHaptic()
                     onPress(event.id)
@@ -79,23 +78,28 @@ function EventCard({
                 ]}
             >
                 {event.image?.url ? (
-                    <Image
-                        className="mb-3 h-36 w-full rounded-xl"
-                        source={{ uri: event.image.url }}
-                    />
+                    <Image className="h-36 w-full" source={{ uri: event.image.url }} />
                 ) : null}
 
-                <Text className="font-inter-semibold text-base text-text-primary" numberOfLines={2}>
-                    {translation.value.title}
-                </Text>
-                <Text className="mt-1 font-inter text-xs text-text-secondary" numberOfLines={1}>
-                    {formattedDate}
-                </Text>
-                {descriptionPreview ? (
-                    <Text className="mt-2 font-inter text-sm text-text-secondary" numberOfLines={3}>
-                        {descriptionPreview}
+                <View className="p-3">
+                    <Text
+                        className="font-inter-semibold text-base text-text-primary"
+                        numberOfLines={2}
+                    >
+                        {translation.value.title}
                     </Text>
-                ) : null}
+                    <Text className="mt-1 font-inter text-xs text-text-secondary" numberOfLines={1}>
+                        {formattedDate}
+                    </Text>
+                    {descriptionPreview ? (
+                        <Text
+                            className="mt-2 font-inter text-sm text-text-secondary"
+                            numberOfLines={3}
+                        >
+                            {descriptionPreview}
+                        </Text>
+                    ) : null}
+                </View>
             </Pressable>
         </NativeSurface>
     )

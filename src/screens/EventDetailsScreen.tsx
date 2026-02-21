@@ -164,7 +164,7 @@ export function EventDetailsScreen({
                 </NativeSurface>
 
                 {event.ticket_url || event.facebook_url ? (
-                    <NativeSurface className="gap-3 p-4" nativeEffect="liquid" variant="grouped">
+                    <View className="gap-3">
                         {event.ticket_url ? (
                             <Button
                                 accessibilityLabel={t("eventDetailsTickets")}
@@ -189,7 +189,7 @@ export function EventDetailsScreen({
                                 </Text>
                             </Button>
                         ) : null}
-                    </NativeSurface>
+                    </View>
                 ) : null}
 
                 <View style={{ height: platformUi.sectionSpacing }} />
