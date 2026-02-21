@@ -13,7 +13,6 @@
     "icon": "./assets/icon.png",
     "scheme": "internbeviskvarteret",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/launch.png",
       "resizeMode": "contain",
@@ -32,7 +31,6 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.kvarteret.internbevis.internbevisrn",
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
