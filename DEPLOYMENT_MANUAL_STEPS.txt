@@ -31,12 +31,12 @@ No manual version bump in app.json is required for CI releases.
 One-time setup (manual)
 =======================
 1) App Store Connect / Apple Developer
-- Confirm app still uses bundle id com.kvarteret.internbevis.internbevisrn.
+- Confirm app still uses bundle id com.kvarteret.internbevis.internBevisKvarteret.
 - Update app display name/logo/store metadata.
 - Create App Store Connect API key for CI submit.
 
 2) Google Play Console
-- Confirm app uses package com.kvarteret.internbevis.internbevisrn.
+- Confirm app uses package com.kvarteret.internbevis.internBevisKvarteret.
 - Update app title/logo/store listing.
 - Create Google Play service account and grant release permissions.
 

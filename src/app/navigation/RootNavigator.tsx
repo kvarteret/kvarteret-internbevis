@@ -6,7 +6,6 @@ import { LoginScreen } from "@/features/auth/ui/screens/LoginScreen"
 import { EventDetailsScreen } from "@/features/dashboard/ui/screens/EventDetailsScreen"
 import { HomeScreen } from "@/features/dashboard/ui/screens/HomeScreen"
 import { GamesScreen } from "@/features/games/ui/screens/GamesScreen"
-import { KvarteretSkjermScreen } from "@/features/now-playing/ui/screens/KvarteretSkjermScreen"
 import { PrivacyScreen } from "@/features/privacy/ui/screens/PrivacyScreen"
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -31,7 +30,6 @@ export const RootNavigator = (): React.JSX.Element => {
                 />
             )}
             <Stack.Screen name="Privacy" component={PrivacyScreen} />
-            <Stack.Screen name="KvarteretSkjerm" component={KvarteretSkjermScreen} />
             <Stack.Screen name="Games" component={GamesScreen} />
             <Stack.Screen
                 name="EventDetails"

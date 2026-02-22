@@ -10,7 +10,7 @@
             "url": "https://u.expo.dev/8e46104c-a94c-4205-9884-4f813b6371c3"
         },
         "orientation": "portrait",
-        "icon": "./assets/icon.png",
+        "icon": "./assets/icons/app-icon-square.png",
         "scheme": "internbeviskvarteret",
         "userInterfaceStyle": "light",
         "splash": {
@@ -20,15 +20,17 @@
         },
         "ios": {
             "supportsTablet": false,
+            "icon": "./assets/icons/ios-icon-square.png",
             "bundleIdentifier": "com.kvarteret.internbevis.internBevisKvarteret",
             "infoPlist": {
                 "ITSAppUsesNonExemptEncryption": false
             }
         },
         "android": {
+            "icon": "./assets/icons/android-icon-square.png",
             "adaptiveIcon": {
-                "foregroundImage": "./assets/adaptive-icon.png",
-                "backgroundColor": "#ffffff"
+                "foregroundImage": "./assets/icons/android-adaptive-foreground-square.png",
+                "backgroundColor": "#000000"
             },
             "package": "com.kvarteret.internbevis.internBevisKvarteret",
             "predictiveBackGestureEnabled": false

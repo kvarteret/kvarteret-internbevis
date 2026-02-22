@@ -1,7 +1,7 @@
 export interface NowPlayingState {
     authorized: boolean
-    playing: boolean
-    isPlaying: boolean
+    hasTrack: boolean
+    isPlaybackActive: boolean
     name: string | null
     artists: string | null
     album: string | null
@@ -67,8 +67,8 @@ const parseNowPlayingResponse = (payload: unknown): NowPlayingState => {
 
     return {
         authorized: parseRequiredBoolean(value.authorized, "authorized"),
-        playing: parseRequiredBoolean(value.playing, "playing"),
-        isPlaying: parseRequiredBoolean(value.isPlaying, "isPlaying"),
+        hasTrack: parseRequiredBoolean(value.hasTrack, "hasTrack"),
+        isPlaybackActive: parseRequiredBoolean(value.isPlaybackActive, "isPlaybackActive"),
         name: parseNullableString(value.name),
         artists: parseNullableString(value.artists),
         album: parseNullableString(value.album),
