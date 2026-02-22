@@ -8,8 +8,8 @@ interface MemberHeaderProps {
     animationTrigger: number
     firstName: string
     lastName: string
-    birthDateText: string
-    points: number
+    roleGroup: string
+    roleTitle: string
     wordOfTheDay: string
 }
 
@@ -22,12 +22,14 @@ export const MemberHeader = ({
     animationTrigger,
     firstName,
     lastName,
-    birthDateText,
-    points,
+    roleGroup,
+    roleTitle,
     wordOfTheDay,
 }: MemberHeaderProps): React.JSX.Element => {
-    const { height } = useWindowDimensions()
-    const radius = useMemo(() => height * 0.1, [height])
+    const { width } = useWindowDimensions()
+    const avatarSize = useMemo(() => Math.min(92, Math.max(64, width * 0.22)), [width])
+    const roleText = `${roleGroup} ${roleTitle}`.trim() || "-"
+    const displayName = `${firstName} ${lastName}`.trim() || "-"
 
     const scaleAnim = useRef(new Animated.Value(1)).current
     const rotationAnim = useRef(new Animated.Value(0)).current
@@ -87,57 +89,82 @@ export const MemberHeader = ({
     const hasRemoteImage = Boolean(imageUrl && !localImageSource)
 
     return (
-        <View className="w-full items-center">
-            <Animated.View
-                style={{
-                    transform: [
-                        { scale: scaleAnim },
-                        {
-                            rotate: rotationAnim.interpolate({
-                                inputRange: [-1, 1],
-                                outputRange: ["-1rad", "1rad"],
-                            }),
-                        },
-                    ],
-                }}
-            >
-                <View
-                    className="overflow-hidden bg-surface-muted"
-                    style={{ width: radius * 2, height: radius * 2, borderRadius: radius }}
-                >
-                    {localImageSource ? (
-                        <Image
-                            className="h-full w-full"
-                            resizeMode="cover"
-                            source={localImageSource}
-                        />
-                    ) : null}
+        <View className="w-full rounded-card px-3 py-3">
+            <View className="w-full flex-row items-center">
+                <View className="w-1/3 items-start justify-center pl-1">
+                    <Animated.View
+                        style={{
+                            transform: [
+                                { scale: scaleAnim },
+                                {
+                                    rotate: rotationAnim.interpolate({
+                                        inputRange: [-1, 1],
+                                        outputRange: ["-1rad", "1rad"],
+                                    }),
+                                },
+                            ],
+                        }}
+                    >
+                        <View
+                            className="overflow-hidden bg-surface-muted"
+                            style={{
+                                width: avatarSize,
+                                height: avatarSize,
+                                borderRadius: avatarSize / 2,
+                            }}
+                        >
+                            {localImageSource ? (
+                                <Image
+                                    className="h-full w-full"
+                                    resizeMode="cover"
+                                    source={localImageSource}
+                                />
+                            ) : null}
 
-                    {!localImageSource && hasRemoteImage ? (
-                        <Image
-                            className="h-full w-full"
-                            resizeMode="cover"
-                            source={{ uri: imageUrl }}
-                        />
-                    ) : null}
+                            {!localImageSource && hasRemoteImage ? (
+                                <Image
+                                    className="h-full w-full"
+                                    resizeMode="cover"
+                                    source={{ uri: imageUrl }}
+                                />
+                            ) : null}
 
-                    {!localImageSource && !hasRemoteImage ? (
-                        <View className="h-full w-full items-center justify-center">
-                            <MaterialIcons color="#4B5563" name="person" size={radius} />
+                            {!localImageSource && !hasRemoteImage ? (
+                                <View className="h-full w-full items-center justify-center">
+                                    <MaterialIcons
+                                        color="#4B5563"
+                                        name="person"
+                                        size={avatarSize * 0.54}
+                                    />
+                                </View>
+                            ) : null}
                         </View>
-                    ) : null}
+                    </Animated.View>
                 </View>
-            </Animated.View>
 
-            <View className="w-full max-w-md items-center rounded-card px-5 py-4">
-                <Text className="text-center text-2xl leading-8 font-extrabold">{`${firstName} ${lastName}`}</Text>
-                <Text className="text-center text-xl leading-6 text-text-secondary font-medium">
-                    {birthDateText}
-                </Text>
-                <Text className="mt-1.5 text-center text-lg font-bold">{`Pingvin Poeng: ${points}`}</Text>
-                <Text className="mt-1.5 text-center text-xl italic font-semibold">
-                    {wordOfTheDay}
-                </Text>
+                <View className="w-2/3 gap-0.5 pr-1">
+                    <Text
+                        className="text-xl leading-7 font-extrabold"
+                        ellipsizeMode="tail"
+                        numberOfLines={1}
+                    >
+                        {displayName}
+                    </Text>
+                    <Text
+                        className="text-base leading-6 text-text-secondary font-medium"
+                        ellipsizeMode="tail"
+                        numberOfLines={1}
+                    >
+                        {roleText}
+                    </Text>
+                    <Text
+                        className="text-lg leading-6 italic font-semibold"
+                        ellipsizeMode="tail"
+                        numberOfLines={1}
+                    >
+                        {wordOfTheDay}
+                    </Text>
+                </View>
             </View>
         </View>
     )

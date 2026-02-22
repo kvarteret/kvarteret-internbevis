@@ -1,6 +1,5 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { format } from "date-fns"
 import React from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from "react-native"
@@ -11,6 +10,7 @@ import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
 import { MemberStatusCard } from "@/features/dashboard/ui/components/MemberStatusCard"
 import { MenuSheet } from "@/features/dashboard/ui/components/MenuSheet"
 import { useHomeScreenVM } from "@/features/dashboard/vm/useHomeScreenVM"
+import { getHighestTierGroup, getHighestTierName } from "@/shared/types/user"
 import { Button } from "@/shared/ui/Button"
 import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
 import { Text } from "@/shared/ui/Text"
@@ -75,12 +75,8 @@ export const HomeScreen = ({
                             imageUrl={state.user.bildeUrl}
                             firstName={state.user.fornavn}
                             lastName={state.user.etternavn}
-                            birthDateText={
-                                state.user.fodselsdato
-                                    ? format(state.user.fodselsdato, "d.M.yyyy")
-                                    : "-"
-                            }
-                            points={state.user.pingvinPoengSum}
+                            roleGroup={getHighestTierGroup(state.user)}
+                            roleTitle={getHighestTierName(state.user)}
                             wordOfTheDay={state.user.dagensOrd.trim() || "-"}
                         />
                     </View>

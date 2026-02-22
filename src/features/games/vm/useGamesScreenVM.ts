@@ -12,15 +12,19 @@ import {
 } from "@/features/games/domain/chessTimer"
 
 type GameMode = "d6" | "chess"
+export type DiceType = 4 | 6 | 8 | 10 | 12 | 20
+
+export const COMMON_DICE_TYPES: readonly DiceType[] = [4, 6, 8, 10, 12, 20]
 
 const INITIAL_CHESS_MS = 15 * 60 * 1000
 const INCREMENT_MS = 2 * 1000
 const TIMER_POLL_INTERVAL_MS = 200
 
-const rollD6 = (): number => Math.floor(Math.random() * 6) + 1
+const rollDie = (sides: DiceType): number => Math.floor(Math.random() * sides) + 1
 
 export const useGamesScreenVM = () => {
     const [mode, setMode] = useState<GameMode>("d6")
+    const [selectedDiceType, setSelectedDiceType] = useState<DiceType>(6)
     const [diceValue, setDiceValue] = useState(1)
     const [diceRollCount, setDiceRollCount] = useState(0)
     const [timerState, setTimerState] = useState<ChessTimerState>(() =>
@@ -149,14 +153,19 @@ export const useGamesScreenVM = () => {
     return {
         state: {
             mode,
+            selectedDiceType,
             diceValue,
             diceRollCount,
             timerState,
         },
         actions: {
             setMode,
+            setSelectedDiceType: (nextDiceType: DiceType): void => {
+                setSelectedDiceType(nextDiceType)
+                setDiceValue(previous => Math.min(previous, nextDiceType))
+            },
             rollDice: (): void => {
-                setDiceValue(rollD6())
+                setDiceValue(rollDie(selectedDiceType))
                 setDiceRollCount(previous => previous + 1)
             },
             toggleTimer: handleToggleTimer,

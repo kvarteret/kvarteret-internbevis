@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
-import { useGamesScreenVM } from "@/features/games/vm/useGamesScreenVM"
+import { COMMON_DICE_TYPES, useGamesScreenVM } from "@/features/games/vm/useGamesScreenVM"
 import { StateSurface } from "@/shared/ui/Surface"
 import { Text } from "@/shared/ui/Text"
 
@@ -96,6 +96,38 @@ export const GamesScreen = ({
                 {state.mode === "d6" ? (
                     <StateSurface>
                         <Text className="text-2xl font-bold">{t("gamesDice")}</Text>
+                        <View className="gap-2">
+                            <Text className="text-sm text-text-secondary font-semibold">
+                                {t("gamesSelectDie")}
+                            </Text>
+                            <View className="flex-row flex-wrap gap-2">
+                                {COMMON_DICE_TYPES.map(diceType => {
+                                    const selected = diceType === state.selectedDiceType
+                                    return (
+                                        <Pressable
+                                            key={diceType}
+                                            className={[
+                                                "rounded-lg border px-3 py-2",
+                                                selected
+                                                    ? "border-text-primary bg-text-primary"
+                                                    : "border-border bg-surface",
+                                            ].join(" ")}
+                                            onPress={() => actions.setSelectedDiceType(diceType)}
+                                        >
+                                            <Text
+                                                className={
+                                                    selected
+                                                        ? "text-sm text-surface font-semibold"
+                                                        : "text-sm text-text-primary font-semibold"
+                                                }
+                                            >
+                                                {`d${diceType}`}
+                                            </Text>
+                                        </Pressable>
+                                    )
+                                })}
+                            </View>
+                        </View>
                         <Text className="text-center text-7xl font-bold">{state.diceValue}</Text>
                         <Text className="text-center text-sm text-text-secondary">
                             {t("gamesDiceRolls", { count: state.diceRollCount })}
@@ -106,7 +138,7 @@ export const GamesScreen = ({
                             onPress={actions.rollDice}
                         >
                             <Text className="text-base text-surface font-bold">
-                                {t("gamesRollD6")}
+                                {t("gamesRollDie", { die: `d${state.selectedDiceType}` })}
                             </Text>
                         </Pressable>
                     </StateSurface>

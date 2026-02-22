@@ -1,9 +1,7 @@
-import { MaterialIcons } from "@expo/vector-icons"
-import { format } from "date-fns"
 import React, { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Animated, Image, Pressable, View } from "react-native"
-import { getHighestTier, getHighestTierGroup, getHighestTierName, User } from "@/shared/types/user"
+import { getHighestTier, User } from "@/shared/types/user"
 import { Text } from "@/shared/ui/Text"
 
 interface MemberStatusCardProps {
@@ -70,55 +68,21 @@ export const MemberStatusCard = ({
     }
 
     return (
-        <View className="w-full items-center justify-center gap-3.5">
-            <View className="items-center gap-0.5 px-4">
-                <Text className="text-center text-2xl leading-7 font-extrabold">
-                    {getHighestTierGroup(user)}
-                </Text>
-                <Text className="text-center text-xl leading-6 text-text-secondary font-medium">
-                    {getHighestTierName(user)}
-                </Text>
-            </View>
-
+        <View className="w-full gap-2.5">
             <Pressable
                 className={[
-                    "w-[90%] items-center justify-center gap-1.5 rounded-2xl border border-[#FFFFFF33] px-5 py-3.5",
+                    "w-full flex-row items-center justify-between rounded-2xl border border-[#FFFFFF33] px-5 py-3.5",
                     tierClass,
                 ].join(" ")}
                 onPress={handleTap}
             >
-                <View className="flex-row items-center gap-2">
-                    <MaterialIcons
-                        color="#FFFFFF"
-                        name={
-                            tier === 1
-                                ? "school"
-                                : tier === 2
-                                  ? "groups"
-                                  : tier === 3
-                                    ? "home"
-                                    : tier === 4
-                                      ? "business"
-                                      : "person"
-                        }
-                        size={24}
-                    />
-                    <Text className="text-lg leading-6 text-surface font-bold">
-                        {t("tierLabel", { tier })}
-                    </Text>
-                </View>
-
-                <Text className="text-base leading-6 text-[#FFFFFFCC] font-medium">
-                    {t("status")}
+                <Text className="text-lg leading-6 text-surface font-bold">
+                    {t("tierLabel", { tier })}
                 </Text>
-                <Text className="text-xl leading-7 text-surface font-extrabold">
+                <Text className="text-lg leading-6 text-surface font-bold">
                     {active ? t("validProof") : t("invalidProof")}
                 </Text>
             </Pressable>
-
-            <Text className="text-center text-base leading-6 font-bold">
-                {active ? t("validUntil", { date: format(user.gyldigTil, "d.M.yyyy") }) : ""}
-            </Text>
 
             {showPenguin ? (
                 <Animated.View
