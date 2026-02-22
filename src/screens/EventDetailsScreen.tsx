@@ -61,6 +61,33 @@ export function EventDetailsScreen({
         void tryOpenExternalUrl(url)
     }, [])
 
+    const descriptionRaw = translation?.value.description ?? ""
+    const contentRaw = translation?.value.content ?? ""
+    const descriptionHtml = useMemo(
+        () => (descriptionRaw ? toRenderableHtml(descriptionRaw) : ""),
+        [descriptionRaw],
+    )
+    const contentHtml = useMemo(() => (contentRaw ? toRenderableHtml(contentRaw) : ""), [contentRaw])
+    const detailsHtml = useMemo(
+        () => Array.from(new Set([descriptionHtml, contentHtml].filter(Boolean))).join(""),
+        [contentHtml, descriptionHtml],
+    )
+    const htmlSource = useMemo(() => ({ html: detailsHtml }), [detailsHtml])
+    const renderersProps = useMemo(
+        () => ({
+            a: {
+                onPress: (_event: unknown, href: string | undefined) => {
+                    if (!href) {
+                        return
+                    }
+
+                    void handleOpenLink(href)
+                },
+            },
+        }),
+        [handleOpenLink],
+    )
+
     if (isPending) {
         return (
             <SafeAreaView className="flex-1 bg-background p-4">
@@ -98,26 +125,6 @@ export function EventDetailsScreen({
     const start = formatDateTime(event.event_start.toDate())
     const end = formatDateTime(event.event_end.toDate())
     const categories = event.categories.map(category => category.name).join(", ")
-    const descriptionHtml = translation.value.description
-        ? toRenderableHtml(translation.value.description)
-        : ""
-    const contentHtml = translation.value.content ? toRenderableHtml(translation.value.content) : ""
-    const detailsHtml = Array.from(new Set([descriptionHtml, contentHtml].filter(Boolean))).join("")
-    const htmlSource = useMemo(() => ({ html: detailsHtml }), [detailsHtml])
-    const renderersProps = useMemo(
-        () => ({
-            a: {
-                onPress: (_event: unknown, href: string | undefined) => {
-                    if (!href) {
-                        return
-                    }
-
-                    void handleOpenLink(href)
-                },
-            },
-        }),
-        [handleOpenLink],
-    )
 
     return (
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
