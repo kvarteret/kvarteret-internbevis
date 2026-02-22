@@ -1,13 +1,13 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import React from "react"
-import { Image, KeyboardAvoidingView, Platform, TouchableOpacity, View } from "react-native"
+import { Image, KeyboardAvoidingView, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
+import { RootStackParamList } from "@/app/navigation/types"
 import { LoginForm } from "@/features/auth/ui/components/LoginForm"
 import { VerifyCodeForm } from "@/features/auth/ui/components/VerifyCodeForm"
-import { RootStackParamList } from "@/app/navigation/types"
 import { useLoginScreenVM } from "@/features/auth/vm/useLoginScreenVM"
+import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
 
 export const LoginScreen = ({
     navigation,
@@ -19,25 +19,21 @@ export const LoginScreen = ({
             <Image
                 className="absolute inset-0 h-full w-full"
                 resizeMode="cover"
-                source={require("../../../../../assets/images/bg-image.png")}
+                source={require("@assets/images/bg-image.png")}
             />
 
             <TouchableOpacity
                 accessibilityLabel="Change language"
-                className={
-                    Platform.OS === "ios"
-                        ? "absolute right-3 top-14 z-10 p-2"
-                        : "absolute right-3 top-6 z-10 p-2"
-                }
+                className="absolute right-3 top-6 z-10 p-2"
                 onPress={actions.openLanguageSelector}
             >
                 <MaterialIcons color="#FFFFFF" name="language" size={28} />
             </TouchableOpacity>
 
             <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                behavior="padding"
                 className="flex-1 justify-center"
-                keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+                keyboardVerticalOffset={12}
             >
                 <View className="w-full items-center justify-center">
                     {state.mode === "email" ? (

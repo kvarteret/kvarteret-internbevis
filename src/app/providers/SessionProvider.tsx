@@ -16,11 +16,11 @@ import {
     saveCredentials,
     saveDeepLinkToken,
 } from "@/features/auth/data/authRepository"
-import { User } from "@/shared/types/user"
 import {
     getHydrationErrorMessage,
     shouldClearCredentialsOnHydrationError,
 } from "@/features/auth/domain/authHydration"
+import { User } from "@/shared/types/user"
 
 interface SessionContextValue {
     user: User | null

@@ -5,16 +5,14 @@ import { Image, ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
-import { LabeledValueRow } from "@/shared/ui/LabeledValueRow"
-import { Button } from "@/shared/ui/Button"
-import { Surface, StateSurface } from "@/shared/ui/Surface"
-import { Text } from "@/shared/ui/Text"
 import { useEventDetailsScreenVM } from "@/features/dashboard/vm/useEventDetailsScreenVM"
+import { Button } from "@/shared/ui/Button"
+import { LabeledValueRow } from "@/shared/ui/LabeledValueRow"
+import { StateSurface, Surface } from "@/shared/ui/Surface"
+import { Text } from "@/shared/ui/Text"
 
-interface EventDetailsScreenProps extends NativeStackScreenProps<RootStackParamList, "EventDetails"> {}
-
-const htmlBaseStyle = { color: "#111827", fontSize: 16, lineHeight: 24 }
-const htmlDefaultTextProps = { selectable: true }
+interface EventDetailsScreenProps
+    extends NativeStackScreenProps<RootStackParamList, "EventDetails"> {}
 
 export const EventDetailsScreen = ({
     navigation,
@@ -27,10 +25,15 @@ export const EventDetailsScreen = ({
     const { openLink, retry } = actions
 
     useLayoutEffect(() => {
-        navigation.setOptions({ title: state.title })
+        navigation.setOptions({ title: state.title, headerLargeTitle: false })
     }, [navigation, state.title])
 
-    const renderersProps = useMemo(
+    const htmlSource = useMemo(
+        () => ({ html: state.details?.detailsHtml ?? "" }),
+        [state.details?.detailsHtml],
+    )
+
+    const htmlRenderersProps = useMemo(
         () => ({
             a: {
                 onPress: (_event: unknown, href: string | undefined) => {
@@ -43,11 +46,6 @@ export const EventDetailsScreen = ({
             },
         }),
         [openLink],
-    )
-
-    const htmlSource = useMemo(
-        () => ({ html: state.details?.detailsHtml ?? "" }),
-        [state.details?.detailsHtml],
     )
 
     if (state.isPending) {
@@ -63,7 +61,11 @@ export const EventDetailsScreen = ({
             <SafeAreaView className="flex-1 bg-background p-4" edges={["left", "right", "bottom"]}>
                 <StateSurface>
                     <Text className="mb-3 text-base">{t("eventDetailsError")}</Text>
-                    <Button accessibilityLabel={t("eventDetailsRetry")} variant="secondary" onPress={retry}>
+                    <Button
+                        accessibilityLabel={t("eventDetailsRetry")}
+                        variant="secondary"
+                        onPress={retry}
+                    >
                         <Text className="text-base leading-5 text-text-primary font-semibold">
                             {t("eventDetailsRetry")}
                         </Text>
@@ -84,31 +86,41 @@ export const EventDetailsScreen = ({
             >
                 {event.image?.url ? (
                     <Surface variant="elevated">
-                        <Image className="h-56 w-full rounded-card" source={{ uri: event.image.url }} />
+                        <Image
+                            className="h-56 w-full rounded-card"
+                            source={{ uri: event.image.url }}
+                        />
                     </Surface>
                 ) : null}
 
                 <Surface className="p-4" effect="liquid" variant="grouped">
-                    <LabeledValueRow label={t("eventDetailsWhen")} value={state.details.whenValue} />
+                    <LabeledValueRow
+                        label={t("eventDetailsWhen")}
+                        value={state.details.whenValue}
+                    />
                     {event.organizer?.name ? (
-                        <LabeledValueRow label={t("eventDetailsOrganizer")} value={event.organizer.name} />
+                        <LabeledValueRow
+                            label={t("eventDetailsOrganizer")}
+                            value={event.organizer.name}
+                        />
                     ) : null}
                     {state.details.categories.length > 0 ? (
-                        <LabeledValueRow label={t("eventDetailsCategories")} value={state.details.categories} />
+                        <LabeledValueRow
+                            label={t("eventDetailsCategories")}
+                            value={state.details.categories}
+                        />
                     ) : null}
-                    {event.price ? <LabeledValueRow label={t("eventDetailsPrice")} value={event.price} /> : null}
+                    {event.price ? (
+                        <LabeledValueRow label={t("eventDetailsPrice")} value={event.price} />
+                    ) : null}
                 </Surface>
 
                 <Surface className="p-4" effect="liquid" variant="grouped">
                     {state.details.detailsHtml ? (
                         <RenderHTML
                             contentWidth={Math.max(width - 64, 0)}
-                            defaultTextProps={htmlDefaultTextProps}
-                            enableCSSInlineProcessing
-                            enableExperimentalMarginCollapsing
-                            baseStyle={htmlBaseStyle}
+                            renderersProps={htmlRenderersProps}
                             source={htmlSource}
-                            renderersProps={renderersProps}
                         />
                     ) : (
                         <Text className="text-sm leading-6">{t("eventDetailsNoDescription")}</Text>
@@ -119,7 +131,6 @@ export const EventDetailsScreen = ({
                     {event.ticket_url?.trim() ? (
                         <Button
                             accessibilityLabel={t("eventDetailsTickets")}
-                            className="border-0 bg-state-danger"
                             variant="destructive"
                             onPress={() => {
                                 void openLink(event.ticket_url ?? "")

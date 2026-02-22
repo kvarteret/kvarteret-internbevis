@@ -1,16 +1,19 @@
 import * as Clipboard from "expo-clipboard"
 import Constants from "expo-constants"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Alert, Linking } from "react-native"
 import { useTranslation } from "react-i18next"
+import { Alert, Linking } from "react-native"
+import { useSession } from "@/app/providers/SessionProvider"
+import {
+    extractAccessTokenFromManualInput,
+    extractAccessTokenFromUrl,
+} from "@/core/linking/deepLinkParser"
+import { consumePendingDeepLinkToken } from "@/core/linking/pendingToken"
 import {
     extractFriendlyErrorMessage,
     requestAccessToken,
 } from "@/features/auth/data/authRepository"
 import { isEmailValid, normalizeEmail } from "@/features/auth/domain/authValidation"
-import { extractAccessTokenFromManualInput, extractAccessTokenFromUrl } from "@/core/linking/deepLinkParser"
-import { consumePendingDeepLinkToken } from "@/core/linking/pendingToken"
-import { useSession } from "@/app/providers/SessionProvider"
 import { createDemoUser } from "@/shared/types/user"
 
 type LoginMode = "email" | "verify"

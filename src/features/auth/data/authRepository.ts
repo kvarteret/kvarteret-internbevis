@@ -1,16 +1,16 @@
 import { ZodError } from "zod"
 import {
+    getSessionValue,
+    removeSessionValue,
+    SESSION_STORAGE_KEYS,
+    setSessionValue,
+} from "@/core/storage/sessionStorage"
+import { createAuthServiceError, toAuthServiceError } from "@/features/auth/domain/authError"
+import {
     digitalInternKortRequestSchema,
     parseInternkortInformation,
 } from "@/features/auth/domain/internkortSchema"
-import {
-    SESSION_STORAGE_KEYS,
-    getSessionValue,
-    removeSessionValue,
-    setSessionValue,
-} from "@/core/storage/sessionStorage"
 import { User } from "@/shared/types/user"
-import { createAuthServiceError, toAuthServiceError } from "@/features/auth/domain/authError"
 
 const DEFAULT_INTERNKORT_BASE_URL = "https://api.kvarteret.no/api/DigitalInternkort"
 
@@ -67,7 +67,10 @@ export const requestAccessToken = async (email: string): Promise<boolean> => {
     })
 }
 
-export const getInternkortInformation = async (email: string, accessToken: string): Promise<User> => {
+export const getInternkortInformation = async (
+    email: string,
+    accessToken: string,
+): Promise<User> => {
     const requestBody = digitalInternKortRequestSchema.parse({ email, accessToken })
 
     let response: Response
@@ -172,4 +175,5 @@ export const authResultFromError = (error: unknown): AuthResult => {
     }
 }
 
-export const extractFriendlyErrorMessage = (error: unknown): string => toAuthServiceError(error).message
+export const extractFriendlyErrorMessage = (error: unknown): string =>
+    toAuthServiceError(error).message

@@ -14,7 +14,7 @@ interface MemberHeaderProps {
 }
 
 const localImageMap: Record<string, number> = {
-    "assets/images/demopingvin.png": require("../../../../../assets/images/demopingvin.png"),
+    "assets/images/demopingvin.png": require("@assets/images/demopingvin.png"),
 }
 
 export const MemberHeader = ({
@@ -106,11 +106,19 @@ export const MemberHeader = ({
                     style={{ width: radius * 2, height: radius * 2, borderRadius: radius }}
                 >
                     {localImageSource ? (
-                        <Image className="h-full w-full" resizeMode="cover" source={localImageSource} />
+                        <Image
+                            className="h-full w-full"
+                            resizeMode="cover"
+                            source={localImageSource}
+                        />
                     ) : null}
 
                     {!localImageSource && hasRemoteImage ? (
-                        <Image className="h-full w-full" resizeMode="cover" source={{ uri: imageUrl }} />
+                        <Image
+                            className="h-full w-full"
+                            resizeMode="cover"
+                            source={{ uri: imageUrl }}
+                        />
                     ) : null}
 
                     {!localImageSource && !hasRemoteImage ? (
@@ -123,9 +131,13 @@ export const MemberHeader = ({
 
             <View className="w-full max-w-md items-center rounded-card px-5 py-4">
                 <Text className="text-center text-2xl leading-8 font-extrabold">{`${firstName} ${lastName}`}</Text>
-                <Text className="text-center text-xl leading-6 text-text-secondary font-medium">{birthDateText}</Text>
+                <Text className="text-center text-xl leading-6 text-text-secondary font-medium">
+                    {birthDateText}
+                </Text>
                 <Text className="mt-1.5 text-center text-lg font-bold">{`Pingvin Poeng: ${points}`}</Text>
-                <Text className="mt-1.5 text-center text-xl italic font-semibold">{wordOfTheDay}</Text>
+                <Text className="mt-1.5 text-center text-xl italic font-semibold">
+                    {wordOfTheDay}
+                </Text>
             </View>
         </View>
     )

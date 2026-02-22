@@ -4,10 +4,10 @@ import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Image, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
-import { Button } from "@/shared/ui/Button"
-import { Text } from "@/shared/ui/Text"
-import { StateSurface } from "@/shared/ui/Surface"
 import { useNowPlayingScreenVM } from "@/features/now-playing/vm/useNowPlayingScreenVM"
+import { Button } from "@/shared/ui/Button"
+import { StateSurface } from "@/shared/ui/Surface"
+import { Text } from "@/shared/ui/Text"
 
 export const KvarteretSkjermScreen = ({
     navigation,
@@ -34,7 +34,9 @@ export const KvarteretSkjermScreen = ({
                         <Text className="text-base font-medium">{t("nowPlayingError")}</Text>
                         <Text className="text-sm text-text-secondary">{state.errorMessage}</Text>
                         <Button onPress={() => void actions.refresh()}>
-                            <Text className="text-base leading-5 text-surface font-semibold">{t("nowPlayingRetry")}</Text>
+                            <Text className="text-base leading-5 text-surface font-semibold">
+                                {t("nowPlayingRetry")}
+                            </Text>
                         </Button>
                     </StateSurface>
                 ) : null}
@@ -43,7 +45,9 @@ export const KvarteretSkjermScreen = ({
                     <StateSurface>
                         <Text className="text-base font-medium">{t("nowPlayingUnauthorized")}</Text>
                         <Button onPress={() => void actions.openSpotifyConnect()}>
-                            <Text className="text-base leading-5 text-surface font-semibold">{t("nowPlayingConnect")}</Text>
+                            <Text className="text-base leading-5 text-surface font-semibold">
+                                {t("nowPlayingConnect")}
+                            </Text>
                         </Button>
                     </StateSurface>
                 ) : null}
@@ -62,21 +66,31 @@ export const KvarteretSkjermScreen = ({
                 {state.showPlaying ? (
                     <StateSurface className="flex-row items-center gap-3 p-3">
                         {state.nowPlaying?.image ? (
-                            <Image className="h-24 w-24 rounded-lg" source={{ uri: state.nowPlaying.image }} />
+                            <Image
+                                className="h-24 w-24 rounded-lg"
+                                source={{ uri: state.nowPlaying.image }}
+                            />
                         ) : null}
                         <View className="flex-1 gap-2">
-                            <Text className="text-lg font-semibold">{state.nowPlaying?.name ?? ""}</Text>
+                            <Text className="text-lg font-semibold">
+                                {state.nowPlaying?.name ?? ""}
+                            </Text>
                             <Text className="text-sm text-text-secondary">
                                 {state.nowPlaying?.artists ?? ""}
                                 {state.nowPlaying?.album ? ` - ${state.nowPlaying.album}` : ""}
                             </Text>
 
                             <View className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
-                                <View className="h-full rounded-full bg-link" style={{ width: state.progressWidth }} />
+                                <View
+                                    className="h-full rounded-full bg-link"
+                                    style={{ width: state.progressWidth }}
+                                />
                             </View>
 
                             <Text className="text-xs text-text-secondary">
-                                {state.nowPlaying?.isPlaying ? t("nowPlayingPlaying") : t("nowPlayingPaused")}
+                                {state.nowPlaying?.isPlaying
+                                    ? t("nowPlayingPlaying")
+                                    : t("nowPlayingPaused")}
                             </Text>
                         </View>
                     </StateSurface>

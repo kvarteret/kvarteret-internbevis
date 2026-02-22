@@ -5,8 +5,8 @@ import { Pressable, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
 import { useGamesScreenVM } from "@/features/games/vm/useGamesScreenVM"
-import { Text } from "@/shared/ui/Text"
 import { StateSurface } from "@/shared/ui/Surface"
+import { Text } from "@/shared/ui/Text"
 
 const formatClock = (milliseconds: number): string => {
     const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000))
@@ -18,7 +18,11 @@ const formatClock = (milliseconds: number): string => {
 const getWinnerLabelKey = (winner: "white" | "black"): "chessWhite" | "chessBlack" =>
     winner === "white" ? "chessWhite" : "chessBlack"
 
-const getClockCardClass = (isActivePlayer: boolean, isRunning: boolean, hasWinner: boolean): string => {
+const getClockCardClass = (
+    isActivePlayer: boolean,
+    isRunning: boolean,
+    hasWinner: boolean,
+): string => {
     if (!isActivePlayer || hasWinner) {
         return "rounded-xl border border-border bg-surface-muted p-3.5"
     }
@@ -51,11 +55,19 @@ export const GamesScreen = ({
                     <Pressable
                         className={[
                             "flex-1 items-center justify-center rounded-xl border px-3 py-3",
-                            state.mode === "d6" ? "border-text-primary bg-text-primary" : "border-border bg-surface",
+                            state.mode === "d6"
+                                ? "border-text-primary bg-text-primary"
+                                : "border-border bg-surface",
                         ].join(" ")}
                         onPress={() => actions.setMode("d6")}
                     >
-                        <Text className={state.mode === "d6" ? "text-[15px] text-surface font-semibold" : "text-[15px] text-text-primary font-semibold"}>
+                        <Text
+                            className={
+                                state.mode === "d6"
+                                    ? "text-[15px] text-surface font-semibold"
+                                    : "text-[15px] text-text-primary font-semibold"
+                            }
+                        >
                             {t("gamesDice")}
                         </Text>
                     </Pressable>
@@ -93,7 +105,9 @@ export const GamesScreen = ({
                             className="items-center rounded-xl border border-text-primary bg-text-primary py-3"
                             onPress={actions.rollDice}
                         >
-                            <Text className="text-base text-surface font-bold">{t("gamesRollD6")}</Text>
+                            <Text className="text-base text-surface font-bold">
+                                {t("gamesRollD6")}
+                            </Text>
                         </Pressable>
                     </StateSurface>
                 ) : (
@@ -102,7 +116,9 @@ export const GamesScreen = ({
 
                         <Pressable className="gap-3" onPress={actions.pressCurrentPlayer}>
                             <View className="flex-row items-center justify-between">
-                                <Text className="text-base text-text-secondary font-semibold">{t("chessTimeControl")}</Text>
+                                <Text className="text-base text-text-secondary font-semibold">
+                                    {t("chessTimeControl")}
+                                </Text>
                                 <Text className="text-base text-text-secondary font-semibold">
                                     {t("chessMoves", { count: state.timerState.moveCount })}
                                 </Text>
@@ -162,7 +178,11 @@ export const GamesScreen = ({
                                 </Text>
                             </View>
 
-                            {winnerLabel ? <Text className="text-base text-[#0F766E] font-bold">{winnerLabel}</Text> : null}
+                            {winnerLabel ? (
+                                <Text className="text-base text-[#0F766E] font-bold">
+                                    {winnerLabel}
+                                </Text>
+                            ) : null}
                         </Pressable>
 
                         <View className="mt-1 gap-2.5">
@@ -179,7 +199,9 @@ export const GamesScreen = ({
                                 className="items-center rounded-xl border border-border bg-surface py-3"
                                 onPress={actions.resetTimer}
                             >
-                                <Text className="text-base text-text-primary font-semibold">{t("chessReset")}</Text>
+                                <Text className="text-base text-text-primary font-semibold">
+                                    {t("chessReset")}
+                                </Text>
                             </Pressable>
                         </View>
                     </StateSurface>

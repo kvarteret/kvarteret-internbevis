@@ -4,7 +4,6 @@ export interface FirestoreEventTranslation {
     available: boolean
     title: string
     description: string | null
-    content: string | null
     image_caption: string | null
 }
 

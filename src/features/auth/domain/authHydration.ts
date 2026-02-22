@@ -3,4 +3,5 @@ import { isInvalidAuthError, toAuthServiceError } from "@/features/auth/domain/a
 export const shouldClearCredentialsOnHydrationError = (error: unknown): boolean =>
     isInvalidAuthError(error)
 
-export const getHydrationErrorMessage = (error: unknown): string => toAuthServiceError(error).message
+export const getHydrationErrorMessage = (error: unknown): string =>
+    toAuthServiceError(error).message

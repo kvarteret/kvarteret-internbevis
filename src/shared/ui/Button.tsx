@@ -35,12 +35,11 @@ const resolvePressableStyle = (
 ): ((state: PressableStateCallbackType) => StyleProp<ViewStyle>) => {
     return state => {
         const incomingStyle = typeof style === "function" ? style(state) : style
-        const pressedStyle =
-            Platform.OS === "ios" && state.pressed
-                ? {
-                      transform: [{ scale: 0.985 }],
-                  }
-                : null
+        const pressedStyle = state.pressed
+            ? {
+                  transform: [{ scale: 0.985 }],
+              }
+            : null
 
         return [pressedStyle, incomingStyle]
     }

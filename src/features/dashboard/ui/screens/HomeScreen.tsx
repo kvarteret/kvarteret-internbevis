@@ -1,25 +1,19 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
+import { format } from "date-fns"
 import React from "react"
 import { useTranslation } from "react-i18next"
-import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    TouchableOpacity,
-    View,
-} from "react-native"
+import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
-import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
-import { Button } from "@/shared/ui/Button"
-import { Text } from "@/shared/ui/Text"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
 import { MemberStatusCard } from "@/features/dashboard/ui/components/MemberStatusCard"
 import { MenuSheet } from "@/features/dashboard/ui/components/MenuSheet"
 import { useHomeScreenVM } from "@/features/dashboard/vm/useHomeScreenVM"
-import { format } from "date-fns"
+import { Button } from "@/shared/ui/Button"
+import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
+import { Text } from "@/shared/ui/Text"
 
 export const HomeScreen = ({
     navigation,
@@ -59,7 +53,7 @@ export const HomeScreen = ({
                     <Image
                         accessibilityLabel={t("homeTitle")}
                         resizeMode="contain"
-                        source={require("../../../../../assets/images/studentersamfunnet-logo.png")}
+                        source={require("@assets/images/studentersamfunnet-logo.png")}
                         style={{ width: state.headerLogoWidth, height: 34 }}
                     />
                 </View>
@@ -82,7 +76,9 @@ export const HomeScreen = ({
                             firstName={state.user.fornavn}
                             lastName={state.user.etternavn}
                             birthDateText={
-                                state.user.fodselsdato ? format(state.user.fodselsdato, "d.M.yyyy") : "-"
+                                state.user.fodselsdato
+                                    ? format(state.user.fodselsdato, "d.M.yyyy")
+                                    : "-"
                             }
                             points={state.user.pingvinPoengSum}
                             wordOfTheDay={state.user.dagensOrd.trim() || "-"}

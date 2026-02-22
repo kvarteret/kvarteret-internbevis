@@ -1,25 +1,19 @@
 import React from "react"
-import {
-    FlatList,
-    Image,
-    ListRenderItem,
-    Platform,
-    Pressable,
-    useWindowDimensions,
-    View,
-} from "react-native"
 import { useTranslation } from "react-i18next"
-import { Button } from "@/shared/ui/Button"
-import { Text } from "@/shared/ui/Text"
-import { Surface, StateSurface } from "@/shared/ui/Surface"
-import { stripHtml } from "@/shared/utils/html"
-import { triggerSelectionHaptic, triggerSoftImpactHaptic } from "@/shared/utils/haptics"
-import { formatEventStart } from "@/features/dashboard/domain/eventFormatting"
+import { FlatList, Image, ListRenderItem, Pressable, useWindowDimensions, View } from "react-native"
 import {
-    FirestoreEventDocument,
-    EventTranslationSelection,
-} from "@/features/dashboard/domain/types"
+    formatEventStart,
+    selectProjectedDescriptionPreview,
+} from "@/features/dashboard/domain/eventFormatting"
 import { selectEventTranslation } from "@/features/dashboard/domain/eventSelection"
+import {
+    EventTranslationSelection,
+    FirestoreEventDocument,
+} from "@/features/dashboard/domain/types"
+import { Button } from "@/shared/ui/Button"
+import { StateSurface, Surface } from "@/shared/ui/Surface"
+import { Text } from "@/shared/ui/Text"
+import { triggerSelectionHaptic, triggerSoftImpactHaptic } from "@/shared/utils/haptics"
 
 interface EventCarouselProps {
     events: FirestoreEventDocument[] | undefined
@@ -29,7 +23,7 @@ interface EventCarouselProps {
     onEventPress: (eventId: string) => void
 }
 
-const CAROUSEL_CARD_WIDTH_RATIO = Platform.OS === "ios" ? 0.78 : 0.82
+const CAROUSEL_CARD_WIDTH_RATIO = 0.8
 const MIN_CAROUSEL_CARD_WIDTH = 240
 const CAROUSEL_CARD_GAP = 12
 
@@ -51,7 +45,7 @@ const EventCard = ({
         return null
     }
 
-    const descriptionPreview = translation.value.description ? stripHtml(translation.value.description) : ""
+    const descriptionPreview = selectProjectedDescriptionPreview(translation.value)
     const formattedDate = formatEventStart(event.event_start.toDate())
     const accessibilityLabel = `${translation.value.title}. ${formattedDate}.`
 
@@ -67,11 +61,9 @@ const EventCard = ({
                     onPress(event.id)
                 }}
                 style={({ pressed }) => [
-                    Platform.OS === "ios"
-                        ? {
-                              transform: [{ scale: pressed ? 0.992 : 1 }],
-                          }
-                        : null,
+                    {
+                        transform: [{ scale: pressed ? 0.992 : 1 }],
+                    },
                 ]}
             >
                 {event.image?.url ? (
@@ -120,7 +112,9 @@ export const EventCarousel = ({
         <View className="w-full gap-2">
             <Text className="text-lg font-bold">{t("homeEventsTitle")}</Text>
 
-            {isPending ? <Text className="text-sm text-text-secondary">{t("homeEventsLoading")}</Text> : null}
+            {isPending ? (
+                <Text className="text-sm text-text-secondary">{t("homeEventsLoading")}</Text>
+            ) : null}
 
             {isError ? (
                 <StateSurface className="p-3">

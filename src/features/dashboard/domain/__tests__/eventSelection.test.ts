@@ -44,7 +44,6 @@ function createEvent(
                           available: true,
                           title: norwegianTitle ?? `Norsk ${id}`,
                           description: null,
-                          content: null,
                           image_caption: null,
                       },
             en:
@@ -54,7 +53,6 @@ function createEvent(
                           available: true,
                           title: englishTitle ?? `English ${id}`,
                           description: null,
-                          content: null,
                           image_caption: null,
                       },
         },

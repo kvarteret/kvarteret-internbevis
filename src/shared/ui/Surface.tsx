@@ -94,7 +94,9 @@ export const Surface = ({
             style={[styles.base, resolveVariantStyle(variant, effect), style]}
             {...props}
         >
-            {useLiquidEffect ? <BlurView intensity={32} style={styles.blurFill} tint="light" /> : null}
+            {useLiquidEffect ? (
+                <BlurView intensity={32} style={styles.blurFill} tint="light" />
+            ) : null}
             {children}
         </View>
     )

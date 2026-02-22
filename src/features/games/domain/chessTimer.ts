@@ -112,7 +112,10 @@ export const pause = (state: ChessTimerState): ChessTimerState => {
     }
 }
 
-export const selectActivePlayer = (state: ChessTimerState, player: ChessPlayer): ChessTimerState => {
+export const selectActivePlayer = (
+    state: ChessTimerState,
+    player: ChessPlayer,
+): ChessTimerState => {
     if (state.isRunning || state.winner || state.activePlayer === player) {
         return state
     }

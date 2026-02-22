@@ -1,8 +1,8 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { View } from "react-native"
-import { TextField } from "@/shared/ui/TextField"
 import { Text } from "@/shared/ui/Text"
+import { TextField } from "@/shared/ui/TextField"
 import { cn } from "@/shared/utils/cn"
 
 type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"]
@@ -41,7 +41,9 @@ export const IconTextField = ({
                     {...props}
                 />
             </View>
-            {errorText ? <Text className="mt-1.5 text-xs text-state-danger">{errorText}</Text> : null}
+            {errorText ? (
+                <Text className="mt-1.5 text-xs text-state-danger">{errorText}</Text>
+            ) : null}
         </View>
     )
 }

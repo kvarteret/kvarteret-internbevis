@@ -1,18 +1,15 @@
-import { useCallback, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
-import {
-    fetchEventById,
-    selectEventTranslation,
-} from "@/features/dashboard/data/eventsRepository"
+import { fetchEventById, selectEventTranslation } from "@/features/dashboard/data/eventsRepository"
 import {
     formatEventDateTime,
     getEventCategoriesText,
     selectPrimaryDetailsHtml,
+    toRenderableHtml,
 } from "@/features/dashboard/domain/eventFormatting"
-import { toRenderableHtml } from "@/shared/utils/html"
 import { triggerSoftImpactHaptic } from "@/shared/utils/haptics"
 
 export const useEventDetailsScreenVM = (eventId: string) => {

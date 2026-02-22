@@ -1,50 +1,47 @@
 {
-  "expo": {
-    "name": "Samfunnet i Bergen",
-    "slug": "studentersamfunnet-app",
-    "version": "1.0.0",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/8e46104c-a94c-4205-9884-4f813b6371c3"
-    },
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "scheme": "internbeviskvarteret",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/images/launch.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#000000"
-    },
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.kvarteret.internbevis.internbevisrn",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.kvarteret.internbevis.internbevisrn",
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-localization",
-      "expo-secure-store"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "8e46104c-a94c-4205-9884-4f813b6371c3"
-      }
-    },
-    "owner": "studentersamfunnet-bergen"
-  }
+    "expo": {
+        "name": "Samfunnet i Bergen",
+        "slug": "studentersamfunnet-app",
+        "version": "1.0.0",
+        "runtimeVersion": {
+            "policy": "appVersion"
+        },
+        "updates": {
+            "url": "https://u.expo.dev/8e46104c-a94c-4205-9884-4f813b6371c3"
+        },
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "scheme": "internbeviskvarteret",
+        "userInterfaceStyle": "light",
+        "splash": {
+            "image": "./assets/images/launch.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#000000"
+        },
+        "ios": {
+            "supportsTablet": false,
+            "bundleIdentifier": "com.kvarteret.internbevis.internbevisrn",
+            "infoPlist": {
+                "ITSAppUsesNonExemptEncryption": false
+            }
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.png",
+                "backgroundColor": "#ffffff"
+            },
+            "package": "com.kvarteret.internbevis.internbevisrn",
+            "predictiveBackGestureEnabled": false
+        },
+        "web": {
+            "favicon": "./assets/favicon.png"
+        },
+        "plugins": ["expo-localization", "expo-secure-store"],
+        "extra": {
+            "eas": {
+                "projectId": "8e46104c-a94c-4205-9884-4f813b6371c3"
+            }
+        },
+        "owner": "studentersamfunnet-bergen"
+    }
 }

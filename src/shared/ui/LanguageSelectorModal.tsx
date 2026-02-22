@@ -2,7 +2,7 @@ import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { useTranslation } from "react-i18next"
 import { Modal, Pressable, View } from "react-native"
-import { useLanguage, SupportedLanguage } from "@/app/providers/LanguageProvider"
+import { SupportedLanguage, useLanguage } from "@/app/providers/LanguageProvider"
 import { Text } from "@/shared/ui/Text"
 
 interface LanguageSelectorModalProps {

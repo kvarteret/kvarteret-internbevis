@@ -16,7 +16,9 @@ export const NotRegisteredCard = ({ onLogout }: NotRegisteredCardProps): React.J
             <Text className="text-lg font-medium">{t("notRegistered")}</Text>
             <View className="mt-4 w-56">
                 <Button onPress={() => void onLogout()}>
-                    <Text className="text-base leading-5 text-surface font-semibold">{t("logout")}</Text>
+                    <Text className="text-base leading-5 text-surface font-semibold">
+                        {t("logout")}
+                    </Text>
                 </Button>
             </View>
         </View>

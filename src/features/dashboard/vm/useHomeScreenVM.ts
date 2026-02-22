@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { useCallback, useState } from "react"
 import { useWindowDimensions } from "react-native"
-import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
 import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
+import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
 
 export const useHomeScreenVM = () => {
     const { user, isLoading, logout } = useSession()

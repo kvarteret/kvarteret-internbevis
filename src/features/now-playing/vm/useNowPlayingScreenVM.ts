@@ -1,9 +1,9 @@
 import { useIsFocused } from "@react-navigation/native"
 import { useQuery } from "@tanstack/react-query"
-import { AppState } from "react-native"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { fetchNowPlaying } from "@/features/now-playing/data/nowPlayingRepository"
+import { AppState } from "react-native"
 import { openExternalUrl } from "@/core/linking/linkClient"
+import { fetchNowPlaying } from "@/features/now-playing/data/nowPlayingRepository"
 
 const POLL_INTERVAL_MS = 1000
 
