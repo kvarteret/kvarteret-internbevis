@@ -25,6 +25,7 @@ you need native modules/config that Expo Go does not include and when you want
 to share installable test builds with teammates.
 
 This repo now includes dedicated EAS build profiles:
+
 - `development-android`
 - `development-ios` (physical iPhone/iPad, Ad Hoc)
 - `development-ios-simulator`
@@ -77,14 +78,14 @@ Use `cn` to compose `className` values with conditionals and automatically
 resolve conflicting Tailwind utilities (last one wins).
 
 ```tsx
-import { Pressable } from 'react-native';
-import { cn } from '@/shared/utils/cn';
+import { Pressable } from "react-native";
+import { cn } from "@/shared/utils/cn";
 
 <Pressable
   className={cn(
-    'rounded-xl px-4 py-3 bg-green-600',
-    isDisabled && 'bg-surface-muted border-border',
-    isPrimary ? 'bg-green-600' : 'bg-slate-600',
+    "rounded-xl px-4 py-3 bg-green-600",
+    isDisabled && "bg-surface-muted border-border",
+    isPrimary ? "bg-green-600" : "bg-slate-600",
   )}
 />;
 ```
@@ -99,22 +100,25 @@ The app uses **Feature-first + selective MVVM**:
 - Shared cross-feature primitives live in `src/shared`, infra lives in `src/core`.
 
 Architecture policy:
+
 - `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/docs/architecture/FEATURE_FIRST_MVVM_LITE.md`
 
 Project skill and implementation reference for adding screens:
+
 - `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/docs/skills/new-screen/SKILL.md`
 
 ## Preview deployments (EAS + Firebase App Distribution)
 
 This repository is configured for hybrid previews:
+
 1. PR-level JS previews with EAS Update (`.github/workflows/preview-update.yml`).
 2. On-demand installable preview binaries with EAS Build + Firebase App Distribution (`.github/workflows/preview-build-distribute.yml`).
 
 ### One-time setup required
 
 1. Create or select the dedicated Firebase preview project.
-2. Register Android app id `com.kvarteret.internbevis.internbevisrn` in Firebase App Distribution.
-3. Register iOS app id `com.kvarteret.internbevis.internbevisrn` in Firebase App Distribution.
+2. Register Android app id `com.kvarteret.internbevis.internBevisKvarteret` in Firebase App Distribution.
+3. Register iOS app id `com.kvarteret.internbevis.internBevisKvarteret` in Firebase App Distribution.
 4. Create Firebase tester group `internal-qa`.
 5. Link the Expo project to EAS and get the project id UUID.
 6. Verify `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/app.json` contains:
@@ -146,6 +150,7 @@ This repository is configured for hybrid previews:
 ## Production releases (manual dispatch CI)
 
 This repository now uses a controlled release workflow:
+
 - `.github/workflows/release-submit.yml` builds production binaries and submits to TestFlight internal + Play internal testing.
 - `.github/workflows/release-promote-checklist.yml` creates the manual promotion checklist for App Store Connect and Google Play.
 
@@ -161,6 +166,7 @@ This repository now uses a controlled release workflow:
 ### Release versioning
 
 Release workflow version/build is date-driven:
+
 1. App version: `YYYY.M.<build-sequence>`
 2. iOS `buildNumber`: unix timestamp (seconds)
 3. Android `versionCode`: unix timestamp (seconds)

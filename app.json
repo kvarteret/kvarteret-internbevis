@@ -20,7 +20,7 @@
         },
         "ios": {
             "supportsTablet": false,
-            "bundleIdentifier": "com.kvarteret.internbevis.internbevisrn",
+            "bundleIdentifier": "com.kvarteret.internbevis.internBevisKvarteret",
             "infoPlist": {
                 "ITSAppUsesNonExemptEncryption": false
             }
@@ -30,7 +30,7 @@
                 "foregroundImage": "./assets/adaptive-icon.png",
                 "backgroundColor": "#ffffff"
             },
-            "package": "com.kvarteret.internbevis.internbevisrn",
+            "package": "com.kvarteret.internbevis.internBevisKvarteret",
             "predictiveBackGestureEnabled": false
         },
         "web": {
