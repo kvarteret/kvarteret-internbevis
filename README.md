@@ -78,16 +78,31 @@ resolve conflicting Tailwind utilities (last one wins).
 
 ```tsx
 import { Pressable } from 'react-native';
-import { cn } from './src/utils/cn';
+import { cn } from '@/shared/utils/cn';
 
 <Pressable
   className={cn(
     'rounded-xl px-4 py-3 bg-green-600',
-    isDisabled && 'opacity-50',
+    isDisabled && 'bg-surface-muted border-border',
     isPrimary ? 'bg-green-600' : 'bg-slate-600',
   )}
 />;
 ```
+
+## Architecture and screen workflow
+
+The app uses **Feature-first + selective MVVM**:
+
+- Feature-first folders are the default (`src/features/<feature>`).
+- Use a ViewModel hook (`vm/use<Screen>VM.ts`) for complex screens.
+- Keep simple screens lean (render + simple local state) when VM does not add value.
+- Shared cross-feature primitives live in `src/shared`, infra lives in `src/core`.
+
+Architecture policy:
+- `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/docs/architecture/FEATURE_FIRST_MVVM_LITE.md`
+
+Project skill and implementation reference for adding screens:
+- `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/docs/skills/new-screen/SKILL.md`
 
 ## Preview deployments (EAS + Firebase App Distribution)
 

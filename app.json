@@ -38,18 +38,6 @@
     },
     "plugins": [
       "expo-localization",
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./assets/fonts/inter/Inter_400Regular.ttf",
-            "./assets/fonts/inter/Inter_500Medium.ttf",
-            "./assets/fonts/inter/Inter_600SemiBold.ttf",
-            "./assets/fonts/inter/Inter_700Bold.ttf",
-            "./assets/fonts/inter/Inter_800ExtraBold.ttf"
-          ]
-        }
-      ],
       "expo-secure-store"
     ],
     "extra": {

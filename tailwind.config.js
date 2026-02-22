@@ -4,13 +4,6 @@ module.exports = {
     presets: [require("nativewind/preset")],
     theme: {
         extend: {
-            fontFamily: {
-                inter: ["Inter_400Regular"],
-                "inter-medium": ["Inter_500Medium"],
-                "inter-semibold": ["Inter_600SemiBold"],
-                "inter-bold": ["Inter_700Bold"],
-                "inter-extrabold": ["Inter_800ExtraBold"],
-            },
             colors: {
                 background: "#F3E2CC",
                 surface: "#FFFFFF",
@@ -21,10 +14,11 @@ module.exports = {
                 "text-primary": "#000000",
                 "text-secondary": "#4B5563",
                 "text-muted": "#6B7280",
-                danger: "#AA0000",
-                "danger-soft": "#DC2626",
+                "state-danger": "#AA0000",
+                "state-warning": "#C2410C",
+                "state-success": "#16A34A",
+                "state-info": "#2563EB",
                 link: "#2563EB",
-                success: "#16A34A",
             },
             borderRadius: {
                 card: "14px",

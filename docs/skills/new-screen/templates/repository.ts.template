@@ -1,0 +1,17 @@
+interface __ENTITY__ {
+    id: string
+    title: string
+}
+
+export const fetch__ENTITY_BY_ID__ = async (
+    id: string,
+    signal?: AbortSignal,
+): Promise<__ENTITY__> => {
+    const response = await fetch(`__BASE_URL__/${id}`, { signal })
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch __ENTITY__ (${response.status})`)
+    }
+
+    return (await response.json()) as __ENTITY__
+}

@@ -14,8 +14,8 @@ Why this strategy:
 
 Keep old app IDs
 ================
-- iOS bundle id: com.kvarteret.internbevis.internbevisrn
-- Android package: com.kvarteret.internbevis.internbevisrn
+- iOS bundle id: com.kvarteret.internbevis.internBevisKvarteret
+- Android package: com.kvarteret.internbevis.internBevisKvarteret
 
 
 Versioning model (date-driven)

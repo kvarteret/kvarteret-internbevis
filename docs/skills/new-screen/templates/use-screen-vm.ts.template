@@ -1,0 +1,50 @@
+import { useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { fetch__ENTITY_BY_ID__ } from "@/features/__FEATURE_NAME__/data/repository"
+
+export const use__SCREEN_NAME__VM = (params: { id: string }) => {
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    const query = useQuery({
+        queryKey: ["__QUERY_KEY__", params.id],
+        queryFn: ({ signal }) => fetch__ENTITY_BY_ID__(params.id, signal),
+        retry: 1,
+    })
+
+    const retry = async (): Promise<void> => {
+        await query.refetch()
+    }
+
+    const primary = async (): Promise<void> => {
+        setIsSubmitting(true)
+        try {
+            // implement action
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const summary = useMemo(() => {
+        if (!query.data) {
+            return ""
+        }
+
+        return query.data.title ?? ""
+    }, [query.data])
+
+    return {
+        state: {
+            isPending: query.isPending,
+            isError: query.isError,
+            isSubmitting,
+            data: query.data ?? null,
+        },
+        actions: {
+            retry,
+            primary,
+        },
+        derived: {
+            summary,
+        },
+    }
+}
