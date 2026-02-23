@@ -14,7 +14,7 @@ interface MemberHeaderProps {
 }
 
 const localImageMap: Record<string, number> = {
-    "assets/images/demopingvin.png": require("@assets/images/demopingvin.png"),
+    "assets/images/nils.jpg": require("@assets/images/nils.jpg"),
 }
 
 export const MemberHeader = ({
@@ -162,7 +162,8 @@ export const MemberHeader = ({
                             </Text>
                         ) : null}
                         {normalizedRoleGroup && normalizedRoleTitle ? " " : ""}
-                        {normalizedRoleTitle || (!normalizedRoleGroup && !normalizedRoleTitle ? "-" : "")}
+                        {normalizedRoleTitle ||
+                            (!normalizedRoleGroup && !normalizedRoleTitle ? "-" : "")}
                     </Text>
                     {wordOfTheDay ? (
                         <Text
