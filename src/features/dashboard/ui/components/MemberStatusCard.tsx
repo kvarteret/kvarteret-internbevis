@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Animated, Image, Pressable, View } from "react-native"
 import { getHighestTier, User } from "@/shared/types/user"
 import { Text } from "@/shared/ui/Text"
+import { cn } from "@/shared/utils/cn"
 
 interface MemberStatusCardProps {
     user: User
@@ -70,10 +71,10 @@ export const MemberStatusCard = ({
     return (
         <View className="w-full gap-2.5">
             <Pressable
-                className={[
+                className={cn(
                     "w-full flex-row items-center justify-between rounded-2xl border border-[#FFFFFF33] px-5 py-3.5",
                     tierClass,
-                ].join(" ")}
+                )}
                 onPress={handleTap}
             >
                 <Text className="text-lg leading-6 text-surface font-bold">

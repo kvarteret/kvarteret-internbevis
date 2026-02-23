@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
 import { Button } from "@/shared/ui/Button"
 import { Text } from "@/shared/ui/Text"
+import { cn } from "@/shared/utils/cn"
 
 interface LoginFormProps {
     email: string
@@ -79,14 +80,10 @@ export const LoginForm = ({
                             onPress={onTogglePrivacy}
                         >
                             <View
-                                className={[
+                                className={cn(
                                     "h-5 w-5 items-center justify-center rounded border border-[#FFFFFFB3] bg-transparent",
-                                    privacyPolicyChecked
-                                        ? "border-text-primary bg-text-primary"
-                                        : "",
-                                ]
-                                    .filter(Boolean)
-                                    .join(" ")}
+                                    privacyPolicyChecked && "border-text-primary bg-text-primary",
+                                )}
                             >
                                 {privacyPolicyChecked ? (
                                     <Text className="text-sm leading-3 text-surface font-bold">

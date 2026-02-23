@@ -1,15 +1,25 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import React, { useLayoutEffect, useMemo } from "react"
+import { useQuery } from "@tanstack/react-query"
+import React, { useCallback, useLayoutEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Image, ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
-import { useEventDetailsScreenVM } from "@/features/dashboard/vm/useEventDetailsScreenVM"
+import { useLanguage } from "@/app/providers/LanguageProvider"
+import { openExternalUrl } from "@/core/linking/linkClient"
+import { fetchEventById, selectEventTranslation } from "@/features/dashboard/data/eventsRepository"
+import {
+    formatEventDateTime,
+    getEventCategoriesText,
+    selectPrimaryDetailsHtml,
+    toRenderableHtml,
+} from "@/features/dashboard/domain/eventFormatting"
 import { Button } from "@/shared/ui/Button"
+import { Card } from "@/shared/ui/Card"
 import { LabeledValueRow } from "@/shared/ui/LabeledValueRow"
-import { StateSurface, Surface } from "@/shared/ui/Surface"
 import { Text } from "@/shared/ui/Text"
+import { triggerSoftImpactHaptic } from "@/shared/utils/haptics"
 
 interface EventDetailsScreenProps
     extends NativeStackScreenProps<RootStackParamList, "EventDetails"> {}
@@ -19,28 +29,58 @@ export const EventDetailsScreen = ({
     route,
 }: EventDetailsScreenProps): React.JSX.Element => {
     const { t } = useTranslation()
+    const { language } = useLanguage()
     const { width } = useWindowDimensions()
     const { eventId } = route.params
-    const { state, actions } = useEventDetailsScreenVM(eventId)
-    const { openLink, retry } = actions
+
+    const {
+        data: event,
+        isPending,
+        isError,
+        refetch,
+    } = useQuery({
+        queryKey: ["event", eventId],
+        queryFn: ({ signal }) => fetchEventById(eventId, signal),
+        retry: 1,
+    })
+
+    const translationSelection = event ? selectEventTranslation(event.translations) : null
+    const title = translationSelection?.value.title ?? t("eventDetailsTitle")
+
+    const details = useMemo(() => {
+        if (!event || !translationSelection) return null
+        const detailsHtml = toRenderableHtml(selectPrimaryDetailsHtml(translationSelection.value))
+        const start = formatEventDateTime(event.event_start.toDate(), language)
+        const end = formatEventDateTime(event.event_end.toDate(), language)
+        const categories = getEventCategoriesText(event)
+        return { event, detailsHtml, whenValue: `${start} - ${end}`, categories }
+    }, [event, language, translationSelection])
+
+    const openLink = useCallback(async (url: string): Promise<void> => {
+        if (!url) return
+        await triggerSoftImpactHaptic()
+        await openExternalUrl(url)
+    }, [])
+
+    const retry = useCallback(async (): Promise<void> => {
+        await triggerSoftImpactHaptic()
+        await refetch()
+    }, [refetch])
 
     useLayoutEffect(() => {
-        navigation.setOptions({ title: state.title, headerLargeTitle: false })
-    }, [navigation, state.title])
+        navigation.setOptions({ title, headerLargeTitle: false })
+    }, [navigation, title])
 
     const htmlSource = useMemo(
-        () => ({ html: state.details?.detailsHtml ?? "" }),
-        [state.details?.detailsHtml],
+        () => ({ html: details?.detailsHtml ?? "" }),
+        [details?.detailsHtml],
     )
 
     const htmlRenderersProps = useMemo(
         () => ({
             a: {
                 onPress: (_event: unknown, href: string | undefined) => {
-                    if (!href) {
-                        return
-                    }
-
+                    if (!href) return
                     void openLink(href)
                 },
             },
@@ -48,18 +88,18 @@ export const EventDetailsScreen = ({
         [openLink],
     )
 
-    if (state.isPending) {
+    if (isPending) {
         return (
-            <SafeAreaView className="flex-1 bg-background p-4" edges={["left", "right", "bottom"]}>
+            <SafeAreaView className="flex-1 p-4" edges={["left", "right", "bottom"]}>
                 <Text className="text-base">{t("eventDetailsLoading")}</Text>
             </SafeAreaView>
         )
     }
 
-    if (state.isError || !state.hasEvent || !state.details) {
+    if (isError || !event || !translationSelection || !details) {
         return (
-            <SafeAreaView className="flex-1 bg-background p-4" edges={["left", "right", "bottom"]}>
-                <StateSurface>
+            <SafeAreaView className="flex-1 p-4" edges={["left", "right", "bottom"]}>
+                <Card className="gap-3 p-4">
                     <Text className="mb-3 text-base">{t("eventDetailsError")}</Text>
                     <Button
                         accessibilityLabel={t("eventDetailsRetry")}
@@ -70,33 +110,31 @@ export const EventDetailsScreen = ({
                             {t("eventDetailsRetry")}
                         </Text>
                     </Button>
-                </StateSurface>
+                </Card>
             </SafeAreaView>
         )
     }
 
-    const { event } = state.details
-
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
+        <SafeAreaView className="flex-1" edges={["left", "right", "bottom"]}>
             <ScrollView
                 className="flex-1"
                 contentContainerClassName="gap-3 p-4"
                 contentInsetAdjustmentBehavior="automatic"
             >
                 {event.image?.url ? (
-                    <Surface variant="elevated">
+                    <Card variant="elevated">
                         <Image
                             className="h-56 w-full rounded-card"
                             source={{ uri: event.image.url }}
                         />
-                    </Surface>
+                    </Card>
                 ) : null}
 
-                <Surface className="p-4" effect="liquid" variant="grouped">
+                <Card className="p-4" effect="liquid" variant="grouped">
                     <LabeledValueRow
                         label={t("eventDetailsWhen")}
-                        value={state.details.whenValue}
+                        value={details.whenValue}
                     />
                     {event.organizer?.name ? (
                         <LabeledValueRow
@@ -104,19 +142,19 @@ export const EventDetailsScreen = ({
                             value={event.organizer.name}
                         />
                     ) : null}
-                    {state.details.categories.length > 0 ? (
+                    {details.categories.length > 0 ? (
                         <LabeledValueRow
                             label={t("eventDetailsCategories")}
-                            value={state.details.categories}
+                            value={details.categories}
                         />
                     ) : null}
                     {event.price ? (
                         <LabeledValueRow label={t("eventDetailsPrice")} value={event.price} />
                     ) : null}
-                </Surface>
+                </Card>
 
-                <Surface className="p-4" effect="liquid" variant="grouped">
-                    {state.details.detailsHtml ? (
+                <Card className="p-4" effect="liquid" variant="grouped">
+                    {details.detailsHtml ? (
                         <RenderHTML
                             contentWidth={Math.max(width - 64, 0)}
                             renderersProps={htmlRenderersProps}
@@ -125,36 +163,38 @@ export const EventDetailsScreen = ({
                     ) : (
                         <Text className="text-sm leading-6">{t("eventDetailsNoDescription")}</Text>
                     )}
-                </Surface>
+                </Card>
 
                 <View className="gap-3">
-                    {event.ticket_url?.trim() ? (
-                        <Button
-                            accessibilityLabel={t("eventDetailsTickets")}
-                            variant="destructive"
-                            onPress={() => {
-                                void openLink(event.ticket_url ?? "")
-                            }}
-                        >
-                            <Text className="text-base leading-5 text-surface font-semibold">
-                                {t("eventDetailsTickets")}
-                            </Text>
-                        </Button>
-                    ) : null}
-
-                    {event.facebook_url?.trim() ? (
-                        <Button
-                            accessibilityLabel={t("eventDetailsFacebook")}
-                            variant="secondary"
-                            onPress={() => {
-                                void openLink(event.facebook_url ?? "")
-                            }}
-                        >
-                            <Text className="text-base leading-5 text-text-primary font-semibold">
-                                {t("eventDetailsFacebook")}
-                            </Text>
-                        </Button>
-                    ) : null}
+                    {[
+                        {
+                            url: event.ticket_url,
+                            label: t("eventDetailsTickets"),
+                            variant: "destructive" as const,
+                            textClass: "text-surface",
+                        },
+                        {
+                            url: event.facebook_url,
+                            label: t("eventDetailsFacebook"),
+                            variant: "secondary" as const,
+                            textClass: "text-text-primary",
+                        },
+                    ].map(({ url, label, variant, textClass }) =>
+                        url?.trim() ? (
+                            <Button
+                                key={label}
+                                accessibilityLabel={label}
+                                variant={variant}
+                                onPress={() => void openLink(url)}
+                            >
+                                <Text
+                                    className={`text-base leading-5 font-semibold ${textClass}`}
+                                >
+                                    {label}
+                                </Text>
+                            </Button>
+                        ) : null,
+                    )}
                 </View>
 
                 <View className="h-3" />

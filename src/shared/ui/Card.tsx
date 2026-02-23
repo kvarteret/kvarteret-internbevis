@@ -3,28 +3,33 @@ import React from "react"
 import { Platform, StyleProp, StyleSheet, View, ViewProps, ViewStyle } from "react-native"
 import { cn } from "@/shared/utils/cn"
 
-type SurfaceVariant = "grouped" | "elevated"
-type SurfaceEffect = "none" | "liquid"
+type CardVariant = "grouped" | "elevated"
+type CardEffect = "none" | "liquid"
 
-interface SurfaceProps extends ViewProps {
-    variant?: SurfaceVariant
-    effect?: SurfaceEffect
+interface CardProps extends ViewProps {
+    variant?: CardVariant
+    effect?: CardEffect
     className?: string
     style?: StyleProp<ViewStyle>
 }
 
-const SURFACE_RADIUS = Platform.OS === "ios" ? 16 : 14
-const SURFACE_BORDER_WIDTH = Platform.OS === "ios" ? 0.5 : 1
+// Design token references (must match tailwind.config.js)
+const TOKEN_BORDER = "#D1D5DB" // border
+const TOKEN_SURFACE = "#FFFFFF" // surface
+const TOKEN_SURFACE_MUTED = "#FAFAFA" // surface-muted (near-white for Android)
+
+const CARD_RADIUS = Platform.OS === "ios" ? 16 : 14
+const CARD_BORDER_WIDTH = Platform.OS === "ios" ? 0.5 : 1
 
 const styles = StyleSheet.create({
     base: {
-        borderRadius: SURFACE_RADIUS,
+        borderRadius: CARD_RADIUS,
         overflow: "hidden",
     },
     groupedIOS: {
-        borderColor: "#D1D5DB",
-        borderWidth: SURFACE_BORDER_WIDTH,
-        backgroundColor: "#FFFFFF",
+        borderColor: TOKEN_BORDER,
+        borderWidth: CARD_BORDER_WIDTH,
+        backgroundColor: TOKEN_SURFACE,
     },
     groupedLiquidIOS: {
         borderColor: "rgba(255,255,255,0.45)",
@@ -32,15 +37,15 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.34)",
     },
     groupedAndroid: {
-        borderColor: "#D1D5DB",
-        borderWidth: SURFACE_BORDER_WIDTH,
-        backgroundColor: "#FAFAFA",
+        borderColor: TOKEN_BORDER,
+        borderWidth: CARD_BORDER_WIDTH,
+        backgroundColor: TOKEN_SURFACE_MUTED,
         elevation: 1,
     },
     elevatedIOS: {
-        borderColor: "#D1D5DB",
-        borderWidth: SURFACE_BORDER_WIDTH,
-        backgroundColor: "#FFFFFF",
+        borderColor: TOKEN_BORDER,
+        borderWidth: CARD_BORDER_WIDTH,
+        backgroundColor: TOKEN_SURFACE,
         shadowColor: "#000000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
@@ -56,9 +61,9 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
     },
     elevatedAndroid: {
-        borderColor: "#D1D5DB",
-        borderWidth: SURFACE_BORDER_WIDTH,
-        backgroundColor: "#FAFAFA",
+        borderColor: TOKEN_BORDER,
+        borderWidth: CARD_BORDER_WIDTH,
+        backgroundColor: TOKEN_SURFACE_MUTED,
         elevation: 2,
     },
     blurFill: {
@@ -66,7 +71,7 @@ const styles = StyleSheet.create({
     },
 })
 
-const resolveVariantStyle = (variant: SurfaceVariant, effect: SurfaceEffect): ViewStyle => {
+const resolveVariantStyle = (variant: CardVariant, effect: CardEffect): ViewStyle => {
     if (Platform.OS === "ios" && effect === "liquid") {
         return variant === "elevated" ? styles.elevatedLiquidIOS : styles.groupedLiquidIOS
     }
@@ -78,14 +83,14 @@ const resolveVariantStyle = (variant: SurfaceVariant, effect: SurfaceEffect): Vi
     return Platform.OS === "ios" ? styles.groupedIOS : styles.groupedAndroid
 }
 
-export const Surface = ({
+export const Card = ({
     variant = "grouped",
     effect = "none",
     className,
     style,
     children,
     ...props
-}: SurfaceProps): React.JSX.Element => {
+}: CardProps): React.JSX.Element => {
     const useLiquidEffect = Platform.OS === "ios" && effect === "liquid"
 
     return (
@@ -99,21 +104,5 @@ export const Surface = ({
             ) : null}
             {children}
         </View>
-    )
-}
-
-interface StateSurfaceProps extends SurfaceProps {}
-
-export const StateSurface = ({
-    className,
-    style,
-    children,
-    variant = "grouped",
-    ...props
-}: StateSurfaceProps): React.JSX.Element => {
-    return (
-        <Surface className={cn("gap-3 p-4", className)} style={style} variant={variant} {...props}>
-            {children}
-        </Surface>
     )
 }

@@ -6,13 +6,15 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
 import { LoginForm } from "@/features/auth/ui/components/LoginForm"
 import { VerifyCodeForm } from "@/features/auth/ui/components/VerifyCodeForm"
-import { useLoginScreenVM } from "@/features/auth/vm/useLoginScreenVM"
+import { useDeepLinkLogin } from "@/features/auth/vm/useDeepLinkLogin"
+import { useLoginForm } from "@/features/auth/vm/useLoginForm"
 import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
 
 export const LoginScreen = ({
     navigation,
 }: NativeStackScreenProps<RootStackParamList, "Login">): React.JSX.Element => {
-    const { state, actions } = useLoginScreenVM()
+    const form = useLoginForm()
+    useDeepLinkLogin(form.mode, form.performTokenLogin)
 
     return (
         <SafeAreaView className="flex-1 bg-black">
@@ -25,7 +27,7 @@ export const LoginScreen = ({
             <TouchableOpacity
                 accessibilityLabel="Change language"
                 className="absolute right-3 top-6 z-10 p-2"
-                onPress={actions.openLanguageSelector}
+                onPress={form.openLanguageSelector}
             >
                 <MaterialIcons color="#FFFFFF" name="language" size={28} />
             </TouchableOpacity>
@@ -36,37 +38,37 @@ export const LoginScreen = ({
                 keyboardVerticalOffset={12}
             >
                 <View className="w-full items-center justify-center">
-                    {state.mode === "email" ? (
+                    {form.mode === "email" ? (
                         <LoginForm
-                            email={state.email}
-                            emailErrorText={state.emailErrorText}
-                            privacyPolicyChecked={state.privacyPolicyChecked}
-                            sendingOtp={state.sendingOtp}
-                            onChangeEmail={actions.setEmail}
-                            onTogglePrivacy={actions.togglePrivacy}
+                            email={form.email}
+                            emailErrorText={form.emailErrorText}
+                            privacyPolicyChecked={form.privacyPolicyChecked}
+                            sendingOtp={form.sendingOtp}
+                            onChangeEmail={form.setEmail}
+                            onTogglePrivacy={form.togglePrivacy}
                             onPrivacyPress={() => navigation.navigate("Privacy")}
-                            onSubmitEmail={actions.submitEmail}
-                            onDemoLogin={actions.loginDemo}
+                            onSubmitEmail={form.submitEmail}
+                            onDemoLogin={form.loginDemo}
                         />
                     ) : (
                         <VerifyCodeForm
-                            otpCode={state.otpCode}
-                            otpFieldErrorText={state.otpFieldErrorText}
-                            globalErrorText={state.globalErrorText}
-                            isExpoGo={state.isExpoGo}
-                            onChangeOtpCode={actions.setOtpCode}
-                            onVerifyCode={actions.submitOtp}
-                            onSendOtp={actions.resendOtp}
-                            onUseClipboardLink={actions.useClipboardLink}
-                            onBack={actions.backToEmail}
+                            otpCode={form.otpCode}
+                            otpFieldErrorText={form.otpFieldErrorText}
+                            globalErrorText={form.globalErrorText}
+                            isExpoGo={form.isExpoGo}
+                            onChangeOtpCode={form.setOtpCode}
+                            onVerifyCode={form.submitOtp}
+                            onSendOtp={form.resendOtp}
+                            onUseClipboardLink={form.useClipboardLink}
+                            onBack={form.backToEmail}
                         />
                     )}
                 </View>
             </KeyboardAvoidingView>
 
             <LanguageSelectorModal
-                visible={state.languageSelectorVisible}
-                onClose={actions.closeLanguageSelector}
+                visible={form.languageSelectorVisible}
+                onClose={form.closeLanguageSelector}
             />
         </SafeAreaView>
     )

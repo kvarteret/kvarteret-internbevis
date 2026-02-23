@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Modal, Pressable, View } from "react-native"
 import { SupportedLanguage, useLanguage } from "@/app/providers/LanguageProvider"
 import { Text } from "@/shared/ui/Text"
+import { cn } from "@/shared/utils/cn"
 
 interface LanguageSelectorModalProps {
     visible: boolean
@@ -49,10 +50,10 @@ export const LanguageSelectorModal = ({
                         return (
                             <Pressable
                                 key={option.code}
-                                className={[
+                                className={cn(
                                     "flex-row items-center border-b border-border-soft px-6 py-4",
                                     selected ? "bg-surface-muted" : "bg-surface",
-                                ].join(" ")}
+                                )}
                                 onPress={() => {
                                     void handleSelect(option.code)
                                 }}
@@ -64,10 +65,10 @@ export const LanguageSelectorModal = ({
                                 </View>
 
                                 <Text
-                                    className={[
+                                    className={cn(
                                         "ml-4 text-base text-text-primary",
                                         selected ? "font-bold" : "font-normal",
-                                    ].join(" ")}
+                                    )}
                                 >
                                     {option.label}
                                 </Text>

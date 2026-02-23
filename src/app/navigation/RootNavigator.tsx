@@ -16,6 +16,8 @@ export const RootNavigator = (): React.JSX.Element => {
     return (
         <Stack.Navigator
             screenOptions={{
+                contentStyle: { backgroundColor: "#F3E2CC" },
+                headerStyle: { backgroundColor: "#F3E2CC" },
                 headerBackTitle: "",
                 headerTintColor: "#000000",
             }}
@@ -36,12 +38,7 @@ export const RootNavigator = (): React.JSX.Element => {
                 component={EventDetailsScreen}
                 options={{
                     headerLargeTitle: false,
-                    headerBackTitle: "",
                     headerShadowVisible: false,
-                    headerStyle: {
-                        backgroundColor: "#F3E2CC",
-                    },
-                    headerTintColor: "#000000",
                     headerTitleStyle: {
                         color: "#000000",
                     },
