@@ -1,36 +1,55 @@
-import { MaterialIcons } from "@expo/vector-icons"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
+import { BlurView } from "expo-blur"
 import React from "react"
-import { Image, KeyboardAvoidingView, TouchableOpacity, View } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
+import { useTranslation } from "react-i18next"
+import { KeyboardAvoidingView, TouchableOpacity, View } from "react-native"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
+import { openExternalUrl } from "@/core/linking/linkClient"
 import { LoginForm } from "@/features/auth/ui/components/LoginForm"
 import { VerifyCodeForm } from "@/features/auth/ui/components/VerifyCodeForm"
 import { useDeepLinkLogin } from "@/features/auth/vm/useDeepLinkLogin"
 import { useLoginForm } from "@/features/auth/vm/useLoginForm"
-import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
+import { Text } from "@/shared/ui/Text"
 
 export const LoginScreen = ({
     navigation,
 }: NativeStackScreenProps<RootStackParamList, "Login">): React.JSX.Element => {
+    const { t } = useTranslation()
+    const insets = useSafeAreaInsets()
     const form = useLoginForm()
     useDeepLinkLogin(form.mode, form.performTokenLogin)
 
     return (
-        <SafeAreaView className="flex-1 bg-black">
-            <Image
-                className="absolute inset-0 h-full w-full"
-                resizeMode="cover"
-                source={require("@assets/images/bg-image.png")}
-            />
-
-            <TouchableOpacity
-                accessibilityLabel="Change language"
-                className="absolute right-3 top-6 z-10 p-2"
-                onPress={form.openLanguageSelector}
-            >
-                <MaterialIcons color="#FFFFFF" name="language" size={28} />
-            </TouchableOpacity>
+        <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
+            <View className="px-4 pb-2" style={{ paddingTop: Math.max(insets.top + 10, 56) }}>
+                <View className="relative overflow-hidden rounded-3xl border border-[#FFFFFFA8] px-4 py-5">
+                    <View className="absolute -left-10 -top-14 h-44 w-44 rounded-full bg-[#60A5FA66]" />
+                    <View className="absolute -bottom-14 -right-10 h-44 w-44 rounded-full bg-[#F472B666]" />
+                    <View className="absolute left-20 top-8 h-32 w-32 rounded-full bg-[#A78BFA55]" />
+                    <BlurView className="absolute inset-0" intensity={42} tint="light" />
+                    <Text
+                        className="text-[46px] leading-[50px] font-black text-[#0F172A]"
+                        style={{
+                            textShadowColor: "#93C5FD",
+                            textShadowOffset: { width: 0, height: 3 },
+                            textShadowRadius: 14,
+                        }}
+                    >
+                        Velkommen til
+                    </Text>
+                    <Text
+                        className="text-[52px] leading-[56px] font-black text-[#0F172A]"
+                        style={{
+                            textShadowColor: "#F9A8D4",
+                            textShadowOffset: { width: 0, height: 4 },
+                            textShadowRadius: 16,
+                        }}
+                    >
+                        Samfunnet
+                    </Text>
+                </View>
+            </View>
 
             <KeyboardAvoidingView
                 behavior="padding"
@@ -49,6 +68,8 @@ export const LoginScreen = ({
                             onPrivacyPress={() => navigation.navigate("Privacy")}
                             onSubmitEmail={form.submitEmail}
                             onDemoLogin={form.loginDemo}
+                            onContinueAnonymous={form.continueAnonymous}
+                            showDemoButton={form.showDemoButton}
                         />
                     ) : (
                         <VerifyCodeForm
@@ -66,10 +87,37 @@ export const LoginScreen = ({
                 </View>
             </KeyboardAvoidingView>
 
-            <LanguageSelectorModal
-                visible={form.languageSelectorVisible}
-                onClose={form.closeLanguageSelector}
-            />
+            <View className="w-full items-center justify-center pb-4 pt-2">
+                <View className="w-full flex-row flex-nowrap items-center justify-center px-3">
+                    <Text
+                        adjustsFontSizeToFit
+                        className="shrink text-lg leading-6 font-medium"
+                        ellipsizeMode="tail"
+                        minimumFontScale={0.72}
+                        numberOfLines={1}
+                    >
+                        {t("homeFooterPrefix")}
+                    </Text>
+                    <Text className="px-1.5 text-2xl leading-8" numberOfLines={1}>
+                        |
+                    </Text>
+                    <TouchableOpacity
+                        accessibilityRole="link"
+                        className="shrink"
+                        onPress={() => void openExternalUrl("https://blifrivillig.no")}
+                    >
+                        <Text
+                            adjustsFontSizeToFit
+                            className="text-lg leading-6 underline font-extrabold"
+                            ellipsizeMode="tail"
+                            minimumFontScale={0.72}
+                            numberOfLines={1}
+                        >
+                            {t("homeFooterVolunteer")}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
         </SafeAreaView>
     )
 }

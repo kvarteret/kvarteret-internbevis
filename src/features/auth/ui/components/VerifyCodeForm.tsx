@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { ScrollView, View } from "react-native"
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
 import { Button } from "@/shared/ui/Button"
+import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 
 interface VerifyCodeFormProps {
@@ -36,19 +37,23 @@ export const VerifyCodeForm = ({
             contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4"
             keyboardShouldPersistTaps="handled"
         >
-            <View className="w-[92%] max-w-xl rounded-2xl border border-[#FFFFFF59] bg-[#0000008C] px-5 py-7">
-                <Text className="text-center text-2xl leading-8 text-surface font-medium">
+            <Card
+                className="w-[92%] max-w-xl border border-border px-5 py-7"
+                effect="liquid"
+                variant="elevated"
+            >
+                <Text className="text-center text-2xl leading-8 text-text-primary font-medium">
                     {t("verifyEmail")}
                 </Text>
 
-                <View className="mx-5 my-2.5 border-b-2 border-[#FFFFFFB3]" />
+                <View className="mx-5 my-2.5 border-b border-border-soft" />
 
-                <Text className="text-center text-base leading-6 text-surface">
+                <Text className="text-center text-base leading-6 text-text-secondary">
                     {t("enterCodeFromEmail")}
                 </Text>
 
                 {isExpoGo ? (
-                    <Text className="mt-2.5 text-center text-[13px] text-[#FFFFFFCC]">
+                    <Text className="mt-2.5 text-center text-[13px] text-text-secondary">
                         {t("expoGoHint")}
                     </Text>
                 ) : null}
@@ -91,7 +96,7 @@ export const VerifyCodeForm = ({
                         </Button>
                     </View>
                 </View>
-            </View>
+            </Card>
         </ScrollView>
     )
 }

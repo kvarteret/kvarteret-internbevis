@@ -12,7 +12,7 @@ import { cn } from "@/shared/utils/cn"
 import { triggerSelectionHaptic, triggerSoftImpactHaptic } from "@/shared/utils/haptics"
 
 type ButtonVariant = "default" | "secondary" | "ghost" | "destructive"
-type ButtonHaptic = "none" | "selection" | "impactLight"
+type ButtonHaptic = "selection" | "impactLight"
 
 interface ButtonProps extends React.ComponentProps<typeof Pressable> {
     variant?: ButtonVariant
@@ -46,10 +46,6 @@ const resolvePressableStyle = (
 }
 
 const runHaptic = async (mode: ButtonHaptic): Promise<void> => {
-    if (mode === "none") {
-        return
-    }
-
     if (mode === "selection") {
         await triggerSelectionHaptic()
         return

@@ -4,9 +4,7 @@ import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Alert } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
-import {
-    extractAccessTokenFromManualInput,
-} from "@/core/linking/deepLinkParser"
+import { extractAccessTokenFromManualInput } from "@/core/linking/deepLinkParser"
 import { consumePendingDeepLinkToken } from "@/core/linking/pendingToken"
 import {
     extractFriendlyErrorMessage,
@@ -28,6 +26,7 @@ export interface UseLoginFormResult {
     privacyPolicyChecked: boolean
     languageSelectorVisible: boolean
     isExpoGo: boolean
+    showDemoButton: boolean
     normalizedEmail: string
     canSubmitEmail: boolean
     canSubmitOtp: boolean
@@ -43,12 +42,13 @@ export interface UseLoginFormResult {
     resendOtp: () => Promise<void>
     useClipboardLink: () => Promise<void>
     loginDemo: () => void
+    continueAnonymous: () => void
 }
 
 export const useLoginForm = (): UseLoginFormResult => {
     const { t } = useTranslation()
     const isExpoGo = Constants.executionEnvironment === "storeClient"
-    const { loginWithToken, setUser } = useSession()
+    const { loginWithToken, setUser, continueAnonymously } = useSession()
 
     const [mode, setMode] = useState<LoginMode>("email")
     const [email, setEmail] = useState("")
@@ -157,8 +157,14 @@ export const useLoginForm = (): UseLoginFormResult => {
     }, [resetVerifyErrors])
 
     const loginDemo = useCallback((): void => {
-        setUser(createDemoUser())
+        if (__DEV__) {
+            setUser(createDemoUser())
+        }
     }, [setUser])
+
+    const continueAnonymous = useCallback((): void => {
+        void continueAnonymously()
+    }, [continueAnonymously])
 
     return {
         mode,
@@ -171,6 +177,7 @@ export const useLoginForm = (): UseLoginFormResult => {
         privacyPolicyChecked,
         languageSelectorVisible,
         isExpoGo,
+        showDemoButton: __DEV__,
         normalizedEmail,
         canSubmitEmail: isEmailValid(normalizedEmail) && privacyPolicyChecked && !sendingOtp,
         canSubmitOtp: otpCode.trim().length > 0,
@@ -186,5 +193,6 @@ export const useLoginForm = (): UseLoginFormResult => {
         resendOtp,
         useClipboardLink,
         loginDemo,
+        continueAnonymous,
     }
 }
