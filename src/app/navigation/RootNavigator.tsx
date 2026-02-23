@@ -5,13 +5,14 @@ import { useSession } from "@/app/providers/SessionProvider"
 import { LoginScreen } from "@/features/auth/ui/screens/LoginScreen"
 import { EventDetailsScreen } from "@/features/dashboard/ui/screens/EventDetailsScreen"
 import { HomeScreen } from "@/features/dashboard/ui/screens/HomeScreen"
+import { ProfileRolesScreen } from "@/features/dashboard/ui/screens/ProfileRolesScreen"
 import { GamesScreen } from "@/features/games/ui/screens/GamesScreen"
 import { PrivacyScreen } from "@/features/privacy/ui/screens/PrivacyScreen"
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
 export const RootNavigator = (): React.JSX.Element => {
-    const { user } = useSession()
+    const { user, isAnonymous } = useSession()
 
     return (
         <Stack.Navigator
@@ -22,7 +23,7 @@ export const RootNavigator = (): React.JSX.Element => {
                 headerTintColor: "#000000",
             }}
         >
-            {user ? (
+            {user || isAnonymous ? (
                 <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
             ) : (
                 <Stack.Screen
@@ -31,6 +32,15 @@ export const RootNavigator = (): React.JSX.Element => {
                     options={{ headerShown: false }}
                 />
             )}
+            <Stack.Screen
+                name="ProfileRoles"
+                component={ProfileRolesScreen}
+                options={{
+                    presentation: "fullScreenModal",
+                    animation: "slide_from_bottom",
+                    headerShadowVisible: false,
+                }}
+            />
             <Stack.Screen name="Privacy" component={PrivacyScreen} />
             <Stack.Screen name="Games" component={GamesScreen} />
             <Stack.Screen

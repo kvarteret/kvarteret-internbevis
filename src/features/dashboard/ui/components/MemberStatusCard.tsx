@@ -19,7 +19,7 @@ export const MemberStatusCard = ({
     const [showPenguin, setShowPenguin] = useState(false)
     const opacityAnim = useRef(new Animated.Value(0)).current
 
-    const active = user.aktiveVerv.length > 0
+    const active = user.aktiveVerv.length > 0 || user.pingvinPoengSum >= 14
 
     useEffect(() => {
         Animated.timing(opacityAnim, {
