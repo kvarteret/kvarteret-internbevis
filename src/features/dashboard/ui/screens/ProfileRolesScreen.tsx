@@ -48,18 +48,6 @@ export const ProfileRolesScreen = ({
     useEffect(() => {
         navigation.setOptions({
             title: t("profileRolesTitle"),
-            headerBackVisible: true,
-            headerLeft: () => (
-                <Pressable
-                    accessibilityLabel={t("close")}
-                    accessibilityRole="button"
-                    className="items-center justify-center pr-2"
-                    hitSlop={10}
-                    onPress={() => navigation.goBack()}
-                >
-                    <MaterialIcons color="#000000" name="arrow-back" size={24} />
-                </Pressable>
-            ),
         })
     }, [navigation, t])
 
@@ -91,13 +79,16 @@ export const ProfileRolesScreen = ({
                 accessibilityLabel={`${item.gruppe} ${displayName}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
+                className="mb-2"
                 onPress={() => void setSelectedFrontpageRoleSelection(serializeRoleSelection(item))}
             >
                 <Card
                     className={cn(
-                        "mb-2 flex-row items-center justify-between gap-3 px-4 py-3",
-                        isSelected ? "border-2 border-link bg-surface-muted" : null,
+                        "flex-row items-center justify-between gap-3 px-4 py-3",
+                        isSelected ? "border-2 border-link bg-[#FFFFFF80]" : null,
                     )}
+                    effect="liquid"
+                    variant="grouped"
                 >
                     <View className="min-w-0 flex-1">
                         <Text className="text-base font-semibold" numberOfLines={1}>
@@ -143,6 +134,7 @@ export const ProfileRolesScreen = ({
         <SafeAreaView className="flex-1" edges={["left", "right", "bottom"]}>
             <FlatList
                 className="flex-1"
+                contentInsetAdjustmentBehavior="automatic"
                 contentContainerStyle={{
                     paddingHorizontal: 12,
                     paddingVertical: 12,
@@ -153,7 +145,9 @@ export const ProfileRolesScreen = ({
                 renderItem={renderRole}
                 ListHeaderComponent={
                     <View className="mb-3 gap-3">
-                        <Text className="px-1 text-lg font-bold">{t("profileMemberInfo")}</Text>
+                        <Text className="px-1 text-lg text-text-primary font-bold">
+                            {t("profileMemberInfo")}
+                        </Text>
 
                         <Card className="p-2" effect="liquid" variant="grouped">
                             <MemberHeader
@@ -170,20 +164,24 @@ export const ProfileRolesScreen = ({
                             />
                         </Card>
 
-                        <Card className="flex-row items-center justify-between px-4 py-4">
+                        <Card
+                            className="flex-row items-center justify-between px-4 py-4"
+                            effect="liquid"
+                            variant="grouped"
+                        >
                             <Text className="text-base text-text-secondary font-medium">
                                 {t("profileTotalPingvinPoeng")}
                             </Text>
                             <Text className="text-2xl font-extrabold">{user.pingvinPoengSum}</Text>
                         </Card>
 
-                        <Text className="px-1 pt-1 text-lg font-bold">
+                        <Text className="px-1 pt-1 text-lg text-text-primary font-bold">
                             {t("profileActiveRoles")}
                         </Text>
                     </View>
                 }
                 ListEmptyComponent={
-                    <Card className="px-4 py-5">
+                    <Card className="px-4 py-5" effect="liquid" variant="grouped">
                         <Text className="text-base text-text-secondary">
                             {t("profileNoActiveRoles")}
                         </Text>

@@ -65,4 +65,26 @@ describe("user tier helpers", () => {
         expect(getHighestTierName(user)).toBe("Pingvin")
         expect(getHighestTierGroup(user)).toBe("Pingvin Ordenen")
     })
+
+    it("returns Pingvin tier and labels when user has no active roles but enough pingvin points", () => {
+        const user = createUser({
+            pingvinPoengSum: 14,
+            aktiveVerv: [],
+        })
+
+        expect(getHighestTier(user)).toBe(3)
+        expect(getHighestTierName(user)).toBe("Pingvin")
+        expect(getHighestTierGroup(user)).toBe("Pingvin Ordenen")
+    })
+
+    it("returns empty/no tier when user has no active roles and not enough pingvin points", () => {
+        const user = createUser({
+            pingvinPoengSum: 13,
+            aktiveVerv: [],
+        })
+
+        expect(getHighestTier(user)).toBe(0)
+        expect(getHighestTierName(user)).toBe("")
+        expect(getHighestTierGroup(user)).toBe("")
+    })
 })

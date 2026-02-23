@@ -38,7 +38,7 @@ export const VerifyCodeForm = ({
             keyboardShouldPersistTaps="handled"
         >
             <Card
-                className="w-[92%] max-w-xl border border-border px-5 py-7"
+                className="w-[92%] max-w-xl px-5 py-7"
                 effect="liquid"
                 variant="elevated"
             >

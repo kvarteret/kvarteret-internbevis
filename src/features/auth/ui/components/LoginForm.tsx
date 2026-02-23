@@ -44,7 +44,7 @@ export const LoginForm = ({
             keyboardShouldPersistTaps="handled"
         >
             <Card
-                className="w-[92%] max-w-xl border border-border p-6"
+                className="w-[92%] max-w-xl p-6"
                 effect="liquid"
                 variant="elevated"
             >
@@ -93,7 +93,7 @@ export const LoginForm = ({
                         </Text>
                     </Button>
 
-                    <View className="rounded-xl border border-border bg-surface px-3 py-3">
+                    <Card className="px-3 py-3" effect="liquid" variant="grouped">
                         <Text className="mb-2 text-xs uppercase tracking-wide text-text-secondary font-semibold">
                             {t("privacy")}
                         </Text>
@@ -131,7 +131,7 @@ export const LoginForm = ({
                                 <MaterialIcons color="#2563EB" name="open-in-new" size={16} />
                             </Pressable>
                         </View>
-                    </View>
+                    </Card>
                 </View>
             </Card>
         </ScrollView>

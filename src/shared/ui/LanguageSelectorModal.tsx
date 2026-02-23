@@ -3,6 +3,7 @@ import React from "react"
 import { useTranslation } from "react-i18next"
 import { Modal, Pressable, View } from "react-native"
 import { SupportedLanguage, useLanguage } from "@/app/providers/LanguageProvider"
+import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 
@@ -39,8 +40,12 @@ export const LanguageSelectorModal = ({
             <View className="flex-1 items-center justify-center bg-[#00000059] px-4">
                 <Pressable className="absolute inset-0" onPress={onClose} />
 
-                <View className="w-[85%] overflow-hidden rounded-2xl border border-border-soft bg-surface">
-                    <Text className="border-b border-border-soft px-4 py-4 text-center text-xl font-bold">
+                <Card
+                    className="w-[85%] overflow-hidden rounded-3xl"
+                    effect="liquid"
+                    variant="elevated"
+                >
+                    <Text className="border-b border-[#0000001A] px-4 py-4 text-center text-xl font-bold">
                         {t("language")}
                     </Text>
 
@@ -51,8 +56,8 @@ export const LanguageSelectorModal = ({
                             <Pressable
                                 key={option.code}
                                 className={cn(
-                                    "flex-row items-center border-b border-border-soft px-6 py-4",
-                                    selected ? "bg-surface-muted" : "bg-surface",
+                                    "flex-row items-center border-b border-[#0000001A] px-6 py-4",
+                                    selected ? "bg-[#FFFFFF70]" : "bg-transparent",
                                 )}
                                 onPress={() => {
                                     void handleSelect(option.code)
@@ -80,7 +85,7 @@ export const LanguageSelectorModal = ({
                             </Pressable>
                         )
                     })}
-                </View>
+                </Card>
             </View>
         </Modal>
     )

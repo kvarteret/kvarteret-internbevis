@@ -68,7 +68,7 @@ export const EventDetailsScreen = ({
     }, [refetch])
 
     useLayoutEffect(() => {
-        navigation.setOptions({ title, headerLargeTitle: false })
+        navigation.setOptions({ title })
     }, [navigation, title])
 
     const htmlSource = useMemo(() => ({ html: details?.detailsHtml ?? "" }), [details?.detailsHtml])

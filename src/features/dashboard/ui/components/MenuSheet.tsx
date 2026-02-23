@@ -2,6 +2,7 @@ import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { useTranslation } from "react-i18next"
 import { Modal, Pressable, View } from "react-native"
+import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 
@@ -54,13 +55,20 @@ export const MenuSheet = ({
             <View className="flex-1 justify-end bg-[#00000033]">
                 <Pressable className="absolute inset-0" onPress={onClose} />
 
-                <View className="overflow-hidden rounded-t-2xl border border-border-soft bg-surface pb-5">
+                <Card
+                    className="mx-2 mb-2 overflow-hidden rounded-3xl pb-2"
+                    effect="liquid"
+                    variant="grouped"
+                >
+                    <View className="items-center px-4 pb-2 pt-3">
+                        <View className="h-1.5 w-10 rounded-full bg-[#00000033]" />
+                    </View>
                     {actions.map((action, index) => (
                         <Pressable
                             key={action.key}
                             className={cn(
                                 "flex-row items-center gap-3 px-5 py-4",
-                                index < actions.length - 1 && "border-b border-border-soft",
+                                index < actions.length - 1 && "border-b border-[#0000001A]",
                             )}
                             onPress={() => handlePress(action)}
                         >
@@ -80,7 +88,7 @@ export const MenuSheet = ({
                             </Text>
                         </Pressable>
                     ))}
-                </View>
+                </Card>
             </View>
         </Modal>
     )

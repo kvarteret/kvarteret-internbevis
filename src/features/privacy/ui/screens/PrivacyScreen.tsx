@@ -23,12 +23,19 @@ export const PrivacyScreen = ({
 
     return (
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
-            <ScrollView className="flex-1" contentContainerClassName="px-4 pb-8 pt-4">
-                <Card className="mb-3 px-4 py-4" effect="liquid" variant="grouped">
+            <ScrollView
+                className="flex-1"
+                contentContainerClassName="px-4 pb-8 pt-4"
+                contentInsetAdjustmentBehavior="automatic"
+            >
+                <Card className="mb-3 gap-2 px-4 py-4" effect="liquid" variant="grouped">
                     <Text className="text-2xl font-black text-text-primary">{t("privacy")}</Text>
+                    <Text className="text-sm leading-5 text-text-secondary">
+                        {t("privacyPolicyConsent")}
+                    </Text>
                 </Card>
 
-                <Card className="px-4 py-4" variant="grouped">
+                <Card className="px-4 py-4" effect="liquid" variant="grouped">
                     <Markdown
                         style={{
                             body: {

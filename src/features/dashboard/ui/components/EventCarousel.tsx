@@ -19,6 +19,7 @@ interface EventCarouselProps {
 const CAROUSEL_CARD_WIDTH_RATIO = 0.8
 const MIN_CAROUSEL_CARD_WIDTH = 240
 const CAROUSEL_CARD_GAP = 12
+const CAROUSEL_SIDE_PADDING = 2
 
 export const EventCarousel = ({
     events,
@@ -46,7 +47,7 @@ export const EventCarousel = ({
         }
         if (isError) {
             return (
-                <Card className="gap-3 p-3">
+                <Card className="gap-3 p-3" effect="liquid" variant="grouped">
                     <Text className="mb-3 text-sm text-text-secondary">{t("homeEventsError")}</Text>
                     <Button
                         accessibilityLabel={t("homeEventsRetry")}
@@ -69,7 +70,10 @@ export const EventCarousel = ({
         return (
             <FlatList
                 horizontal
-                contentContainerStyle={{ paddingRight: CAROUSEL_CARD_GAP }}
+                ItemSeparatorComponent={() => <View style={{ width: CAROUSEL_CARD_GAP }} />}
+                contentContainerStyle={{
+                    paddingHorizontal: CAROUSEL_SIDE_PADDING,
+                }}
                 data={events}
                 keyExtractor={item => item.id}
                 renderItem={renderItem}
@@ -82,8 +86,8 @@ export const EventCarousel = ({
     })()
 
     return (
-        <View className="w-full gap-2">
-            <Text className="text-lg font-bold">{t("homeEventsTitle")}</Text>
+        <View className="w-full gap-2.5">
+            <Text className="text-lg text-text-primary font-bold">{t("homeEventsTitle")}</Text>
             {content}
         </View>
     )

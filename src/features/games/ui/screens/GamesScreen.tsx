@@ -5,6 +5,7 @@ import { Pressable, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
 import { useChessTimer } from "@/features/games/vm/useChessTimer"
+import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
@@ -105,34 +106,43 @@ export const GamesScreen = ({
 
     return (
         <SafeAreaView className="flex-1" edges={["left", "right", "bottom"]}>
-            <ScrollView className="flex-1" contentContainerClassName="flex-grow gap-4 p-4">
-                <View className="flex-row gap-2.5">
-                    {tabs.map(({ mode: tabMode, label }) => (
-                        <Pressable
-                            key={tabMode}
-                            className={cn(
-                                "flex-1 items-center justify-center rounded-xl border px-3 py-3",
-                                mode === tabMode
-                                    ? "border-text-primary bg-text-primary"
-                                    : "border-border bg-surface",
-                            )}
-                            onPress={() => setMode(tabMode)}
-                        >
-                            <Text
-                                className={cn(
-                                    "text-[15px] font-semibold",
-                                    mode === tabMode ? "text-surface" : "text-text-primary",
-                                )}
-                            >
-                                {label}
-                            </Text>
-                        </Pressable>
-                    ))}
-                </View>
+            <ScrollView
+                className="flex-1"
+                contentContainerClassName="flex-grow gap-4 p-4"
+                contentInsetAdjustmentBehavior="automatic"
+            >
+                <Card className="p-1.5" effect="liquid" variant="grouped">
+                    <View className="flex-row rounded-xl bg-surface-muted p-1">
+                        {tabs.map(tab => {
+                            const isSelected = tab.mode === mode
+                            return (
+                                <Pressable
+                                    key={tab.mode}
+                                    className={cn(
+                                        "flex-1 rounded-lg px-3 py-2",
+                                        isSelected ? "bg-surface" : "bg-transparent",
+                                    )}
+                                    onPress={() => setMode(tab.mode)}
+                                    accessibilityRole="button"
+                                    accessibilityState={{ selected: isSelected }}
+                                >
+                                    <Text
+                                        className={cn(
+                                            "text-center text-sm font-semibold",
+                                            isSelected ? "text-text-primary" : "text-text-secondary",
+                                        )}
+                                    >
+                                        {tab.label}
+                                    </Text>
+                                </Pressable>
+                            )
+                        })}
+                    </View>
+                </Card>
 
                 {mode === "d6" ? (
-                    <Card className="gap-3 p-4">
-                        <Text className="text-2xl font-bold">{t("gamesDice")}</Text>
+                    <Card className="gap-4 p-4" effect="liquid" variant="grouped">
+                        <Text className="text-2xl font-bold text-text-primary">{t("gamesDice")}</Text>
                         <View className="gap-2">
                             <Text className="text-sm text-text-secondary font-semibold">
                                 {t("gamesSelectDie")}
@@ -144,10 +154,10 @@ export const GamesScreen = ({
                                         <Pressable
                                             key={diceType}
                                             className={cn(
-                                                "rounded-lg border px-3 py-2",
+                                                "rounded-full px-3 py-2",
                                                 selected
-                                                    ? "border-text-primary bg-text-primary"
-                                                    : "border-border bg-surface",
+                                                    ? "bg-text-primary"
+                                                    : "bg-surface/80",
                                             )}
                                             onPress={() => {
                                                 setSelectedDiceType(diceType)
@@ -169,13 +179,16 @@ export const GamesScreen = ({
                                 })}
                             </View>
                         </View>
-                        <Text className="text-center text-7xl font-bold">{diceValue}</Text>
-                        <Text className="text-center text-sm text-text-secondary">
-                            {t("gamesDiceRolls", { count: diceRollCount })}
-                        </Text>
+                        <Card className="items-center gap-1 py-6" effect="liquid" variant="elevated">
+                            <Text className="text-center text-7xl font-bold text-text-primary">
+                                {diceValue}
+                            </Text>
+                            <Text className="text-center text-sm text-text-secondary">
+                                {t("gamesDiceRolls", { count: diceRollCount })}
+                            </Text>
+                        </Card>
 
-                        <Pressable
-                            className="items-center rounded-xl border border-text-primary bg-text-primary py-3"
+                        <Button
                             onPress={() => {
                                 setDiceValue(rollDie(selectedDiceType))
                                 setDiceRollCount(previous => previous + 1)
@@ -184,11 +197,13 @@ export const GamesScreen = ({
                             <Text className="text-base text-surface font-bold">
                                 {t("gamesRollDie", { die: `d${selectedDiceType}` })}
                             </Text>
-                        </Pressable>
+                        </Button>
                     </Card>
                 ) : (
-                    <Card className="gap-3 p-4">
-                        <Text className="text-2xl font-bold">{t("gamesChessTimer")}</Text>
+                    <Card className="gap-4 p-4" effect="liquid" variant="grouped">
+                        <Text className="text-2xl font-bold text-text-primary">
+                            {t("gamesChessTimer")}
+                        </Text>
 
                         <Pressable className="gap-3" onPress={pressCurrentPlayer}>
                             <View className="flex-row items-center justify-between">
@@ -226,23 +241,17 @@ export const GamesScreen = ({
                         </Pressable>
 
                         <View className="mt-1 gap-2.5">
-                            <Pressable
-                                className="items-center rounded-xl border border-text-primary bg-text-primary py-3"
-                                onPress={toggleTimer}
-                            >
+                            <Button onPress={toggleTimer}>
                                 <Text className="text-base text-surface font-bold">
                                     {timerState.isRunning ? t("chessPause") : t("chessStart")}
                                 </Text>
-                            </Pressable>
+                            </Button>
 
-                            <Pressable
-                                className="items-center rounded-xl border border-border bg-surface py-3"
-                                onPress={resetChessTimer}
-                            >
+                            <Button variant="secondary" onPress={resetChessTimer}>
                                 <Text className="text-base text-text-primary font-semibold">
                                     {t("chessReset")}
                                 </Text>
-                            </Pressable>
+                            </Button>
                         </View>
                     </Card>
                 )}

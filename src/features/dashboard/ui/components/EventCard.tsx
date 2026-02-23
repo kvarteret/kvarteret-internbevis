@@ -33,7 +33,12 @@ export const EventCard = ({
     const accessibilityLabel = `${translation.value.title}. ${formattedDate}.`
 
     return (
-        <Card className="mr-3" style={{ borderWidth: 0, width: cardWidth }} variant="grouped">
+        <Card
+            className="overflow-hidden"
+            effect="liquid"
+            style={{ width: cardWidth }}
+            variant="grouped"
+        >
             <Pressable
                 accessibilityHint={accessibilityOpenHint}
                 accessibilityLabel={accessibilityLabel}
@@ -50,18 +55,20 @@ export const EventCard = ({
                 ]}
             >
                 {event.image?.url ? (
-                    <Image className="h-36 w-full" source={{ uri: event.image.url }} />
-                ) : null}
+                    <Image className="h-40 w-full" source={{ uri: event.image.url }} />
+                ) : (
+                    <View className="h-40 w-full bg-[#FFFFFF80]" />
+                )}
 
-                <View className="p-3">
-                    <Text className="text-base font-semibold" numberOfLines={2}>
+                <View className="gap-1 p-3.5">
+                    <Text className="text-base text-text-primary font-semibold" numberOfLines={2}>
                         {translation.value.title}
                     </Text>
                     <Text className="mt-1 text-xs text-text-secondary" numberOfLines={1}>
                         {formattedDate}
                     </Text>
                     {descriptionPreview ? (
-                        <Text className="mt-2 text-sm text-text-secondary" numberOfLines={3}>
+                        <Text className="mt-1.5 text-sm text-text-secondary" numberOfLines={3}>
                             {descriptionPreview}
                         </Text>
                     ) : null}

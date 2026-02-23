@@ -61,6 +61,24 @@ describe("buildDisplayRoles", () => {
         })
     })
 
+    it("creates only the virtual Pingvin row when pingvin threshold is met without active roles", () => {
+        const user = createUser({
+            pingvinPoengSum: 14,
+            aktiveVerv: [],
+        })
+
+        const roles = buildDisplayRoles(user)
+
+        expect(roles).toHaveLength(1)
+        expect(roles[0]).toMatchObject({
+            source: "virtual_pingvin",
+            navn: "Pingvin",
+            gruppe: "Pingvin Ordenen",
+            rabattTrinn: 3,
+            signertKontrakt: true,
+        })
+    })
+
     it("keeps active role count and prepends only one virtual Pingvin row", () => {
         const user = createUser({
             pingvinPoengSum: 30,

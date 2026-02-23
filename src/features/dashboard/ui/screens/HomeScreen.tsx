@@ -188,10 +188,17 @@ export const HomeScreen = ({
 
                 <TouchableOpacity
                     accessibilityLabel={t("openMenu")}
-                    className="w-10 items-end"
+                    className="items-end"
+                    hitSlop={8}
                     onPress={() => setMenuVisible(true)}
                 >
-                    <MaterialIcons color="#000000" name="menu" size={28} />
+                    <Card
+                        className="h-10 w-10 items-center justify-center"
+                        effect="liquid"
+                        variant="grouped"
+                    >
+                        <MaterialIcons color="#000000" name="menu" size={22} />
+                    </Card>
                 </TouchableOpacity>
             </View>
 
