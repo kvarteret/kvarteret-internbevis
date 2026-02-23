@@ -1,27 +1,22 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import { useIsFocused } from "@react-navigation/native"
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
+import { useRouter } from "expo-router"
 import { useQuery } from "@tanstack/react-query"
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
     ActivityIndicator,
     Image,
-    Pressable,
     ScrollView,
     TouchableOpacity,
     useWindowDimensions,
     View,
 } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
-import { RootStackParamList } from "@/app/navigation/types"
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
-import { buildDisplayRoles, resolveDisplayedRole } from "@/features/dashboard/domain/profileRoles"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
-import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
-import { MemberStatusCard } from "@/features/dashboard/ui/components/MemberStatusCard"
 import { MenuSheet } from "@/features/dashboard/ui/components/MenuSheet"
 import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
 import { Button } from "@/shared/ui/Button"
@@ -46,6 +41,7 @@ const NowPlayingWidget = ({
     progressWidth,
 }: NowPlayingWidgetProps): React.JSX.Element => {
     const { t } = useTranslation()
+
     return (
         <Card className="flex-row items-center gap-3 p-3">
             {nowPlaying.image ? (
@@ -67,36 +63,30 @@ const NowPlayingWidget = ({
                     {nowPlaying.album ? ` - ${nowPlaying.album}` : ""}
                 </Text>
                 <View className="h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
-                    <View
-                        className="h-full rounded-full bg-link"
-                        style={{ width: progressWidth }}
-                    />
+                    <View className="h-full rounded-full bg-link" style={{ width: progressWidth }} />
                 </View>
             </View>
         </Card>
     )
 }
 
-export const HomeScreen = ({
-    navigation,
-}: NativeStackScreenProps<RootStackParamList, "Home">): React.JSX.Element => {
+export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
-    const {
-        user,
-        isAnonymous,
-        selectedFrontpageRoleSelection,
-        isLoading,
-        logout,
-        exitAnonymousMode,
-    } = useSession()
-    const { height, width } = useWindowDimensions()
+    const router = useRouter()
+    const { user, isAnonymous, isLoading, logout, exitAnonymousMode } = useSession()
+    const { width } = useWindowDimensions()
+    const insets = useSafeAreaInsets()
     const isFocused = useIsFocused()
 
     const [menuVisible, setMenuVisible] = useState(false)
     const [languageSelectorVisible, setLanguageSelectorVisible] = useState(false)
-    const [animationTrigger, setAnimationTrigger] = useState(0)
 
-    const isSmallScreen = height < 600
+    useEffect(() => {
+        if (!user && !isAnonymous) {
+            router.replace("/login")
+        }
+    }, [isAnonymous, router, user])
+
     const headerLogoWidth = Math.min(280, Math.max(170, width - 120))
 
     const {
@@ -130,31 +120,11 @@ export const HomeScreen = ({
     )
     const nowPlayingProgressWidth =
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
-    const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
-    const displayedRole = useMemo(
-        () => resolveDisplayedRole(displayRoles, selectedFrontpageRoleSelection),
-        [displayRoles, selectedFrontpageRoleSelection],
-    )
 
     if (isLoading) {
         return (
             <SafeAreaView className="flex-1 items-center justify-center">
                 <ActivityIndicator color="#000000" size="large" />
-            </SafeAreaView>
-        )
-    }
-
-    if (!user && !isAnonymous) {
-        return (
-            <SafeAreaView className="flex-1 items-center justify-center px-4">
-                <Text className="text-lg font-medium">{t("notRegistered")}</Text>
-                <View className="mt-4 w-56">
-                    <Button onPress={() => void exitAnonymousMode()}>
-                        <Text className="text-base leading-5 text-surface font-semibold">
-                            {t("login")}
-                        </Text>
-                    </Button>
-                </View>
             </SafeAreaView>
         )
     }
@@ -169,11 +139,14 @@ export const HomeScreen = ({
         : {
               label: t("login"),
               icon: "login" as const,
-              onPress: () => void exitAnonymousMode(),
+              onPress: async () => {
+                  await exitAnonymousMode()
+                  router.replace("/login")
+              },
           }
 
     return (
-        <SafeAreaView className="flex-1">
+        <SafeAreaView className="flex-1 bg-background">
             <View className="h-18 flex-row items-center px-4 pt-1.5">
                 <View className="w-10" />
 
@@ -202,40 +175,14 @@ export const HomeScreen = ({
                 </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1" contentContainerClassName="px-2 pb-20 pt-1.5">
-                {user ? (
-                    <View className={isSmallScreen ? "pb-2" : "pb-4"}>
-                        <View className="items-center pb-2">
-                            <Pressable
-                                accessibilityHint={t("openProfileDetailsHint")}
-                                accessibilityLabel={t("openProfileDetails")}
-                                accessibilityRole="button"
-                                className="w-full"
-                                onPress={() => navigation.navigate("ProfileRoles")}
-                            >
-                                <Card className="p-2" effect="liquid" variant="grouped">
-                                    <MemberHeader
-                                        animationTrigger={animationTrigger}
-                                        imageUrl={user.bildeUrl}
-                                        firstName={user.fornavn}
-                                        lastName={user.etternavn}
-                                        roleGroup={displayedRole?.gruppe ?? ""}
-                                        roleTitle={displayedRole?.navn ?? ""}
-                                        wordOfTheDay={user.dagensOrd.trim() || "-"}
-                                    />
-                                </Card>
-                            </Pressable>
-                        </View>
-
-                        <View className="justify-center pb-2 pt-3">
-                            <MemberStatusCard
-                                user={user}
-                                onBadgePress={() => setAnimationTrigger(previous => previous + 1)}
-                            />
-                        </View>
-                    </View>
-                ) : null}
-
+            <ScrollView
+                className="flex-1"
+                contentContainerStyle={{
+                    paddingTop: 6,
+                    paddingHorizontal: 8,
+                    paddingBottom: Math.max(insets.bottom + 120, 136),
+                }}
+            >
                 {showNowPlayingWidget && nowPlaying ? (
                     <View className="px-2 pb-4">
                         <NowPlayingWidget
@@ -251,49 +198,66 @@ export const HomeScreen = ({
                         isPending={eventsPending}
                         isError={eventsError}
                         onRetry={async () => refetchEvents()}
-                        onEventPress={eventId => navigation.navigate("EventDetails", { eventId })}
+                        onEventPress={eventId => router.push(`/event/${eventId}`)}
                     />
                 </View>
-            </ScrollView>
 
-            <View className="w-full items-center justify-center pb-4 pt-2">
-                <View className="w-full flex-row flex-nowrap items-center justify-center px-3">
-                    <Text
-                        adjustsFontSizeToFit
-                        className="shrink text-lg leading-6 font-medium"
-                        ellipsizeMode="tail"
-                        minimumFontScale={0.72}
-                        numberOfLines={1}
-                    >
-                        {t("homeFooterPrefix")}
-                    </Text>
-                    <Text className="px-1.5 text-2xl leading-8" numberOfLines={1}>
-                        |
-                    </Text>
-                    <TouchableOpacity
-                        accessibilityRole="link"
-                        className="shrink"
-                        onPress={() => void openExternalUrl("https://blifrivillig.no")}
-                    >
+                {!user ? (
+                    <View className="px-2 pb-4">
+                        <Card className="gap-3 px-4 py-4" effect="liquid" variant="grouped">
+                            <Text className="text-base text-text-secondary">{t("notRegistered")}</Text>
+                            <Button
+                                onPress={async () => {
+                                    await exitAnonymousMode()
+                                    router.replace("/login")
+                                }}
+                            >
+                                <Text className="text-base text-surface font-semibold">
+                                    {t("login")}
+                                </Text>
+                            </Button>
+                        </Card>
+                    </View>
+                ) : null}
+                <View className="w-full items-center justify-center pb-4 pt-2">
+                    <View className="w-full flex-row flex-nowrap items-center justify-center px-3">
                         <Text
                             adjustsFontSizeToFit
-                            className="text-lg leading-6 underline font-extrabold"
+                            className="shrink text-lg leading-6 font-medium"
                             ellipsizeMode="tail"
                             minimumFontScale={0.72}
                             numberOfLines={1}
                         >
-                            {t("homeFooterVolunteer")}
+                            {t("homeFooterPrefix")}
                         </Text>
-                    </TouchableOpacity>
+                        <Text className="px-1.5 text-2xl leading-8" numberOfLines={1}>
+                            |
+                        </Text>
+                        <TouchableOpacity
+                            accessibilityRole="link"
+                            className="shrink"
+                            onPress={() => void openExternalUrl("https://blifrivillig.no")}
+                        >
+                            <Text
+                                adjustsFontSizeToFit
+                                className="text-lg leading-6 underline font-extrabold"
+                                ellipsizeMode="tail"
+                                minimumFontScale={0.72}
+                                numberOfLines={1}
+                            >
+                                {t("homeFooterVolunteer")}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
+            </ScrollView>
 
             <MenuSheet
                 visible={menuVisible}
                 onClose={() => setMenuVisible(false)}
                 onOpenLanguage={() => setLanguageSelectorVisible(true)}
-                onOpenGames={() => navigation.navigate("Games")}
-                onOpenPrivacy={() => navigation.navigate("Privacy")}
+                onOpenGames={() => router.push("/games")}
+                onOpenPrivacy={() => router.push("/privacy")}
                 authAction={authAction}
             />
 

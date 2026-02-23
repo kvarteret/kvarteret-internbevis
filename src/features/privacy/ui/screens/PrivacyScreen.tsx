@@ -1,19 +1,17 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
+import { useNavigation } from "expo-router"
 import React, { useLayoutEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { ScrollView } from "react-native"
 import Markdown from "react-native-markdown-display"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { RootStackParamList } from "@/app/navigation/types"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { PRIVACY_POLICY_MARKDOWN } from "@/features/privacy/domain/privacyPolicy"
 import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 
-export const PrivacyScreen = ({
-    navigation,
-}: NativeStackScreenProps<RootStackParamList, "Privacy">): React.JSX.Element => {
+export const PrivacyScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
+    const navigation = useNavigation()
     const { language } = useLanguage()
     const markdown = PRIVACY_POLICY_MARKDOWN[language]
 
@@ -22,7 +20,7 @@ export const PrivacyScreen = ({
     }, [navigation, t])
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
+        <SafeAreaView className="flex-1 bg-background" edges={["top", "left", "right", "bottom"]}>
             <ScrollView
                 className="flex-1"
                 contentContainerClassName="px-4 pb-8 pt-4"

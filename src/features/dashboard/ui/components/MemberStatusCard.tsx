@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Animated, Image, Pressable, View } from "react-native"
+import { isIdVerificationValid } from "@/features/dashboard/domain/idVerification"
 import { getHighestTier, User } from "@/shared/types/user"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
@@ -19,7 +20,7 @@ export const MemberStatusCard = ({
     const [showPenguin, setShowPenguin] = useState(false)
     const opacityAnim = useRef(new Animated.Value(0)).current
 
-    const active = user.aktiveVerv.length > 0 || user.pingvinPoengSum >= 14
+    const active = isIdVerificationValid(user)
 
     useEffect(() => {
         Animated.timing(opacityAnim, {

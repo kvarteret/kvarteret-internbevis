@@ -1,11 +1,10 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
+import { useLocalSearchParams, useNavigation } from "expo-router"
 import { useQuery } from "@tanstack/react-query"
 import React, { useCallback, useLayoutEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Image, ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { RootStackParamList } from "@/app/navigation/types"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchEventById, selectEventTranslation } from "@/features/dashboard/data/eventsRepository"
@@ -21,17 +20,13 @@ import { LabeledValueRow } from "@/shared/ui/LabeledValueRow"
 import { Text } from "@/shared/ui/Text"
 import { triggerSoftImpactHaptic } from "@/shared/utils/haptics"
 
-interface EventDetailsScreenProps
-    extends NativeStackScreenProps<RootStackParamList, "EventDetails"> {}
-
-export const EventDetailsScreen = ({
-    navigation,
-    route,
-}: EventDetailsScreenProps): React.JSX.Element => {
+export const EventDetailsScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
+    const navigation = useNavigation()
     const { language } = useLanguage()
     const { width } = useWindowDimensions()
-    const { eventId } = route.params
+    const { eventId } = useLocalSearchParams<{ eventId?: string | string[] }>()
+    const resolvedEventId = Array.isArray(eventId) ? eventId[0] : eventId
 
     const {
         data: event,
@@ -39,8 +34,15 @@ export const EventDetailsScreen = ({
         isError,
         refetch,
     } = useQuery({
-        queryKey: ["event", eventId],
-        queryFn: ({ signal }) => fetchEventById(eventId, signal),
+        queryKey: ["event", resolvedEventId],
+        queryFn: ({ signal }) => {
+            if (!resolvedEventId) {
+                throw new Error("Missing event ID.")
+            }
+
+            return fetchEventById(resolvedEventId, signal)
+        },
+        enabled: Boolean(resolvedEventId),
         retry: 1,
     })
 
@@ -87,15 +89,21 @@ export const EventDetailsScreen = ({
 
     if (isPending) {
         return (
-            <SafeAreaView className="flex-1 p-4" edges={["left", "right", "bottom"]}>
+            <SafeAreaView
+                className="flex-1 bg-background p-4"
+                edges={["top", "left", "right", "bottom"]}
+            >
                 <Text className="text-base">{t("eventDetailsLoading")}</Text>
             </SafeAreaView>
         )
     }
 
-    if (isError || !event || !translationSelection || !details) {
+    if (!resolvedEventId || isError || !event || !translationSelection || !details) {
         return (
-            <SafeAreaView className="flex-1 p-4" edges={["left", "right", "bottom"]}>
+            <SafeAreaView
+                className="flex-1 bg-background p-4"
+                edges={["top", "left", "right", "bottom"]}
+            >
                 <Card className="gap-3 p-4">
                     <Text className="mb-3 text-base">{t("eventDetailsError")}</Text>
                     <Button
@@ -113,7 +121,7 @@ export const EventDetailsScreen = ({
     }
 
     return (
-        <SafeAreaView className="flex-1" edges={["left", "right", "bottom"]}>
+        <SafeAreaView className="flex-1 bg-background" edges={["top", "left", "right", "bottom"]}>
             <ScrollView
                 className="flex-1"
                 contentContainerClassName="gap-3 p-4"

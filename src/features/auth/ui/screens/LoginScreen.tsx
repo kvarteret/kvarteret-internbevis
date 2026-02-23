@@ -1,10 +1,10 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { BlurView } from "expo-blur"
-import React from "react"
+import { useRouter } from "expo-router"
+import React, { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { KeyboardAvoidingView, TouchableOpacity, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
-import { RootStackParamList } from "@/app/navigation/types"
+import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { LoginForm } from "@/features/auth/ui/components/LoginForm"
 import { VerifyCodeForm } from "@/features/auth/ui/components/VerifyCodeForm"
@@ -12,13 +12,19 @@ import { useDeepLinkLogin } from "@/features/auth/vm/useDeepLinkLogin"
 import { useLoginForm } from "@/features/auth/vm/useLoginForm"
 import { Text } from "@/shared/ui/Text"
 
-export const LoginScreen = ({
-    navigation,
-}: NativeStackScreenProps<RootStackParamList, "Login">): React.JSX.Element => {
+export const LoginScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
+    const router = useRouter()
+    const { user, isAnonymous } = useSession()
     const insets = useSafeAreaInsets()
     const form = useLoginForm()
     useDeepLinkLogin(form.mode, form.performTokenLogin)
+
+    useEffect(() => {
+        if (user || isAnonymous) {
+            router.replace("/(tabs)/kontroll")
+        }
+    }, [isAnonymous, router, user])
 
     return (
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
@@ -65,7 +71,7 @@ export const LoginScreen = ({
                             sendingOtp={form.sendingOtp}
                             onChangeEmail={form.setEmail}
                             onTogglePrivacy={form.togglePrivacy}
-                            onPrivacyPress={() => navigation.navigate("Privacy")}
+                            onPrivacyPress={() => router.push("/privacy")}
                             onSubmitEmail={form.submitEmail}
                             onDemoLogin={form.loginDemo}
                             onContinueAnonymous={form.continueAnonymous}

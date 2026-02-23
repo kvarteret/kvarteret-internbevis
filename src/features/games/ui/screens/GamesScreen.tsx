@@ -1,9 +1,8 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
+import { useNavigation } from "expo-router"
 import React, { useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { RootStackParamList } from "@/app/navigation/types"
 import { COMMON_DICE_TYPES, useDiceRoll } from "@/features/games/vm/useDiceRoll"
 import { useChessTimer } from "@/features/games/vm/useChessTimer"
 import { Button } from "@/shared/ui/Button"
@@ -73,10 +72,9 @@ const ClockCard = ({
     )
 }
 
-export const GamesScreen = ({
-    navigation,
-}: NativeStackScreenProps<RootStackParamList, "Games">): React.JSX.Element => {
+export const GamesScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
+    const navigation = useNavigation()
 
     const [mode, setMode] = useState<GameMode>("d6")
     const {
@@ -107,7 +105,7 @@ export const GamesScreen = ({
     ]
 
     return (
-        <SafeAreaView className="flex-1" edges={["left", "right", "bottom"]}>
+        <SafeAreaView className="flex-1 bg-background" edges={["top", "left", "right", "bottom"]}>
             <ScrollView
                 className="flex-1"
                 contentContainerClassName="flex-grow gap-4 p-4"
