@@ -72,10 +72,7 @@ const sortByRawTierGroupAndName = (a: DisplayRoleRow, b: DisplayRoleRow): number
     return a.navn.localeCompare(b.navn, undefined, { sensitivity: "base" })
 }
 
-const roleMatchesSelection = (
-    role: DisplayRoleRow,
-    selection: PersistedRoleSelection,
-): boolean =>
+const roleMatchesSelection = (role: DisplayRoleRow, selection: PersistedRoleSelection): boolean =>
     role.source === selection.source &&
     role.navn === selection.navn &&
     role.gruppe === selection.gruppe &&
@@ -95,7 +92,8 @@ export const isPersistedRoleSelection = (value: unknown): value is PersistedRole
     const isValidSource = source === "active" || source === "virtual_pingvin"
     const isValidName = typeof navn === "string"
     const isValidGroup = typeof gruppe === "string"
-    const isValidTier = rabattTrinn === null || (typeof rabattTrinn === "number" && Number.isInteger(rabattTrinn))
+    const isValidTier =
+        rabattTrinn === null || (typeof rabattTrinn === "number" && Number.isInteger(rabattTrinn))
 
     return isValidSource && isValidName && isValidGroup && isValidTier
 }

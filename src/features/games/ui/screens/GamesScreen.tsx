@@ -150,9 +150,11 @@ export const GamesScreen = ({
                                                     : "border-border bg-surface",
                                             )}
                                             onPress={() => {
-                                            setSelectedDiceType(diceType)
-                                            setDiceValue(previous => Math.min(previous, diceType))
-                                        }}
+                                                setSelectedDiceType(diceType)
+                                                setDiceValue(previous =>
+                                                    Math.min(previous, diceType),
+                                                )
+                                            }}
                                         >
                                             <Text
                                                 className={cn(

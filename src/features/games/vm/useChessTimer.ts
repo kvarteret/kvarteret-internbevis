@@ -98,34 +98,31 @@ export const useChessTimer = (initialMs: number, incrementMs: number): UseChessT
         }
     }, [pauseWithElapsed])
 
-    const handlePressPlayer = useCallback(
-        (player: ChessPlayer): void => {
-            setTimerState(previous => {
-                if (previous.winner) return previous
+    const handlePressPlayer = useCallback((player: ChessPlayer): void => {
+        setTimerState(previous => {
+            if (previous.winner) return previous
 
-                if (!previous.isRunning) {
-                    return selectActivePlayer(previous, player)
-                }
+            if (!previous.isRunning) {
+                return selectActivePlayer(previous, player)
+            }
 
-                if (player !== previous.activePlayer) return previous
+            if (player !== previous.activePlayer) return previous
 
-                const now = Date.now()
-                const lastTickAt = lastTickAtRef.current ?? now
-                const elapsed = Math.max(0, now - lastTickAt)
-                const withElapsed = elapsed > 0 ? tick(previous, elapsed) : previous
+            const now = Date.now()
+            const lastTickAt = lastTickAtRef.current ?? now
+            const elapsed = Math.max(0, now - lastTickAt)
+            const withElapsed = elapsed > 0 ? tick(previous, elapsed) : previous
 
-                if (withElapsed.winner || !withElapsed.isRunning) {
-                    lastTickAtRef.current = null
-                    return withElapsed
-                }
+            if (withElapsed.winner || !withElapsed.isRunning) {
+                lastTickAtRef.current = null
+                return withElapsed
+            }
 
-                const moved = completeMove(withElapsed)
-                lastTickAtRef.current = now
-                return moved
-            })
-        },
-        [],
-    )
+            const moved = completeMove(withElapsed)
+            lastTickAtRef.current = now
+            return moved
+        })
+    }, [])
 
     const toggleTimer = useCallback((): void => {
         if (timerState.winner) {

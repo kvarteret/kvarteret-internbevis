@@ -71,10 +71,7 @@ export const EventDetailsScreen = ({
         navigation.setOptions({ title, headerLargeTitle: false })
     }, [navigation, title])
 
-    const htmlSource = useMemo(
-        () => ({ html: details?.detailsHtml ?? "" }),
-        [details?.detailsHtml],
-    )
+    const htmlSource = useMemo(() => ({ html: details?.detailsHtml ?? "" }), [details?.detailsHtml])
 
     const htmlRenderersProps = useMemo(
         () => ({
@@ -132,10 +129,7 @@ export const EventDetailsScreen = ({
                 ) : null}
 
                 <Card className="p-4" effect="liquid" variant="grouped">
-                    <LabeledValueRow
-                        label={t("eventDetailsWhen")}
-                        value={details.whenValue}
-                    />
+                    <LabeledValueRow label={t("eventDetailsWhen")} value={details.whenValue} />
                     {event.organizer?.name ? (
                         <LabeledValueRow
                             label={t("eventDetailsOrganizer")}
@@ -187,9 +181,7 @@ export const EventDetailsScreen = ({
                                 variant={variant}
                                 onPress={() => void openLink(url)}
                             >
-                                <Text
-                                    className={`text-base leading-5 font-semibold ${textClass}`}
-                                >
+                                <Text className={`text-base leading-5 font-semibold ${textClass}`}>
                                     {label}
                                 </Text>
                             </Button>

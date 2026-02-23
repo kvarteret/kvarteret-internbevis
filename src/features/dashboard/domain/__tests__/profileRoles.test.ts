@@ -45,7 +45,9 @@ describe("buildDisplayRoles", () => {
     it("prepends a virtual Pingvin row when pingvinPoengSum is 14 or more", () => {
         const user = createUser({
             pingvinPoengSum: 14,
-            aktiveVerv: [{ navn: "Vakt", gruppe: "PR-Etaten", rabattTrinn: 1, signertKontrakt: true }],
+            aktiveVerv: [
+                { navn: "Vakt", gruppe: "PR-Etaten", rabattTrinn: 1, signertKontrakt: true },
+            ],
         })
 
         const roles = buildDisplayRoles(user)

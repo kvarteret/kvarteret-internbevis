@@ -38,11 +38,7 @@ export const ProfileRolesScreen = ({
     navigation,
 }: NativeStackScreenProps<RootStackParamList, "ProfileRoles">): React.JSX.Element => {
     const { t } = useTranslation()
-    const {
-        user,
-        selectedFrontpageRoleSelection,
-        setSelectedFrontpageRoleSelection,
-    } = useSession()
+    const { user, selectedFrontpageRoleSelection, setSelectedFrontpageRoleSelection } = useSession()
     const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
     const selectedRole = useMemo(
         () => resolveDisplayedRole(displayRoles, selectedFrontpageRoleSelection),
@@ -114,7 +110,10 @@ export const ProfileRolesScreen = ({
 
                     <View className="flex-row items-center gap-2">
                         <View
-                            className={cn("rounded-full px-3 py-1", getTierBadgeClass(item.rabattTrinn))}
+                            className={cn(
+                                "rounded-full px-3 py-1",
+                                getTierBadgeClass(item.rabattTrinn),
+                            )}
                         >
                             <Text
                                 className={cn(
@@ -144,7 +143,11 @@ export const ProfileRolesScreen = ({
         <SafeAreaView className="flex-1" edges={["left", "right", "bottom"]}>
             <FlatList
                 className="flex-1"
-                contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 12, paddingBottom: 24 }}
+                contentContainerStyle={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
+                    paddingBottom: 24,
+                }}
                 data={displayRoles}
                 keyExtractor={(item, index) => `${item.selectionKey}:${index}`}
                 renderItem={renderRole}
@@ -174,7 +177,9 @@ export const ProfileRolesScreen = ({
                             <Text className="text-2xl font-extrabold">{user.pingvinPoengSum}</Text>
                         </Card>
 
-                        <Text className="px-1 pt-1 text-lg font-bold">{t("profileActiveRoles")}</Text>
+                        <Text className="px-1 pt-1 text-lg font-bold">
+                            {t("profileActiveRoles")}
+                        </Text>
                     </View>
                 }
                 ListEmptyComponent={
