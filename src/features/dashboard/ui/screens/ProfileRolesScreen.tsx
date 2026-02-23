@@ -1,14 +1,14 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { MaterialIcons } from "@expo/vector-icons"
+import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import React, { useEffect, useMemo } from "react"
-import { FlatList, ListRenderItem, Pressable, View } from "react-native"
 import { useTranslation } from "react-i18next"
+import { FlatList, ListRenderItem, Pressable, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
 import { useSession } from "@/app/providers/SessionProvider"
 import {
-    DisplayRoleRow,
     buildDisplayRoles,
+    DisplayRoleRow,
     resolveDisplayedRole,
     serializeRoleSelection,
 } from "@/features/dashboard/domain/profileRoles"

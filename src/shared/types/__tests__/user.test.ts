@@ -1,4 +1,4 @@
-import { User, getHighestTier, getHighestTierGroup, getHighestTierName } from "../user"
+import { getHighestTier, getHighestTierGroup, getHighestTierName, User } from "../user"
 
 const createUser = (overrides: Partial<User> = {}): User => ({
     id: 1,

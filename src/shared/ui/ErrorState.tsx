@@ -1,8 +1,8 @@
 import React from "react"
 import { useTranslation } from "react-i18next"
+import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
-import { Button } from "@/shared/ui/Button"
 
 interface ErrorStateProps {
     message: string
