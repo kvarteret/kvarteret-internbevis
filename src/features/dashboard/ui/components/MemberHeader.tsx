@@ -1,6 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React, { useEffect, useMemo, useRef } from "react"
 import { Animated, Easing, Image, useWindowDimensions, View } from "react-native"
+import { themeColors } from "@/shared/theme/colors"
 import { Text } from "@/shared/ui/Text"
 
 interface MemberHeaderProps {
@@ -133,7 +134,7 @@ export const MemberHeader = ({
                             {!localImageSource && !hasRemoteImage ? (
                                 <View className="h-full w-full items-center justify-center">
                                     <MaterialIcons
-                                        color="#4B5563"
+                                        color={themeColors.textSecondary}
                                         name="person"
                                         size={avatarSize * 0.54}
                                     />

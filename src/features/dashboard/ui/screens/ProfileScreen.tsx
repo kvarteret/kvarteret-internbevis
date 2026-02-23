@@ -7,17 +7,18 @@ import {
     Image,
     Pressable,
     ScrollView,
-    TouchableOpacity,
-    useWindowDimensions,
     View,
 } from "react-native"
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
+import { SafeAreaView, useSafeAreaInsets, useSafeAreaFrame } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import { getIdVerificationStatus } from "@/features/dashboard/domain/idVerification"
-import { buildDisplayRoles, DisplayRoleRow, resolveDisplayedRole } from "@/features/dashboard/domain/profileRoles"
+import { buildDisplayRoles, resolveDisplayedRole } from "@/features/dashboard/domain/profileRoles"
 import { MenuSheet } from "@/features/dashboard/ui/components/MenuSheet"
+import { TopShellHeader } from "@/features/dashboard/ui/components/TopShellHeader"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
+import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
+import { themeColors } from "@/shared/theme/colors"
 import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
 import { Text } from "@/shared/ui/Text"
 
@@ -25,63 +26,35 @@ const localImageMap: Record<string, number> = {
     "assets/images/nils.jpg": require("@assets/images/nils.jpg"),
 }
 
-interface ScreenHeaderProps {
-    headerLogoWidth: number
-    homeTitleLabel: string
-    openMenuLabel: string
-    onOpenMenu: () => void
-}
-
-const ScreenHeader = ({
-    headerLogoWidth,
-    homeTitleLabel,
-    openMenuLabel,
-    onOpenMenu,
-}: ScreenHeaderProps): React.JSX.Element => {
-    return (
-        <View className="h-18 flex-row items-center px-4 pt-1.5">
-            <View className="w-10" />
-
-            <View className="flex-1 items-center px-2">
-                <Image
-                    accessibilityLabel={homeTitleLabel}
-                    resizeMode="contain"
-                    source={require("@assets/images/studentersamfunnet-logo.png")}
-                    style={{ width: headerLogoWidth, height: 34 }}
-                />
-            </View>
-
-            <TouchableOpacity
-                accessibilityLabel={openMenuLabel}
-                className="items-end"
-                hitSlop={8}
-                onPress={onOpenMenu}
-            >
-                <Card className="h-10 w-10 items-center justify-center" effect="liquid" variant="grouped">
-                    <MaterialIcons color="#000000" name="menu" size={22} />
-                </Card>
-            </TouchableOpacity>
-        </View>
-    )
-}
-
-interface MemberAvatarProps {
+interface IdentityHeroProps {
+    fullName: string
     avatarSize: number
+    roleName: string
+    roleGroup: string
+    openProfileDetailsLabel: string
+    openProfileDetailsHint: string
+    onRolePress: () => void
     localImageSource?: number
     remoteImageUrl?: string
 }
 
-const MemberAvatar = ({
+const IdentityHero = ({
+    fullName,
     avatarSize,
+    roleName,
+    roleGroup,
+    openProfileDetailsLabel,
+    openProfileDetailsHint,
+    onRolePress,
     localImageSource,
     remoteImageUrl,
-}: MemberAvatarProps): React.JSX.Element => {
+}: IdentityHeroProps): React.JSX.Element => {
     const hasRemoteImage = Boolean(remoteImageUrl && !localImageSource)
 
     return (
-        <View className="items-center">
+        <Card className="w-full items-center gap-4 px-4 pb-5 pt-4" effect="liquid" variant="grouped">
             <View
-                className="overflow-hidden rounded-full bg-surface-muted"
+                className="overflow-hidden rounded-full border border-editorial-border bg-surface-muted"
                 style={{ width: avatarSize, height: avatarSize }}
             >
                 {localImageSource ? (
@@ -94,107 +67,81 @@ const MemberAvatar = ({
 
                 {!localImageSource && !hasRemoteImage ? (
                     <View className="h-full w-full items-center justify-center">
-                        <MaterialIcons color="#4B5563" name="person" size={140} />
+                        <MaterialIcons color={themeColors.textSecondary} name="person" size={Math.min(avatarSize * 0.38, 128)} />
                     </View>
                 ) : null}
             </View>
-        </View>
-    )
-}
 
-interface MemberNameProps {
-    fullName: string
-}
-
-const MemberName = ({ fullName }: MemberNameProps): React.JSX.Element => {
-    return (
-        <View className="w-full items-center px-2">
-            <Text className="text-center text-[44px] leading-[48px] font-black text-text-primary">
-                {fullName}
-            </Text>
-        </View>
-    )
-}
-
-interface WordOfDayCardProps {
-    label: string
-    word: string
-}
-
-const WordOfDayCard = ({ label, word }: WordOfDayCardProps): React.JSX.Element => {
-    return (
-        <Card className="w-full gap-2 px-4 py-4" effect="liquid" variant="grouped">
-            <View className="gap-1">
-                <Text className="text-sm uppercase tracking-wide text-text-secondary font-bold">
-                    {label}
+            <View className="w-full items-center gap-4 px-2">
+                <Text className="text-center text-4xl leading-tight font-black text-editorial-ink">
+                    {fullName}
                 </Text>
-                <Text className="text-2xl italic font-semibold text-text-primary">{word}</Text>
+
+                <Pressable
+                    accessibilityHint={openProfileDetailsHint}
+                    accessibilityLabel={openProfileDetailsLabel}
+                    accessibilityRole="button"
+                    className="w-full"
+                    onPress={onRolePress}
+                >
+                    <View className="w-full flex-row items-center justify-between rounded-2xl bg-text-primary/5 px-4 py-3.5">
+                        <View className="min-w-0 flex-1 gap-0.5">
+                            <Text className="text-xl font-extrabold text-editorial-ink" numberOfLines={1}>
+                                {roleName}
+                            </Text>
+                            <Text className="text-base text-text-secondary" numberOfLines={1}>
+                                {roleGroup}
+                            </Text>
+                        </View>
+                        <View className="h-9 w-9 items-center justify-center rounded-full bg-text-primary/10">
+                            <MaterialIcons color={themeColors.textSecondary} name="chevron-right" size={24} />
+                        </View>
+                    </View>
+                </Pressable>
             </View>
         </Card>
     )
 }
 
-interface RoleCardProps {
-    roleLabel: string
-    roleName: string
-    roleGroup: string
-    openProfileDetailsLabel: string
-    openProfileDetailsHint: string
-    onPress: () => void
-}
-
-const RoleCard = ({
-    roleLabel,
-    roleName,
-    roleGroup,
-    openProfileDetailsLabel,
-    openProfileDetailsHint,
-    onPress,
-}: RoleCardProps): React.JSX.Element => {
-    return (
-        <Pressable
-            accessibilityHint={openProfileDetailsHint}
-            accessibilityLabel={openProfileDetailsLabel}
-            accessibilityRole="button"
-            className="w-full rounded-2xl border-2 border-[#0F766E] bg-[#0F766E14] px-4 py-3"
-            onPress={onPress}
-        >
-            <View className="flex-row items-center justify-between gap-3">
-                <View className="min-w-0 flex-1">
-                    <Text className="text-xs uppercase tracking-wide text-text-secondary font-bold">
-                        {roleLabel}
-                    </Text>
-                    <Text className="text-xl font-extrabold" numberOfLines={1}>
-                        {roleName}
-                    </Text>
-                    <Text className="text-base text-text-secondary" numberOfLines={1}>
-                        {roleGroup}
-                    </Text>
-                </View>
-                <MaterialIcons color="#0F766E" name="chevron-right" size={28} />
-            </View>
-        </Pressable>
-    )
-}
-
-interface StatusCardProps {
+interface VerificationStatusCardProps {
     tierLabel: string
     isValid: boolean
 }
 
-const StatusCard = ({ tierLabel, isValid }: StatusCardProps): React.JSX.Element => {
+const VerificationStatusCard = ({
+    tierLabel,
+    isValid,
+}: VerificationStatusCardProps): React.JSX.Element => {
     return (
         <View
             className="w-full rounded-3xl border px-4 py-5"
             style={{
-                backgroundColor: isValid ? "#0B4A0B" : "#8B0000",
-                borderColor: isValid ? "#14532D" : "#7F1D1D",
+                backgroundColor: isValid ? themeColors.editorialValid : themeColors.editorialInvalid,
+                borderColor: isValid ? themeColors.editorialValid : themeColors.editorialInvalid,
             }}
         >
-            <View className="items-center gap-2">
-                <Text className="text-3xl text-surface font-black">{tierLabel}</Text>
+            <View className="items-center gap-1">
+                <Text className="text-4xl leading-tight text-surface font-black">{tierLabel}</Text>
             </View>
         </View>
+    )
+}
+
+interface SecondaryDetailCardProps {
+    label: string
+    value: string
+}
+
+const SecondaryDetailCard = ({ label, value }: SecondaryDetailCardProps): React.JSX.Element => {
+    return (
+        <Card className="w-full gap-2 px-4 py-4" effect="liquid" variant="grouped">
+            <Text className="text-xs uppercase tracking-wide text-text-secondary font-semibold">
+                {label}
+            </Text>
+            <Text className="text-3xl leading-9 font-semibold text-editorial-ink">
+                {value}
+            </Text>
+        </Card>
     )
 }
 
@@ -219,61 +166,6 @@ const LoggedOutCard = ({
     )
 }
 
-interface SignedInContentProps {
-    userFullName: string
-    avatarSize: number
-    localImageSource?: number
-    remoteImageUrl?: string
-    wordOfDayLabel: string
-    wordOfDayValue: string
-    roleLabel: string
-    roleName: string
-    roleGroup: string
-    openProfileDetailsLabel: string
-    openProfileDetailsHint: string
-    onOpenRoleModal: () => void
-    tierLabel: string
-    isValid: boolean
-}
-
-const SignedInContent = ({
-    userFullName,
-    avatarSize,
-    localImageSource,
-    remoteImageUrl,
-    wordOfDayLabel,
-    wordOfDayValue,
-    roleLabel,
-    roleName,
-    roleGroup,
-    openProfileDetailsLabel,
-    openProfileDetailsHint,
-    onOpenRoleModal,
-    tierLabel,
-    isValid,
-}: SignedInContentProps): React.JSX.Element => {
-    return (
-        <>
-            <MemberAvatar
-                avatarSize={avatarSize}
-                localImageSource={localImageSource}
-                remoteImageUrl={remoteImageUrl}
-            />
-            <MemberName fullName={userFullName} />
-            <WordOfDayCard label={wordOfDayLabel} word={wordOfDayValue} />
-            <RoleCard
-                roleLabel={roleLabel}
-                roleName={roleName}
-                roleGroup={roleGroup}
-                openProfileDetailsLabel={openProfileDetailsLabel}
-                openProfileDetailsHint={openProfileDetailsHint}
-                onPress={onOpenRoleModal}
-            />
-            <StatusCard tierLabel={tierLabel} isValid={isValid} />
-        </>
-    )
-}
-
 export const ProfileScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
@@ -285,7 +177,7 @@ export const ProfileScreen = (): React.JSX.Element => {
         logout,
         exitAnonymousMode,
     } = useSession()
-    const { width } = useWindowDimensions()
+    const frame = useSafeAreaFrame()
     const insets = useSafeAreaInsets()
 
     const [menuVisible, setMenuVisible] = useState(false)
@@ -297,8 +189,7 @@ export const ProfileScreen = (): React.JSX.Element => {
         }
     }, [isAnonymous, router, user])
 
-    const headerLogoWidth = Math.min(280, Math.max(170, width - 120))
-    const avatarSize = Math.min(360, Math.max(200, width * 0.5))
+    const avatarSize = Math.min(340, Math.max(180, frame.width * 0.46))
 
     const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
     const displayedRole = useMemo(
@@ -348,16 +239,14 @@ export const ProfileScreen = (): React.JSX.Element => {
     if (isLoading) {
         return (
             <SafeAreaView className="flex-1 items-center justify-center">
-                <ActivityIndicator color="#000000" size="large" />
+                <ActivityIndicator color={themeColors.textPrimary} size="large" />
             </SafeAreaView>
         )
     }
 
     return (
         <SafeAreaView className="flex-1 bg-background">
-            <ScreenHeader
-                headerLogoWidth={headerLogoWidth}
-                homeTitleLabel={t("homeTitle")}
+            <TopShellHeader
                 openMenuLabel={t("openMenu")}
                 onOpenMenu={() => setMenuVisible(true)}
             />
@@ -365,30 +254,33 @@ export const ProfileScreen = (): React.JSX.Element => {
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
-                    alignItems: "center",
-                    gap: 16,
-                    paddingTop: 8,
+                    gap: 14,
+                    paddingTop: 6,
                     paddingHorizontal: 16,
                     paddingBottom: Math.max(insets.bottom + 120, 136),
                 }}
             >
                 {user ? (
-                    <SignedInContent
-                        userFullName={userFullName}
-                        avatarSize={avatarSize}
-                        localImageSource={localImageSource}
-                        remoteImageUrl={remoteImageUrl}
-                        wordOfDayLabel={t("wordOfTheDay")}
-                        wordOfDayValue={wordOfDayValue}
-                        roleLabel={t("kontrollRole")}
-                        roleName={roleName}
-                        roleGroup={roleGroup}
-                        openProfileDetailsLabel={t("openProfileDetails")}
-                        openProfileDetailsHint={t("openProfileDetailsHint")}
-                        onOpenRoleModal={() => router.push("/profile-roles")}
-                        tierLabel={tierLabel}
-                        isValid={isValid}
-                    />
+                    <>
+                        <IdentityHero
+                            fullName={userFullName}
+                            avatarSize={avatarSize}
+                            roleName={roleName}
+                            roleGroup={roleGroup}
+                            openProfileDetailsLabel={t("openProfileDetails")}
+                            openProfileDetailsHint={t("openProfileDetailsHint")}
+                            onRolePress={() => router.push("/profile-roles")}
+                            localImageSource={localImageSource}
+                            remoteImageUrl={remoteImageUrl}
+                        />
+
+                        <VerificationStatusCard
+                            tierLabel={tierLabel}
+                            isValid={isValid}
+                        />
+
+                        <SecondaryDetailCard label={t("wordOfTheDay")} value={wordOfDayValue} />
+                    </>
                 ) : (
                     <LoggedOutCard
                         promptText={t("kontrollLoginPrompt")}
@@ -396,6 +288,8 @@ export const ProfileScreen = (): React.JSX.Element => {
                         onLoginPress={() => void handleLoginPress()}
                     />
                 )}
+
+                <EtjenestenFooter />
             </ScrollView>
 
             <MenuSheet

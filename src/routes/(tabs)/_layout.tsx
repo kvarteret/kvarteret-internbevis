@@ -1,15 +1,17 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons"
 import { Icon, Label, NativeTabs, VectorIcon } from "expo-router/unstable-native-tabs"
 import React from "react"
+import { themeColors } from "@/shared/theme/colors"
 
 export default function TabsLayout(): React.JSX.Element {
     return (
         <NativeTabs
-            backgroundColor="#F3E2CC"
-            iconColor={{ default: "#374151", selected: "#0F766E" }}
+            backgroundColor={themeColors.background}
+            iconColor={{ default: themeColors.textSecondary, selected: themeColors.tabActive }}
             minimizeBehavior="never"
+            shadowColor={themeColors.editorialBorder}
             labelStyle={{
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: "600",
             }}
         >

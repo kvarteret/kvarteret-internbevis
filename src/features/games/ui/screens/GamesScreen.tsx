@@ -7,6 +7,7 @@ import { COMMON_DICE_TYPES, useDiceRoll } from "@/features/games/vm/useDiceRoll"
 import { useChessTimer } from "@/features/games/vm/useChessTimer"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
+import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 
@@ -47,7 +48,7 @@ const ClockCard = ({
     const cardClass = (() => {
         if (!isActive || hasWinner) return "rounded-xl border border-border bg-surface-muted p-3.5"
         if (isRunning) return "rounded-xl border border-state-danger bg-state-danger p-3.5"
-        return "rounded-xl border border-state-danger bg-[#AA000073] p-3.5"
+        return "rounded-xl border border-state-danger bg-state-danger/45 p-3.5"
     })()
 
     return (
@@ -111,8 +112,8 @@ export const GamesScreen = (): React.JSX.Element => {
                 contentContainerClassName="flex-grow gap-4 p-4"
                 contentInsetAdjustmentBehavior="automatic"
             >
-                <Card className="p-1.5" effect="liquid" variant="grouped">
-                    <View className="flex-row rounded-xl bg-surface-muted p-1">
+                <View className="rounded-xl border border-editorial-border bg-text-primary/5 p-1">
+                    <View className="flex-row rounded-lg">
                         {tabs.map(tab => {
                             const isSelected = tab.mode === mode
                             return (
@@ -120,7 +121,7 @@ export const GamesScreen = (): React.JSX.Element => {
                                     key={tab.mode}
                                     className={cn(
                                         "flex-1 rounded-lg px-3 py-2",
-                                        isSelected ? "bg-surface" : "bg-transparent",
+                                        isSelected ? "bg-editorial-surface" : "bg-transparent",
                                     )}
                                     onPress={() => setMode(tab.mode)}
                                     accessibilityRole="button"
@@ -138,7 +139,7 @@ export const GamesScreen = (): React.JSX.Element => {
                             )
                         })}
                     </View>
-                </Card>
+                </View>
 
                 {mode === "d6" ? (
                     <Card className="gap-4 p-4" effect="liquid" variant="grouped">
@@ -228,7 +229,7 @@ export const GamesScreen = (): React.JSX.Element => {
                             />
 
                             {winnerLabel ? (
-                                <Text className="text-base text-[#0F766E] font-bold">
+                                <Text className="text-base text-state-success font-bold">
                                     {winnerLabel}
                                 </Text>
                             ) : null}
@@ -249,6 +250,8 @@ export const GamesScreen = (): React.JSX.Element => {
                         </View>
                     </Card>
                 )}
+
+                <EtjenestenFooter />
             </ScrollView>
         </SafeAreaView>
     )

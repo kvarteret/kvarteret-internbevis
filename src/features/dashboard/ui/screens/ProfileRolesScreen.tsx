@@ -13,6 +13,8 @@ import {
 } from "@/features/dashboard/domain/profileRoles";
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader";
 import { Card } from "@/shared/ui/Card";
+import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter";
+import { themeColors } from "@/shared/theme/colors";
 import { Text } from "@/shared/ui/Text";
 import { cn } from "@/shared/utils/cn";
 
@@ -23,13 +25,13 @@ const getTierBadgeClass = (tier: number | null): string => {
 
   switch (tier) {
     case 1:
-      return "bg-[#16A34A]";
+      return "bg-state-success";
     case 2:
-      return "bg-[#C2410C]";
+      return "bg-state-warning";
     case 3:
-      return "bg-[#0F766E]";
+      return "bg-editorial-valid";
     default:
-      return "bg-[#1D4ED8]";
+      return "bg-state-info";
   }
 };
 
@@ -74,6 +76,9 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
         <Text className="text-base text-text-secondary">
           {t("notRegistered")}
         </Text>
+        <View className="absolute inset-x-0 bottom-0">
+          <EtjenestenFooter />
+        </View>
       </SafeAreaView>
     );
   }
@@ -101,7 +106,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
         <Card
           className={cn(
             "flex-row items-center justify-between gap-3 px-4 py-3",
-            isSelected ? "border-2 border-link bg-[#FFFFFF80]" : null,
+            isSelected ? "border-2 border-link bg-surface/80" : null,
           )}
           effect="liquid"
           variant="grouped"
@@ -135,7 +140,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
             {isSelected ? (
               <MaterialIcons
                 accessibilityLabel={t("profileRoleSelected")}
-                color="#0F766E"
+                color={themeColors.editorialValid}
                 name="check-circle"
                 size={20}
               />
@@ -207,6 +212,11 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
               {t("profileNoActiveRoles")}
             </Text>
           </Card>
+        }
+        ListFooterComponent={
+          <View className="pt-4">
+            <EtjenestenFooter />
+          </View>
         }
       />
     </SafeAreaView>

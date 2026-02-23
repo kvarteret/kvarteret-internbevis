@@ -16,6 +16,7 @@ import {
 } from "@/features/dashboard/domain/eventFormatting"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
+import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { LabeledValueRow } from "@/shared/ui/LabeledValueRow"
 import { Text } from "@/shared/ui/Text"
 import { triggerSoftImpactHaptic } from "@/shared/utils/haptics"
@@ -94,6 +95,9 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                 edges={["top", "left", "right", "bottom"]}
             >
                 <Text className="text-base">{t("eventDetailsLoading")}</Text>
+                <View className="mt-auto">
+                    <EtjenestenFooter />
+                </View>
             </SafeAreaView>
         )
     }
@@ -116,6 +120,9 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                         </Text>
                     </Button>
                 </Card>
+                <View className="mt-auto">
+                    <EtjenestenFooter />
+                </View>
             </SafeAreaView>
         )
     }
@@ -198,6 +205,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                 </View>
 
                 <View className="h-3" />
+                <EtjenestenFooter />
             </ScrollView>
         </SafeAreaView>
     )

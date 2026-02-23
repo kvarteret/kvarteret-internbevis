@@ -53,19 +53,19 @@ export const MemberStatusCard = ({
     } else {
         switch (tier) {
             case 1:
-                tierClass = "bg-[#16A34A]"
+                tierClass = "bg-state-success"
                 break
             case 2:
-                tierClass = "bg-[#C2410C]"
+                tierClass = "bg-state-warning"
                 break
             case 3:
-                tierClass = "bg-[#0F766E]"
+                tierClass = "bg-editorial-valid"
                 break
             case 4:
-                tierClass = "bg-[#1D4ED8]"
+                tierClass = "bg-state-info"
                 break
             default:
-                tierClass = "bg-[#334155]"
+                tierClass = "bg-text-secondary"
         }
     }
 
@@ -73,7 +73,7 @@ export const MemberStatusCard = ({
         <View className="w-full gap-2.5">
             <Pressable
                 className={cn(
-                    "w-full flex-row items-center justify-between rounded-2xl border border-[#FFFFFF33] px-5 py-3.5",
+                    "w-full flex-row items-center justify-between rounded-2xl border border-surface/20 px-5 py-3.5",
                     tierClass,
                 )}
                 onPress={handleTap}

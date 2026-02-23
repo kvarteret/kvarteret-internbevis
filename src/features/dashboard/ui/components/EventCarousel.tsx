@@ -14,6 +14,7 @@ interface EventCarouselProps {
     isError: boolean
     onRetry: () => Promise<unknown>
     onEventPress: (eventId: string) => void
+    showTitle?: boolean
 }
 
 const CAROUSEL_CARD_WIDTH_RATIO = 0.8
@@ -27,6 +28,7 @@ export const EventCarousel = ({
     isError,
     onRetry,
     onEventPress,
+    showTitle = true,
 }: EventCarouselProps): React.JSX.Element => {
     const { t } = useTranslation()
     const { width } = useWindowDimensions()
@@ -87,7 +89,9 @@ export const EventCarousel = ({
 
     return (
         <View className="w-full gap-2.5">
-            <Text className="text-lg text-text-primary font-bold">{t("homeEventsTitle")}</Text>
+            {showTitle ? (
+                <Text className="text-lg text-text-primary font-bold">{t("homeEventsTitle")}</Text>
+            ) : null}
             {content}
         </View>
     )

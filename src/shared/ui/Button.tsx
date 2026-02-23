@@ -33,7 +33,7 @@ const resolveButtonClassName = (variant: ButtonVariant, disabled?: boolean | nul
     cn(
         "h-12 w-full flex-row items-center justify-center rounded-xl px-4",
         variant === "default" && "bg-text-primary",
-        variant === "secondary" && "bg-surface-muted ios:bg-[#FFFFFFA6]",
+        variant === "secondary" && "bg-surface-muted ios:bg-surface/70",
         variant === "destructive" && "bg-state-danger",
         Boolean(disabled) && "bg-surface-muted opacity-70",
     )

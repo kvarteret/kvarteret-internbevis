@@ -3,6 +3,7 @@ import React from "react"
 import { useTranslation } from "react-i18next"
 import { Modal, Pressable, View } from "react-native"
 import { Card } from "@/shared/ui/Card"
+import { themeColors } from "@/shared/theme/colors"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 
@@ -52,7 +53,7 @@ export const MenuSheet = ({
 
     return (
         <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-            <View className="flex-1 justify-end bg-[#00000033]">
+            <View className="flex-1 justify-end bg-black/20">
                 <Pressable className="absolute inset-0" onPress={onClose} />
 
                 <Card
@@ -61,21 +62,21 @@ export const MenuSheet = ({
                     variant="grouped"
                 >
                     <View className="items-center px-4 pb-2 pt-3">
-                        <View className="h-1.5 w-10 rounded-full bg-[#00000033]" />
+                        <View className="h-1.5 w-10 rounded-full bg-black/20" />
                     </View>
                     {actions.map((action, index) => (
                         <Pressable
                             key={action.key}
                             className={cn(
                                 "flex-row items-center gap-3 px-5 py-4",
-                                index < actions.length - 1 && "border-b border-[#0000001A]",
+                                index < actions.length - 1 && "border-b border-editorial-border",
                             )}
                             onPress={() => handlePress(action)}
                         >
                             <MaterialIcons
                                 name={action.icon}
                                 size={20}
-                                color={action.destructive ? "#AA0000" : "#000000"}
+                                color={action.destructive ? themeColors.stateDanger : themeColors.textPrimary}
                             />
                             <Text
                                 className={

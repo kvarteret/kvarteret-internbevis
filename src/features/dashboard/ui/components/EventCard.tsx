@@ -34,7 +34,7 @@ export const EventCard = ({
 
     return (
         <Card
-            className="overflow-hidden"
+            className="overflow-hidden border border-editorial-border bg-editorial-surface"
             effect="liquid"
             style={{ width: cardWidth }}
             variant="grouped"
@@ -50,25 +50,26 @@ export const EventCard = ({
                 }}
                 style={({ pressed }) => [
                     {
-                        transform: [{ scale: pressed ? 0.992 : 1 }],
+                        opacity: pressed ? 0.92 : 1,
+                        transform: [{ scale: pressed ? 0.994 : 1 }],
                     },
                 ]}
             >
                 {event.image?.url ? (
-                    <Image className="h-40 w-full" source={{ uri: event.image.url }} />
+                    <Image className="h-44 w-full" source={{ uri: event.image.url }} />
                 ) : (
-                    <View className="h-40 w-full bg-[#FFFFFF80]" />
+                    <View className="h-44 w-full bg-surface-muted" />
                 )}
 
-                <View className="gap-1 p-3.5">
-                    <Text className="text-base text-text-primary font-semibold" numberOfLines={2}>
-                        {translation.value.title}
-                    </Text>
-                    <Text className="mt-1 text-xs text-text-secondary" numberOfLines={1}>
+                <View className="gap-1.5 p-4">
+                    <Text className="text-xs uppercase tracking-wide text-text-secondary font-semibold" numberOfLines={1}>
                         {formattedDate}
                     </Text>
+                    <Text className="text-lg leading-6 text-editorial-ink font-extrabold" numberOfLines={2}>
+                        {translation.value.title}
+                    </Text>
                     {descriptionPreview ? (
-                        <Text className="mt-1.5 text-sm text-text-secondary" numberOfLines={3}>
+                        <Text className="text-sm leading-5 text-editorial-ink-soft" numberOfLines={3}>
                             {descriptionPreview}
                         </Text>
                     ) : null}

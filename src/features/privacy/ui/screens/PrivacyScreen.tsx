@@ -7,6 +7,8 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { PRIVACY_POLICY_MARKDOWN } from "@/features/privacy/domain/privacyPolicy"
 import { Card } from "@/shared/ui/Card"
+import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
+import { themeColors } from "@/shared/theme/colors"
 import { Text } from "@/shared/ui/Text"
 
 export const PrivacyScreen = (): React.JSX.Element => {
@@ -37,18 +39,18 @@ export const PrivacyScreen = (): React.JSX.Element => {
                     <Markdown
                         style={{
                             body: {
-                                color: "#111827",
+                                color: themeColors.editorialInk,
                                 fontSize: 15,
                                 lineHeight: 22,
                             },
                             heading1: {
-                                color: "#0F172A",
+                                color: themeColors.editorialInk,
                                 fontSize: 26,
                                 fontWeight: "700",
                                 marginBottom: 10,
                             },
                             heading2: {
-                                color: "#111827",
+                                color: themeColors.editorialInk,
                                 fontSize: 20,
                                 fontWeight: "700",
                                 marginBottom: 8,
@@ -64,7 +66,7 @@ export const PrivacyScreen = (): React.JSX.Element => {
                                 marginBottom: 6,
                             },
                             link: {
-                                color: "#2563EB",
+                                color: themeColors.link,
                                 textDecorationLine: "underline",
                             },
                         }}
@@ -72,6 +74,8 @@ export const PrivacyScreen = (): React.JSX.Element => {
                         {markdown}
                     </Markdown>
                 </Card>
+
+                <EtjenestenFooter />
             </ScrollView>
         </SafeAreaView>
     )

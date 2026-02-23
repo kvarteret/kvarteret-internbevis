@@ -9,6 +9,7 @@ import { useLanguage } from "@/app/providers/LanguageProvider"
 import { useSession } from "@/app/providers/SessionProvider"
 import { extractAccessTokenFromUrl } from "@/core/linking/deepLinkParser"
 import { setPendingDeepLinkToken } from "@/core/linking/pendingToken"
+import { themeColors } from "@/shared/theme/colors"
 
 const IOS_SCROLL_EDGE_VERSION = 26
 
@@ -67,15 +68,15 @@ const RootNavigator = (): React.JSX.Element => {
     if (sessionHydrating || languageHydrating) {
         return (
             <View className="flex-1 items-center justify-center bg-background">
-                <ActivityIndicator color="#000000" size="large" />
+                <ActivityIndicator color={themeColors.textPrimary} size="large" />
             </View>
         )
     }
 
     const rootScreenOptions: NativeStackNavigationOptions = {
-        contentStyle: { backgroundColor: "#F3E2CC" },
+        contentStyle: { backgroundColor: themeColors.background },
         headerBackTitle: "",
-        headerTintColor: "#000000",
+        headerTintColor: themeColors.textPrimary,
         ...(Platform.OS === "ios"
             ? {
                   headerTransparent: true,
@@ -92,7 +93,7 @@ const RootNavigator = (): React.JSX.Element => {
                         }),
               }
             : {
-                  headerStyle: { backgroundColor: "#F3E2CC" },
+                  headerStyle: { backgroundColor: themeColors.background },
               }),
     }
 
@@ -115,7 +116,7 @@ const RootNavigator = (): React.JSX.Element => {
                 options={{
                     headerShadowVisible: false,
                     headerTitleStyle: {
-                        color: "#000000",
+                        color: themeColors.textPrimary,
                     },
                 }}
             />

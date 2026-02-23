@@ -3,6 +3,7 @@ import React from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from "react-native"
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
+import { themeColors } from "@/shared/theme/colors"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
@@ -44,7 +45,7 @@ export const LoginForm = ({
             keyboardShouldPersistTaps="handled"
         >
             <Card
-                className="w-[92%] max-w-xl p-6"
+                className="w-11/12 max-w-xl p-6"
                 effect="liquid"
                 variant="elevated"
             >
@@ -65,7 +66,7 @@ export const LoginForm = ({
 
                     {sendingOtp ? (
                         <View className="my-2">
-                            <ActivityIndicator color="#111827" size="small" />
+                            <ActivityIndicator color={themeColors.editorialInk} size="small" />
                         </View>
                     ) : (
                         <View className="gap-3">
@@ -128,7 +129,7 @@ export const LoginForm = ({
                                 <Text className="flex-1 text-sm leading-5 text-link underline font-medium">
                                     {t("privacyPolicyConsent")}
                                 </Text>
-                                <MaterialIcons color="#2563EB" name="open-in-new" size={16} />
+                                <MaterialIcons color={themeColors.link} name="open-in-new" size={16} />
                             </Pressable>
                         </View>
                     </Card>

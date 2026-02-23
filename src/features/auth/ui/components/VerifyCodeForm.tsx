@@ -38,7 +38,7 @@ export const VerifyCodeForm = ({
             keyboardShouldPersistTaps="handled"
         >
             <Card
-                className="w-[92%] max-w-xl px-5 py-7"
+                className="w-11/12 max-w-xl px-5 py-7"
                 effect="liquid"
                 variant="elevated"
             >
@@ -53,7 +53,7 @@ export const VerifyCodeForm = ({
                 </Text>
 
                 {isExpoGo ? (
-                    <Text className="mt-2.5 text-center text-[13px] text-text-secondary">
+                    <Text className="mt-2.5 text-center text-sm text-text-secondary">
                         {t("expoGoHint")}
                     </Text>
                 ) : null}
@@ -68,7 +68,7 @@ export const VerifyCodeForm = ({
                     />
 
                     {globalErrorText ? (
-                        <Text className="text-[13px] text-state-danger">{globalErrorText}</Text>
+                        <Text className="text-sm text-state-danger">{globalErrorText}</Text>
                     ) : null}
 
                     <View className="gap-3">

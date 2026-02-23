@@ -19,10 +19,17 @@ module.exports = {
                 "state-success": "#16A34A",
                 "state-info": "#2563EB",
                 link: "#2563EB",
+                "editorial-ink": "#111827",
+                "editorial-ink-soft": "#5B6270",
+                "editorial-surface": "#F9F5EC",
+                "editorial-border": "#0000001A",
+                "editorial-valid": "#2F5E3D",
+                "editorial-invalid": "#7F2E2E",
             },
             borderRadius: {
                 card: "14px",
                 sheet: "18px",
+                panel: "22px",
             },
             boxShadow: {
                 card: "0 6px 18px rgba(0,0,0,0.08)",
