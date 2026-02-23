@@ -1,13 +1,10 @@
 import * as Clipboard from "expo-clipboard"
 import Constants from "expo-constants"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Alert, Linking } from "react-native"
+import { Alert } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
-import {
-    extractAccessTokenFromManualInput,
-    extractAccessTokenFromUrl,
-} from "@/core/linking/deepLinkParser"
+import { extractAccessTokenFromManualInput } from "@/core/linking/deepLinkParser"
 import { consumePendingDeepLinkToken } from "@/core/linking/pendingToken"
 import {
     extractFriendlyErrorMessage,
@@ -16,45 +13,42 @@ import {
 import { isEmailValid, normalizeEmail } from "@/features/auth/domain/authValidation"
 import { createDemoUser } from "@/shared/types/user"
 
-type LoginMode = "email" | "verify"
+export type LoginMode = "email" | "verify"
 
-interface UseLoginScreenVMResult {
-    state: {
-        mode: LoginMode
-        email: string
-        otpCode: string
-        emailErrorText: string | null
-        otpFieldErrorText: string | null
-        globalErrorText: string | null
-        sendingOtp: boolean
-        privacyPolicyChecked: boolean
-        languageSelectorVisible: boolean
-        isExpoGo: boolean
-    }
-    derived: {
-        canSubmitEmail: boolean
-        canSubmitOtp: boolean
-        isEmailValid: boolean
-    }
-    actions: {
-        setEmail: (value: string) => void
-        setOtpCode: (value: string) => void
-        togglePrivacy: () => void
-        openLanguageSelector: () => void
-        closeLanguageSelector: () => void
-        backToEmail: () => void
-        submitEmail: () => Promise<void>
-        submitOtp: () => Promise<void>
-        resendOtp: () => Promise<void>
-        useClipboardLink: () => Promise<void>
-        loginDemo: () => void
-    }
+export interface UseLoginFormResult {
+    mode: LoginMode
+    email: string
+    otpCode: string
+    emailErrorText: string | null
+    otpFieldErrorText: string | null
+    globalErrorText: string | null
+    sendingOtp: boolean
+    privacyPolicyChecked: boolean
+    languageSelectorVisible: boolean
+    isExpoGo: boolean
+    showDemoButton: boolean
+    normalizedEmail: string
+    canSubmitEmail: boolean
+    canSubmitOtp: boolean
+    performTokenLogin: (token: string) => Promise<boolean>
+    setEmail: (value: string) => void
+    setOtpCode: (value: string) => void
+    togglePrivacy: () => void
+    openLanguageSelector: () => void
+    closeLanguageSelector: () => void
+    backToEmail: () => void
+    submitEmail: () => Promise<void>
+    submitOtp: () => Promise<void>
+    resendOtp: () => Promise<void>
+    useClipboardLink: () => Promise<void>
+    loginDemo: () => void
+    continueAnonymous: () => void
 }
 
-export const useLoginScreenVM = (): UseLoginScreenVMResult => {
+export const useLoginForm = (): UseLoginFormResult => {
     const { t } = useTranslation()
     const isExpoGo = Constants.executionEnvironment === "storeClient"
-    const { loginWithToken, setUser } = useSession()
+    const { loginWithToken, setUser, continueAnonymously } = useSession()
 
     const [mode, setMode] = useState<LoginMode>("email")
     const [email, setEmail] = useState("")
@@ -65,7 +59,6 @@ export const useLoginScreenVM = (): UseLoginScreenVMResult => {
     const [sendingOtp, setSendingOtp] = useState(false)
     const [privacyPolicyChecked, setPrivacyPolicyChecked] = useState(false)
     const [languageSelectorVisible, setLanguageSelectorVisible] = useState(false)
-    const handlingDeepLinkRef = useRef(false)
 
     const normalizedEmail = useMemo(() => normalizeEmail(email), [email])
 
@@ -81,52 +74,10 @@ export const useLoginScreenVM = (): UseLoginScreenVMResult => {
                 setGlobalErrorText(result.message ?? t("invalidAccessToken"))
                 return false
             }
-
             return true
         },
         [loginWithToken, normalizedEmail, t],
     )
-
-    useEffect(() => {
-        if (mode !== "verify") {
-            return
-        }
-
-        let mounted = true
-
-        const handleUrl = async (url: string): Promise<void> => {
-            if (handlingDeepLinkRef.current || !mounted) {
-                return
-            }
-
-            const accessToken = extractAccessTokenFromUrl(url)
-            if (!accessToken) {
-                return
-            }
-
-            handlingDeepLinkRef.current = true
-            try {
-                await performTokenLogin(accessToken)
-            } finally {
-                handlingDeepLinkRef.current = false
-            }
-        }
-
-        void Linking.getInitialURL().then(url => {
-            if (url) {
-                void handleUrl(url)
-            }
-        })
-
-        const subscription = Linking.addEventListener("url", event => {
-            void handleUrl(event.url)
-        })
-
-        return () => {
-            mounted = false
-            subscription.remove()
-        }
-    }, [mode, performTokenLogin])
 
     const submitEmail = useCallback(async (): Promise<void> => {
         setEmailErrorText(null)
@@ -206,39 +157,42 @@ export const useLoginScreenVM = (): UseLoginScreenVMResult => {
     }, [resetVerifyErrors])
 
     const loginDemo = useCallback((): void => {
-        setUser(createDemoUser())
+        if (__DEV__) {
+            setUser(createDemoUser())
+        }
     }, [setUser])
 
+    const continueAnonymous = useCallback((): void => {
+        void continueAnonymously()
+    }, [continueAnonymously])
+
     return {
-        state: {
-            mode,
-            email,
-            otpCode,
-            emailErrorText,
-            otpFieldErrorText,
-            globalErrorText,
-            sendingOtp,
-            privacyPolicyChecked,
-            languageSelectorVisible,
-            isExpoGo,
-        },
-        derived: {
-            canSubmitEmail: isEmailValid(normalizedEmail) && privacyPolicyChecked && !sendingOtp,
-            canSubmitOtp: otpCode.trim().length > 0,
-            isEmailValid: isEmailValid(normalizedEmail),
-        },
-        actions: {
-            setEmail,
-            setOtpCode,
-            togglePrivacy: () => setPrivacyPolicyChecked(previous => !previous),
-            openLanguageSelector: () => setLanguageSelectorVisible(true),
-            closeLanguageSelector: () => setLanguageSelectorVisible(false),
-            backToEmail,
-            submitEmail,
-            submitOtp,
-            resendOtp,
-            useClipboardLink,
-            loginDemo,
-        },
+        mode,
+        email,
+        otpCode,
+        emailErrorText,
+        otpFieldErrorText,
+        globalErrorText,
+        sendingOtp,
+        privacyPolicyChecked,
+        languageSelectorVisible,
+        isExpoGo,
+        showDemoButton: __DEV__,
+        normalizedEmail,
+        canSubmitEmail: isEmailValid(normalizedEmail) && privacyPolicyChecked && !sendingOtp,
+        canSubmitOtp: otpCode.trim().length > 0,
+        performTokenLogin,
+        setEmail,
+        setOtpCode,
+        togglePrivacy: () => setPrivacyPolicyChecked(previous => !previous),
+        openLanguageSelector: () => setLanguageSelectorVisible(true),
+        closeLanguageSelector: () => setLanguageSelectorVisible(false),
+        backToEmail,
+        submitEmail,
+        submitOtp,
+        resendOtp,
+        useClipboardLink,
+        loginDemo,
+        continueAnonymous,
     }
 }

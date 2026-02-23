@@ -12,7 +12,7 @@ export const NotRegisteredCard = ({ onLogout }: NotRegisteredCardProps): React.J
     const { t } = useTranslation()
 
     return (
-        <View className="flex-1 items-center justify-center bg-background px-4">
+        <View className="flex-1 items-center justify-center px-4">
             <Text className="text-lg font-medium">{t("notRegistered")}</Text>
             <View className="mt-4 w-56">
                 <Button onPress={() => void onLogout()}>

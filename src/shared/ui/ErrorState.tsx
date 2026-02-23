@@ -1,0 +1,32 @@
+import React from "react"
+import { useTranslation } from "react-i18next"
+import { Card } from "@/shared/ui/Card"
+import { Text } from "@/shared/ui/Text"
+import { Button } from "@/shared/ui/Button"
+
+interface ErrorStateProps {
+    message: string
+    onRetry?: () => void
+    retryLabel?: string
+}
+
+export const ErrorState = ({
+    message,
+    onRetry,
+    retryLabel,
+}: ErrorStateProps): React.JSX.Element => {
+    const { t } = useTranslation()
+
+    return (
+        <Card className="gap-3 p-4">
+            <Text className="text-base">{message}</Text>
+            {onRetry ? (
+                <Button variant="secondary" onPress={onRetry}>
+                    <Text className="text-base leading-5 text-text-primary font-semibold">
+                        {retryLabel ?? t("retry")}
+                    </Text>
+                </Button>
+            ) : null}
+        </Card>
+    )
+}

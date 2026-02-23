@@ -10,7 +10,7 @@ interface MemberHeaderProps {
     lastName: string
     roleGroup: string
     roleTitle: string
-    wordOfTheDay: string
+    wordOfTheDay?: string
 }
 
 const localImageMap: Record<string, number> = {
@@ -28,7 +28,8 @@ export const MemberHeader = ({
 }: MemberHeaderProps): React.JSX.Element => {
     const { width } = useWindowDimensions()
     const avatarSize = useMemo(() => Math.min(92, Math.max(64, width * 0.22)), [width])
-    const roleText = `${roleGroup} ${roleTitle}`.trim() || "-"
+    const normalizedRoleGroup = roleGroup.trim()
+    const normalizedRoleTitle = roleTitle.trim()
     const displayName = `${firstName} ${lastName}`.trim() || "-"
 
     const scaleAnim = useRef(new Animated.Value(1)).current
@@ -155,15 +156,23 @@ export const MemberHeader = ({
                         ellipsizeMode="tail"
                         numberOfLines={1}
                     >
-                        {roleText}
+                        {normalizedRoleGroup ? (
+                            <Text className="text-base leading-6 text-text-secondary font-bold">
+                                {normalizedRoleGroup}
+                            </Text>
+                        ) : null}
+                        {normalizedRoleGroup && normalizedRoleTitle ? " " : ""}
+                        {normalizedRoleTitle || (!normalizedRoleGroup && !normalizedRoleTitle ? "-" : "")}
                     </Text>
-                    <Text
-                        className="text-lg leading-6 italic font-semibold"
-                        ellipsizeMode="tail"
-                        numberOfLines={1}
-                    >
-                        {wordOfTheDay}
-                    </Text>
+                    {wordOfTheDay ? (
+                        <Text
+                            className="text-lg leading-6 italic font-semibold"
+                            ellipsizeMode="tail"
+                            numberOfLines={1}
+                        >
+                            {wordOfTheDay}
+                        </Text>
+                    ) : null}
                 </View>
             </View>
         </View>

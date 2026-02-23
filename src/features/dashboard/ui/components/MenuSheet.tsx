@@ -11,11 +11,16 @@ interface MenuSheetProps {
     onOpenPrivacy: () => void
     onOpenGames: () => void
     onOpenLanguage: () => void
-    onLogout: () => void
+    authAction: {
+        label: string
+        icon: keyof typeof MaterialIcons.glyphMap
+        destructive?: boolean
+        onPress: () => void
+    }
 }
 
 interface Action {
-    key: "privacy" | "games" | "language" | "logout"
+    key: "privacy" | "games" | "language" | "auth"
     label: string
     icon: keyof typeof MaterialIcons.glyphMap
     destructive?: boolean
@@ -28,7 +33,7 @@ export const MenuSheet = ({
     onOpenPrivacy,
     onOpenGames,
     onOpenLanguage,
-    onLogout,
+    authAction,
 }: MenuSheetProps): React.JSX.Element => {
     const { t } = useTranslation()
 
@@ -36,7 +41,7 @@ export const MenuSheet = ({
         { key: "privacy", label: t("privacy"), icon: "privacy-tip", onPress: onOpenPrivacy },
         { key: "language", label: t("language"), icon: "language", onPress: onOpenLanguage },
         { key: "games", label: t("games"), icon: "sports-esports", onPress: onOpenGames },
-        { key: "logout", label: t("logout"), icon: "logout", destructive: true, onPress: onLogout },
+        { key: "auth", ...authAction },
     ]
 
     const handlePress = (action: Action): void => {
