@@ -2,11 +2,12 @@ import { MaterialIcons } from "@expo/vector-icons"
 import { useIsFocused } from "@react-navigation/native"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { useQuery } from "@tanstack/react-query"
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
     ActivityIndicator,
     Image,
+    Pressable,
     ScrollView,
     TouchableOpacity,
     useWindowDimensions,
@@ -17,12 +18,12 @@ import { RootStackParamList } from "@/app/navigation/types"
 import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
+import { buildDisplayRoles, resolveDisplayedRole } from "@/features/dashboard/domain/profileRoles"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
 import { MemberStatusCard } from "@/features/dashboard/ui/components/MemberStatusCard"
 import { MenuSheet } from "@/features/dashboard/ui/components/MenuSheet"
 import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
-import { getHighestTierGroup, getHighestTierName } from "@/shared/types/user"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
@@ -80,7 +81,14 @@ export const HomeScreen = ({
     navigation,
 }: NativeStackScreenProps<RootStackParamList, "Home">): React.JSX.Element => {
     const { t } = useTranslation()
-    const { user, isLoading, logout } = useSession()
+    const {
+        user,
+        isAnonymous,
+        selectedFrontpageRoleSelection,
+        isLoading,
+        logout,
+        exitAnonymousMode,
+    } = useSession()
     const { height, width } = useWindowDimensions()
     const isFocused = useIsFocused()
 
@@ -122,6 +130,11 @@ export const HomeScreen = ({
     )
     const nowPlayingProgressWidth =
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
+    const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
+    const displayedRole = useMemo(
+        () => resolveDisplayedRole(displayRoles, selectedFrontpageRoleSelection),
+        [displayRoles, selectedFrontpageRoleSelection],
+    )
 
     if (isLoading) {
         return (
@@ -131,20 +144,33 @@ export const HomeScreen = ({
         )
     }
 
-    if (!user) {
+    if (!user && !isAnonymous) {
         return (
             <SafeAreaView className="flex-1 items-center justify-center px-4">
                 <Text className="text-lg font-medium">{t("notRegistered")}</Text>
                 <View className="mt-4 w-56">
-                    <Button onPress={() => void logout()}>
+                    <Button onPress={() => void exitAnonymousMode()}>
                         <Text className="text-base leading-5 text-surface font-semibold">
-                            {t("logout")}
+                            {t("login")}
                         </Text>
                     </Button>
                 </View>
             </SafeAreaView>
         )
     }
+
+    const authAction = user
+        ? {
+              label: t("logout"),
+              icon: "logout" as const,
+              destructive: true,
+              onPress: () => void logout(),
+          }
+        : {
+              label: t("login"),
+              icon: "login" as const,
+              onPress: () => void exitAnonymousMode(),
+          }
 
     return (
         <SafeAreaView className="flex-1">
@@ -170,26 +196,38 @@ export const HomeScreen = ({
             </View>
 
             <ScrollView className="flex-1" contentContainerClassName="px-2 pb-20 pt-1.5">
-                <View className={isSmallScreen ? "pb-2" : "pb-4"}>
-                    <View className="items-center pb-2">
-                        <MemberHeader
-                            animationTrigger={animationTrigger}
-                            imageUrl={user.bildeUrl}
-                            firstName={user.fornavn}
-                            lastName={user.etternavn}
-                            roleGroup={getHighestTierGroup(user)}
-                            roleTitle={getHighestTierName(user)}
-                            wordOfTheDay={user.dagensOrd.trim() || "-"}
-                        />
-                    </View>
+                {user ? (
+                    <View className={isSmallScreen ? "pb-2" : "pb-4"}>
+                        <View className="items-center pb-2">
+                            <Pressable
+                                accessibilityHint={t("openProfileDetailsHint")}
+                                accessibilityLabel={t("openProfileDetails")}
+                                accessibilityRole="button"
+                                className="w-full"
+                                onPress={() => navigation.navigate("ProfileRoles")}
+                            >
+                                <Card className="p-2" effect="liquid" variant="grouped">
+                                    <MemberHeader
+                                        animationTrigger={animationTrigger}
+                                        imageUrl={user.bildeUrl}
+                                        firstName={user.fornavn}
+                                        lastName={user.etternavn}
+                                        roleGroup={displayedRole?.gruppe ?? ""}
+                                        roleTitle={displayedRole?.navn ?? ""}
+                                        wordOfTheDay={user.dagensOrd.trim() || "-"}
+                                    />
+                                </Card>
+                            </Pressable>
+                        </View>
 
-                    <View className="justify-center pb-2 pt-3">
-                        <MemberStatusCard
-                            user={user}
-                            onBadgePress={() => setAnimationTrigger(previous => previous + 1)}
-                        />
+                        <View className="justify-center pb-2 pt-3">
+                            <MemberStatusCard
+                                user={user}
+                                onBadgePress={() => setAnimationTrigger(previous => previous + 1)}
+                            />
+                        </View>
                     </View>
-                </View>
+                ) : null}
 
                 {showNowPlayingWidget && nowPlaying ? (
                     <View className="px-2 pb-4">
@@ -249,7 +287,7 @@ export const HomeScreen = ({
                 onOpenLanguage={() => setLanguageSelectorVisible(true)}
                 onOpenGames={() => navigation.navigate("Games")}
                 onOpenPrivacy={() => navigation.navigate("Privacy")}
-                onLogout={() => void logout()}
+                authAction={authAction}
             />
 
             <LanguageSelectorModal
