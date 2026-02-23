@@ -26,7 +26,6 @@ export interface UseLoginFormResult {
     privacyPolicyChecked: boolean
     languageSelectorVisible: boolean
     isExpoGo: boolean
-    showDemoButton: boolean
     normalizedEmail: string
     canSubmitEmail: boolean
     canSubmitOtp: boolean
@@ -42,13 +41,12 @@ export interface UseLoginFormResult {
     resendOtp: () => Promise<void>
     useClipboardLink: () => Promise<void>
     loginDemo: () => void
-    continueAnonymous: () => void
 }
 
 export const useLoginForm = (): UseLoginFormResult => {
     const { t } = useTranslation()
     const isExpoGo = Constants.executionEnvironment === "storeClient"
-    const { loginWithToken, setUser, continueAnonymously } = useSession()
+    const { loginWithToken, setUser } = useSession()
 
     const [mode, setMode] = useState<LoginMode>("email")
     const [email, setEmail] = useState("")
@@ -157,14 +155,8 @@ export const useLoginForm = (): UseLoginFormResult => {
     }, [resetVerifyErrors])
 
     const loginDemo = useCallback((): void => {
-        if (__DEV__) {
-            setUser(createDemoUser())
-        }
+        setUser(createDemoUser())
     }, [setUser])
-
-    const continueAnonymous = useCallback((): void => {
-        void continueAnonymously()
-    }, [continueAnonymously])
 
     return {
         mode,
@@ -177,7 +169,6 @@ export const useLoginForm = (): UseLoginFormResult => {
         privacyPolicyChecked,
         languageSelectorVisible,
         isExpoGo,
-        showDemoButton: __DEV__,
         normalizedEmail,
         canSubmitEmail: isEmailValid(normalizedEmail) && privacyPolicyChecked && !sendingOtp,
         canSubmitOtp: otpCode.trim().length > 0,
@@ -193,6 +184,5 @@ export const useLoginForm = (): UseLoginFormResult => {
         resendOtp,
         useClipboardLink,
         loginDemo,
-        continueAnonymous,
     }
 }
