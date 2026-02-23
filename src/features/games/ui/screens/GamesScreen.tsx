@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { RootStackParamList } from "@/app/navigation/types"
+import { COMMON_DICE_TYPES, useDiceRoll } from "@/features/games/vm/useDiceRoll"
 import { useChessTimer } from "@/features/games/vm/useChessTimer"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
@@ -11,13 +12,9 @@ import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 
 type GameMode = "d6" | "chess"
-type DiceType = 4 | 6 | 8 | 10 | 12 | 20
 
-const COMMON_DICE_TYPES: readonly DiceType[] = [4, 6, 8, 10, 12, 20]
 const INITIAL_CHESS_MS = 15 * 60 * 1000
 const INCREMENT_MS = 2 * 1000
-
-const rollDie = (sides: DiceType): number => Math.floor(Math.random() * sides) + 1
 
 const formatClock = (milliseconds: number): string => {
     const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000))
@@ -82,9 +79,14 @@ export const GamesScreen = ({
     const { t } = useTranslation()
 
     const [mode, setMode] = useState<GameMode>("d6")
-    const [selectedDiceType, setSelectedDiceType] = useState<DiceType>(6)
-    const [diceValue, setDiceValue] = useState(1)
-    const [diceRollCount, setDiceRollCount] = useState(0)
+    const {
+        selectedDiceType,
+        diceValue,
+        diceRollCount,
+        isRolling,
+        selectDiceType,
+        rollDice,
+    } = useDiceRoll()
 
     const { timerState, toggleTimer, resetChessTimer, pressCurrentPlayer } = useChessTimer(
         INITIAL_CHESS_MS,
@@ -158,12 +160,11 @@ export const GamesScreen = ({
                                                 selected
                                                     ? "bg-text-primary"
                                                     : "bg-surface/80",
+                                                isRolling && "opacity-70",
                                             )}
+                                            disabled={isRolling}
                                             onPress={() => {
-                                                setSelectedDiceType(diceType)
-                                                setDiceValue(previous =>
-                                                    Math.min(previous, diceType),
-                                                )
+                                                selectDiceType(diceType)
                                             }}
                                         >
                                             <Text
@@ -188,12 +189,7 @@ export const GamesScreen = ({
                             </Text>
                         </Card>
 
-                        <Button
-                            onPress={() => {
-                                setDiceValue(rollDie(selectedDiceType))
-                                setDiceRollCount(previous => previous + 1)
-                            }}
-                        >
+                        <Button onPress={rollDice}>
                             <Text className="text-base text-surface font-bold">
                                 {t("gamesRollDie", { die: `d${selectedDiceType}` })}
                             </Text>
