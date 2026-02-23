@@ -53,7 +53,7 @@ export const LoginScreen = (): React.JSX.Element => {
                             textShadowRadius: 16,
                         }}
                     >
-                        Samfunnet
+                        Kvarteret
                     </Text>
                 </View>
             </View>

@@ -1,8 +1,8 @@
 export const translations = {
   no: {
     translation: {
-      appTitle: "Studentersamfunnet Internbevis",
-      homeTitle: "Studentersamfunnet",
+      appTitle: "Kvarteret",
+      homeTitle: "Det Akademiske Kvarter",
       login: "Logg inn",
       tryDemo: "Prøv demo",
       continueAnonymously: "Fortsett anonymt",
@@ -35,6 +35,19 @@ export const translations = {
       notRegistered: "Du er ikke registrert.",
       logout: "Logg ut",
       privacy: "Personvern",
+      about: "Om",
+      aboutTitle: "Om Kvarteret og E-Tjenesten",
+      aboutKvarteretTitle: "Kvarteret",
+      aboutEtjenestenTitle: "E-Tjenesten",
+      aboutKvarteretText:
+        "Det Akademiske Kvarter, også kjent som Kvarteret, er byens møtested for studenter. Vi har tre etasjer og flere barer, flere arrangement hver uke, og er driftet av frivillige.",
+      aboutEtjenestenText:
+        "E-Tjenesten er Det Akademiske Kvarter sin interne gruppe for utvikling av digitale tjenester. Vi lager og drifter denne appen, samt husets eget personalsystem og nettside. Våre prosjekter bruker moderne verktøy og praksiser: vi bygger på GitHub med .NET, React Native, Typescript, og Figma.",
+      aboutEmailLabel: "Send e-post til E-Tjenesten",
+      aboutKvarteretInstagram: "Instagram: Kvarteret Bergen",
+      aboutInstagramEtjenesten: "Instagram: Samfunnstjenesten",
+      aboutGithubOrg: "GitHub: kvarteret",
+      aboutGithubApp: "GitHub: kvarteret-internbevis",
       language: "Språk",
       norwegian: "Norsk",
       english: "English",
@@ -107,7 +120,8 @@ export const translations = {
       profileRoleVirtualPingvin: "Pingvin",
       profileRoleSelectionUpdated: "Verv er valgt for forsiden.",
       profileStatusValidHint: "Internbeviset er godkjent for adgangskontroll.",
-      profileStatusInvalidHint: "Internbeviset er ikke gyldig for adgang akkurat nå.",
+      profileStatusInvalidHint:
+        "Internbeviset er ikke gyldig for adgang akkurat nå.",
       tierLabel: "Trinn {{tier}}",
       failedFetchUserData: "Kunne ikke hente brukerdata. Vennligst prøv igjen.",
       invalidAccessToken: "Ugyldig eller utløpt kode. Vennligst prøv igjen.",
@@ -121,8 +135,8 @@ export const translations = {
   },
   en: {
     translation: {
-      appTitle: "Studentersamfunnet Internal ID",
-      homeTitle: "Studentersamfunnet",
+      appTitle: "Kvarteret",
+      homeTitle: "Det Akademiske Kvarter",
       login: "Login",
       tryDemo: "Try demo",
       continueAnonymously: "Continue anonymously",
@@ -157,6 +171,19 @@ export const translations = {
       notRegistered: "You are not registered.",
       logout: "Logout",
       privacy: "Privacy",
+      about: "About",
+      aboutTitle: "About Kvarteret and E-Tjenesten",
+      aboutKvarteretTitle: "Kvarteret",
+      aboutEtjenestenTitle: "E-Tjenesten",
+      aboutKvarteretText:
+        "Det Akademiske Kvarter, also known as Kvarteret, is the city's student meeting place. We have three floors and multiple bars, several events every week, and are operated by volunteers.",
+      aboutEtjenestenText:
+        "E-Tjenesten is Det Akademiske Kvarter's internal group for development of digital services. We build and maintain this app, the house personnel system, and the website. Our projects use modern tools and practices: we build on GitHub with .NET, React Native, Typescript, and Figma.",
+      aboutEmailLabel: "Send email to E-Tjenesten",
+      aboutKvarteretInstagram: "Instagram: Kvarteret Bergen",
+      aboutInstagramEtjenesten: "Instagram: Samfunnstjenesten",
+      aboutGithubOrg: "GitHub: kvarteret",
+      aboutGithubApp: "GitHub: kvarteret-internbevis",
       language: "Language",
       norwegian: "Norwegian",
       english: "English",
@@ -228,8 +255,10 @@ export const translations = {
       profileRoleSelected: "Selected",
       profileRoleVirtualPingvin: "Pingvin",
       profileRoleSelectionUpdated: "Role selected for home screen.",
-      profileStatusValidHint: "This internal ID is approved for entry verification.",
-      profileStatusInvalidHint: "This internal ID is not valid for entry right now.",
+      profileStatusValidHint:
+        "This internal ID is approved for entry verification.",
+      profileStatusInvalidHint:
+        "This internal ID is not valid for entry right now.",
       tierLabel: "Tier {{tier}}",
       failedFetchUserData: "Failed to fetch user data. Please try again.",
       invalidAccessToken: "Invalid or expired code. Please try again.",

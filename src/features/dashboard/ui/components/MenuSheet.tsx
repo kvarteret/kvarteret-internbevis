@@ -11,6 +11,7 @@ interface MenuSheetProps {
     visible: boolean
     onClose: () => void
     onOpenPrivacy: () => void
+    onOpenAbout: () => void
     onOpenGames: () => void
     onOpenLanguage: () => void
     authAction: {
@@ -22,7 +23,7 @@ interface MenuSheetProps {
 }
 
 interface Action {
-    key: "privacy" | "games" | "language" | "auth"
+    key: "privacy" | "about" | "games" | "language" | "auth"
     label: string
     icon: keyof typeof MaterialIcons.glyphMap
     destructive?: boolean
@@ -33,6 +34,7 @@ export const MenuSheet = ({
     visible,
     onClose,
     onOpenPrivacy,
+    onOpenAbout,
     onOpenGames,
     onOpenLanguage,
     authAction,
@@ -41,6 +43,7 @@ export const MenuSheet = ({
 
     const actions: Action[] = [
         { key: "privacy", label: t("privacy"), icon: "privacy-tip", onPress: onOpenPrivacy },
+        { key: "about", label: t("about"), icon: "info-outline", onPress: onOpenAbout },
         { key: "language", label: t("language"), icon: "language", onPress: onOpenLanguage },
         { key: "games", label: t("games"), icon: "sports-esports", onPress: onOpenGames },
         { key: "auth", ...authAction },

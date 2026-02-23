@@ -298,6 +298,7 @@ export const ProfileScreen = (): React.JSX.Element => {
                 onOpenLanguage={() => setLanguageSelectorVisible(true)}
                 onOpenGames={() => router.push("/games")}
                 onOpenPrivacy={() => router.push("/privacy")}
+                onOpenAbout={() => router.push("/about")}
                 authAction={authAction}
             />
 

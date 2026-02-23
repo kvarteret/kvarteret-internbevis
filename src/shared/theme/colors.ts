@@ -1,5 +1,6 @@
 export const themeColors = {
     background: "#F3E2CC",
+    brandPrimary: "#F54B4B",
     surface: "#FFFFFF",
     surfaceMuted: "#FAFAFA",
     border: "#D1D5DB",
@@ -15,7 +16,7 @@ export const themeColors = {
     link: "#2563EB",
     stateDanger: "#AA0000",
     stateSuccess: "#16A34A",
-    tabActive: "#1F4D33",
+    tabActive: "#7F2E2E",
     editorialBorder: "#0000001A",
     overlay: "#00000033",
     overlayStrong: "#00000059",
