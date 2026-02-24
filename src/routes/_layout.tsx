@@ -1,14 +1,12 @@
 import { NativeStackNavigationOptions } from "@react-navigation/native-stack"
 import { Stack } from "expo-router"
 import React, { useEffect } from "react"
-import { ActivityIndicator, Linking, Platform, View } from "react-native"
+import { ActivityIndicator, Platform, View } from "react-native"
 import "../../global.css"
 import "@/app/localization/i18n"
 import { AppProviders } from "@/app/providers/AppProviders"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { useSession } from "@/app/providers/SessionProvider"
-import { extractAccessTokenFromUrl } from "@/core/linking/deepLinkParser"
-import { setPendingDeepLinkToken } from "@/core/linking/pendingToken"
 import { themeColors } from "@/shared/theme/colors"
 
 const IOS_SCROLL_EDGE_VERSION = 26
@@ -38,32 +36,6 @@ const SUPPORTS_SCROLL_EDGE_EFFECTS =
 const RootNavigator = (): React.JSX.Element => {
     const { isHydrating: sessionHydrating } = useSession()
     const { isHydrating: languageHydrating } = useLanguage()
-
-    useEffect(() => {
-        let mounted = true
-
-        const handleUrl = async (url: string): Promise<void> => {
-            const accessToken = extractAccessTokenFromUrl(url)
-            if (mounted && accessToken) {
-                setPendingDeepLinkToken(accessToken)
-            }
-        }
-
-        void Linking.getInitialURL().then(url => {
-            if (url) {
-                void handleUrl(url)
-            }
-        })
-
-        const subscription = Linking.addEventListener("url", event => {
-            void handleUrl(event.url)
-        })
-
-        return () => {
-            mounted = false
-            subscription.remove()
-        }
-    }, [])
 
     if (sessionHydrating || languageHydrating) {
         return (

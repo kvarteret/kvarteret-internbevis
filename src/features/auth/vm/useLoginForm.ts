@@ -1,12 +1,9 @@
-import * as Clipboard from "expo-clipboard"
 import Constants from "expo-constants"
 import { useCallback, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Alert } from "react-native"
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { useSession } from "@/app/providers/SessionProvider"
-import { extractAccessTokenFromManualInput } from "@/core/linking/deepLinkParser"
-import { consumePendingDeepLinkToken } from "@/core/linking/pendingToken"
 import {
     extractFriendlyErrorMessage,
     requestAccessToken,
@@ -30,14 +27,12 @@ export interface UseLoginFormResult {
     sendingOtp: boolean
     privacyPolicyChecked: boolean
     languageSelectorVisible: boolean
-    isExpoGo: boolean
     showDemoButton: boolean
     normalizedEmail: string
     normalizedPhone: string
     canSubmitEmail: boolean
     canSubmitPhone: boolean
     canSubmitOtp: boolean
-    performTokenLogin: (token: string) => Promise<boolean>
     setEmail: (value: string) => void
     setPhone: (value: string) => void
     setOtpCode: (value: string) => void
@@ -49,7 +44,6 @@ export interface UseLoginFormResult {
     submitEmail: () => Promise<void>
     submitOtp: () => Promise<void>
     resendOtp: () => Promise<void>
-    useClipboardLink: () => Promise<void>
     switchToEmailFallback: () => void
     loginDemo: () => void
     continueAnonymous: () => void
@@ -57,7 +51,6 @@ export interface UseLoginFormResult {
 
 export const useLoginForm = (): UseLoginFormResult => {
     const { t } = useTranslation()
-    const isExpoGo = Constants.executionEnvironment === "storeClient"
     const { loginWithToken, loginWithFirebase, setUser, continueAnonymously } = useSession()
 
     const [mode, setMode] = useState<LoginMode>("phone")
@@ -82,18 +75,6 @@ export const useLoginForm = (): UseLoginFormResult => {
         setOtpFieldErrorText(null)
         setGlobalErrorText(null)
     }, [])
-
-    const performTokenLogin = useCallback(
-        async (token: string): Promise<boolean> => {
-            const result = await loginWithToken(normalizedEmail, token)
-            if (!result.success) {
-                setGlobalErrorText(result.message ?? t("invalidAccessToken"))
-                return false
-            }
-            return true
-        },
-        [loginWithToken, normalizedEmail, t],
-    )
 
     const submitPhone = useCallback(async (): Promise<void> => {
         setPhoneErrorText(null)
@@ -135,16 +116,7 @@ export const useLoginForm = (): UseLoginFormResult => {
         }
 
         setSendingOtp(true)
-
         try {
-            const deepLinkToken = consumePendingDeepLinkToken()
-            if (deepLinkToken) {
-                const deepLinkLoginResult = await loginWithToken(normalizedEmail, deepLinkToken)
-                if (deepLinkLoginResult.success) {
-                    return
-                }
-            }
-
             await requestAccessToken(normalizedEmail)
             setAuthMethod("email")
             setMode("verify")
@@ -153,7 +125,7 @@ export const useLoginForm = (): UseLoginFormResult => {
         } finally {
             setSendingOtp(false)
         }
-    }, [loginWithToken, normalizedEmail, privacyPolicyChecked, t])
+    }, [normalizedEmail, privacyPolicyChecked, t])
 
     const submitOtp = useCallback(async (): Promise<void> => {
         resetVerifyErrors()
@@ -183,9 +155,12 @@ export const useLoginForm = (): UseLoginFormResult => {
                 setOtpFieldErrorText(extractFriendlyErrorMessage(error))
             }
         } else {
-            await performTokenLogin(otpCode.trim())
+            const result = await loginWithToken(normalizedEmail, otpCode.trim())
+            if (!result.success) {
+                setGlobalErrorText(result.message ?? t("invalidAccessToken"))
+            }
         }
-    }, [authMethod, loginWithFirebase, normalizedPhone, otpCode, performTokenLogin, resetVerifyErrors, t])
+    }, [authMethod, loginWithFirebase, loginWithToken, normalizedEmail, normalizedPhone, otpCode, resetVerifyErrors, t])
 
     const resendOtp = useCallback(async (): Promise<void> => {
         resetVerifyErrors()
@@ -203,20 +178,6 @@ export const useLoginForm = (): UseLoginFormResult => {
             }
         }
     }, [authMethod, normalizedEmail, resetVerifyErrors, submitPhone, t])
-
-    const useClipboardLink = useCallback(async (): Promise<void> => {
-        resetVerifyErrors()
-
-        const clipboardText = await Clipboard.getStringAsync()
-        const accessToken = extractAccessTokenFromManualInput(clipboardText)
-
-        if (!accessToken) {
-            setGlobalErrorText(t("expoGoClipboardNoToken"))
-            return
-        }
-
-        await performTokenLogin(accessToken)
-    }, [performTokenLogin, resetVerifyErrors, t])
 
     const backToPhone = useCallback((): void => {
         setMode("phone")
@@ -257,14 +218,12 @@ export const useLoginForm = (): UseLoginFormResult => {
         sendingOtp,
         privacyPolicyChecked,
         languageSelectorVisible,
-        isExpoGo,
         showDemoButton: __DEV__,
         normalizedEmail,
         normalizedPhone,
         canSubmitEmail: isEmailValid(normalizedEmail) && privacyPolicyChecked && !sendingOtp,
         canSubmitPhone: isPhoneValid(phone) && privacyPolicyChecked && !sendingOtp,
         canSubmitOtp: otpCode.trim().length > 0,
-        performTokenLogin,
         setEmail,
         setPhone,
         setOtpCode,
@@ -276,7 +235,6 @@ export const useLoginForm = (): UseLoginFormResult => {
         submitEmail,
         submitOtp,
         resendOtp,
-        useClipboardLink,
         switchToEmailFallback,
         loginDemo,
         continueAnonymous,

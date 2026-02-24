@@ -11,13 +11,11 @@ import {
     AuthResult,
     authResultFromError,
     clearCredentials,
-    clearDeepLinkToken,
     getInternkortInformation,
     getInternkortInformationByPhone,
     getSavedCredentials,
     loginWithFirebaseToken,
     saveCredentials,
-    saveDeepLinkToken,
     savePhoneCredentials,
 } from "@/features/auth/data/authRepository"
 import {
@@ -118,7 +116,6 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
             } catch (nextError) {
                 if (shouldClearCredentialsOnHydrationError(nextError)) {
                     await clearCredentials()
-                    await clearDeepLinkToken()
                 }
 
                 setUser(null)
@@ -207,16 +204,11 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         try {
             const nextUser = await getInternkortInformation(email, accessToken)
             await saveCredentials(email, accessToken)
-            await saveDeepLinkToken(accessToken)
             setUser(nextUser)
             setIsAnonymous(false)
             await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
             return { success: true, status: 200 }
         } catch (nextError) {
-            if (shouldClearCredentialsOnHydrationError(nextError)) {
-                await clearDeepLinkToken()
-            }
-
             const failedResult = authResultFromError(nextError)
             setError(failedResult.message ?? null)
             return failedResult
@@ -267,7 +259,6 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
 
     const logout = async (): Promise<void> => {
         await clearCredentials()
-        await clearDeepLinkToken()
         await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
         setIsAnonymous(false)
         setSelectedFrontpageRoleSelectionState(null)

@@ -1,24 +1,20 @@
 import { BlurView } from "expo-blur"
 import { useRouter } from "expo-router"
 import React, { useEffect } from "react"
-import { useTranslation } from "react-i18next"
 import { KeyboardAvoidingView, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import { LoginForm } from "@/features/auth/ui/components/LoginForm"
 import { VerifyCodeForm } from "@/features/auth/ui/components/VerifyCodeForm"
-import { useDeepLinkLogin } from "@/features/auth/vm/useDeepLinkLogin"
 import { useLoginForm } from "@/features/auth/vm/useLoginForm"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
 
 export const LoginScreen = (): React.JSX.Element => {
-    const { t } = useTranslation()
     const router = useRouter()
     const { user, isAnonymous } = useSession()
     const insets = useSafeAreaInsets()
     const form = useLoginForm()
-    useDeepLinkLogin(form.mode, form.performTokenLogin)
 
     useEffect(() => {
         if (user || isAnonymous) {
@@ -52,11 +48,9 @@ export const LoginScreen = (): React.JSX.Element => {
                             otpCode={form.otpCode}
                             otpFieldErrorText={form.otpFieldErrorText}
                             globalErrorText={form.globalErrorText}
-                            isExpoGo={form.isExpoGo}
                             onChangeOtpCode={form.setOtpCode}
                             onVerifyCode={form.submitOtp}
                             onSendOtp={form.resendOtp}
-                            onUseClipboardLink={form.useClipboardLink}
                             onBack={form.backToPhone}
                             onUseEmailFallback={form.switchToEmailFallback}
                         />

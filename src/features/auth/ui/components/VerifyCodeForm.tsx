@@ -12,11 +12,9 @@ interface VerifyCodeFormProps {
     otpCode: string
     otpFieldErrorText: string | null
     globalErrorText: string | null
-    isExpoGo: boolean
     onChangeOtpCode: (value: string) => void
     onVerifyCode: () => Promise<void>
     onSendOtp: () => Promise<void>
-    onUseClipboardLink: () => Promise<void>
     onBack: () => void
     onUseEmailFallback?: () => void
 }
@@ -26,11 +24,9 @@ export const VerifyCodeForm = ({
     otpCode,
     otpFieldErrorText,
     globalErrorText,
-    isExpoGo,
     onChangeOtpCode,
     onVerifyCode,
     onSendOtp,
-    onUseClipboardLink,
     onBack,
     onUseEmailFallback,
 }: VerifyCodeFormProps): React.JSX.Element => {
@@ -57,12 +53,6 @@ export const VerifyCodeForm = ({
                 <Text className="text-center text-base leading-6 text-text-secondary">
                     {isPhoneMethod ? t("enterCodeFromSms") : t("enterCodeFromEmail")}
                 </Text>
-
-                {isExpoGo ? (
-                    <Text className="mt-2.5 text-center text-sm text-text-secondary">
-                        {t("expoGoHint")}
-                    </Text>
-                ) : null}
 
                 <View className="mt-7 gap-4">
                     <IconTextField
@@ -93,13 +83,6 @@ export const VerifyCodeForm = ({
                             <Button variant="secondary" onPress={onUseEmailFallback}>
                                 <Text className="text-base leading-5 text-text-primary font-semibold">
                                     {t("useEmailInstead")}
-                                </Text>
-                            </Button>
-                        ) : null}
-                        {isExpoGo ? (
-                            <Button variant="secondary" onPress={() => void onUseClipboardLink()}>
-                                <Text className="text-base leading-5 text-text-primary font-semibold">
-                                    {t("useLinkFromClipboard")}
                                 </Text>
                             </Button>
                         ) : null}

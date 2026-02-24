@@ -4,7 +4,6 @@ export const SESSION_STORAGE_KEYS = {
     email: "email",
     phone: "phone",
     accessToken: "accessToken",
-    deepLinkToken: "deep_link_token",
 } as const
 
 export const setSessionValue = async (key: string, value: string): Promise<void> => {

@@ -293,14 +293,6 @@ export const clearCredentials = async (): Promise<void> => {
     ])
 }
 
-export const saveDeepLinkToken = async (token: string): Promise<void> => {
-    await setSessionValue(SESSION_STORAGE_KEYS.deepLinkToken, token)
-}
-
-export const clearDeepLinkToken = async (): Promise<void> => {
-    await removeSessionValue(SESSION_STORAGE_KEYS.deepLinkToken)
-}
-
 export const authResultFromError = (error: unknown): AuthResult => {
     const authError = toAuthServiceError(error)
     return {
