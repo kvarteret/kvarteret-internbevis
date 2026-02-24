@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kvarteret",
     "slug": "studentersamfunnet-app",
-    "version": "1.0.0",
+    "version": "2026.2.0",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -19,12 +19,13 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "icon": "./assets/icons/ios-icon-square.png",
       "bundleIdentifier": "com.kvarteret.internbevis.internBevisKvarteret",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "2"
     },
     "android": {
       "icon": "./assets/icons/android-icon-square.png",

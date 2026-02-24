@@ -9,7 +9,6 @@ import { LoginForm } from "@/features/auth/ui/components/LoginForm"
 import { VerifyCodeForm } from "@/features/auth/ui/components/VerifyCodeForm"
 import { useDeepLinkLogin } from "@/features/auth/vm/useDeepLinkLogin"
 import { useLoginForm } from "@/features/auth/vm/useLoginForm"
-import { themeColors } from "@/shared/theme/colors"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
 
@@ -31,28 +30,11 @@ export const LoginScreen = (): React.JSX.Element => {
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
             <View className="px-4 pb-2" style={{ paddingTop: Math.max(insets.top + 10, 56) }}>
                 <View className="relative overflow-hidden rounded-3xl border border-surface/70 px-4 py-5">
-                    <View className="absolute -left-10 -top-14 h-44 w-44 rounded-full bg-state-info/40" />
-                    <View className="absolute -bottom-14 -right-10 h-44 w-44 rounded-full bg-state-danger/40" />
-                    <View className="absolute left-20 top-8 h-32 w-32 rounded-full bg-link/30" />
                     <BlurView className="absolute inset-0" intensity={42} tint="light" />
-                    <Text
-                        className="text-5xl leading-tight font-black text-editorial-ink"
-                        style={{
-                            textShadowColor: themeColors.link,
-                            textShadowOffset: { width: 0, height: 3 },
-                            textShadowRadius: 14,
-                        }}
-                    >
+                    <Text className="text-5xl leading-tight font-black text-editorial-ink">
                         Velkommen til
                     </Text>
-                    <Text
-                        className="text-6xl leading-tight font-black text-editorial-ink"
-                        style={{
-                            textShadowColor: themeColors.stateDanger,
-                            textShadowOffset: { width: 0, height: 4 },
-                            textShadowRadius: 16,
-                        }}
-                    >
+                    <Text className="text-6xl leading-tight font-black text-editorial-ink">
                         Kvarteret
                     </Text>
                 </View>
