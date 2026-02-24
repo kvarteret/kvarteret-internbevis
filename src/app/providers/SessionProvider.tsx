@@ -13,9 +13,12 @@ import {
     clearCredentials,
     clearDeepLinkToken,
     getInternkortInformation,
+    getInternkortInformationByPhone,
     getSavedCredentials,
+    loginWithFirebaseToken,
     saveCredentials,
     saveDeepLinkToken,
+    savePhoneCredentials,
 } from "@/features/auth/data/authRepository"
 import {
     getHydrationErrorMessage,
@@ -43,6 +46,7 @@ interface SessionContextValue {
     exitAnonymousMode: () => Promise<void>
     setSelectedFrontpageRoleSelection: (selection: PersistedRoleSelection | null) => Promise<void>
     loginWithToken: (email: string, accessToken: string) => Promise<AuthResult>
+    loginWithFirebase: (idToken: string, phone: string) => Promise<AuthResult>
     logout: () => Promise<void>
 }
 
@@ -81,7 +85,18 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
                 const credentials = await getSavedCredentials()
                 let hydratedUser: User | null = null
 
-                if (credentials.email && credentials.accessToken) {
+                if (credentials.phone && credentials.accessToken) {
+                    try {
+                        hydratedUser = await getInternkortInformationByPhone(
+                            credentials.phone,
+                            credentials.accessToken,
+                        )
+                    } catch {
+                        // Phone hydration failed; fall through to email
+                    }
+                }
+
+                if (!hydratedUser && credentials.email && credentials.accessToken) {
                     hydratedUser = await getInternkortInformation(
                         credentials.email,
                         credentials.accessToken,
@@ -210,6 +225,26 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         }
     }
 
+    const loginWithFirebase = async (idToken: string, phone: string): Promise<AuthResult> => {
+        setIsLoading(true)
+        setError(null)
+
+        try {
+            const { user: nextUser, accessToken } = await loginWithFirebaseToken(idToken)
+            await savePhoneCredentials(phone, accessToken)
+            setUser(nextUser)
+            setIsAnonymous(false)
+            await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+            return { success: true, status: 200 }
+        } catch (nextError) {
+            const failedResult = authResultFromError(nextError)
+            setError(failedResult.message ?? null)
+            return failedResult
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     const continueAnonymously = async (): Promise<void> => {
         setIsAnonymous(true)
 
@@ -252,6 +287,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
             exitAnonymousMode,
             setSelectedFrontpageRoleSelection,
             loginWithToken,
+            loginWithFirebase,
             logout,
         }),
         [

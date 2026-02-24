@@ -1,12 +1,14 @@
 import React from "react"
 import { useTranslation } from "react-i18next"
 import { ScrollView, View } from "react-native"
+import { AuthMethod } from "@/features/auth/vm/useLoginForm"
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 
 interface VerifyCodeFormProps {
+    authMethod: AuthMethod
     otpCode: string
     otpFieldErrorText: string | null
     globalErrorText: string | null
@@ -16,9 +18,11 @@ interface VerifyCodeFormProps {
     onSendOtp: () => Promise<void>
     onUseClipboardLink: () => Promise<void>
     onBack: () => void
+    onUseEmailFallback?: () => void
 }
 
 export const VerifyCodeForm = ({
+    authMethod,
     otpCode,
     otpFieldErrorText,
     globalErrorText,
@@ -28,8 +32,10 @@ export const VerifyCodeForm = ({
     onSendOtp,
     onUseClipboardLink,
     onBack,
+    onUseEmailFallback,
 }: VerifyCodeFormProps): React.JSX.Element => {
     const { t } = useTranslation()
+    const isPhoneMethod = authMethod === "phone"
 
     return (
         <ScrollView
@@ -43,13 +49,13 @@ export const VerifyCodeForm = ({
                 variant="elevated"
             >
                 <Text className="text-center text-2xl leading-8 text-text-primary font-medium">
-                    {t("verifyEmail")}
+                    {isPhoneMethod ? t("verifySms") : t("verifyEmail")}
                 </Text>
 
                 <View className="mx-5 my-2.5 border-b border-border-soft" />
 
                 <Text className="text-center text-base leading-6 text-text-secondary">
-                    {t("enterCodeFromEmail")}
+                    {isPhoneMethod ? t("enterCodeFromSms") : t("enterCodeFromEmail")}
                 </Text>
 
                 {isExpoGo ? (
@@ -62,7 +68,8 @@ export const VerifyCodeForm = ({
                     <IconTextField
                         errorText={otpFieldErrorText}
                         iconName="lock"
-                        placeholder={t("codeFromEmail")}
+                        keyboardType={isPhoneMethod ? "number-pad" : "default"}
+                        placeholder={isPhoneMethod ? t("codeFromSms") : t("codeFromEmail")}
                         value={otpCode}
                         onChangeText={onChangeOtpCode}
                     />
@@ -82,6 +89,13 @@ export const VerifyCodeForm = ({
                                 {t("sendNewCode")}
                             </Text>
                         </Button>
+                        {isPhoneMethod && onUseEmailFallback ? (
+                            <Button variant="secondary" onPress={onUseEmailFallback}>
+                                <Text className="text-base leading-5 text-text-primary font-semibold">
+                                    {t("useEmailInstead")}
+                                </Text>
+                            </Button>
+                        ) : null}
                         {isExpoGo ? (
                             <Button variant="secondary" onPress={() => void onUseClipboardLink()}>
                                 <Text className="text-base leading-5 text-text-primary font-semibold">

@@ -131,6 +131,13 @@ export const translations = {
       expoGoClipboardNoToken:
         "Fant ingen gyldig innloggingslenke i utklippstavlen.",
       close: "Lukk",
+      phoneHint: "+47 XXX XX XXX",
+      invalidPhone: "Skriv inn et gyldig telefonnummer.",
+      verifySms: "Bekreft SMS",
+      enterCodeFromSms: "Skriv inn koden du mottok på SMS",
+      codeFromSms: "Kode fra SMS",
+      useEmailInstead: "Send kode til e-post i stedet",
+      phoneFallbackError: "Ingen aktiv telefonverifisering. Vennligst prøv igjen.",
     },
   },
   en: {
@@ -267,6 +274,13 @@ export const translations = {
         "In Expo Go, paste the login link from email to verify automatically.",
       expoGoClipboardNoToken: "No valid login link found in clipboard.",
       close: "Close",
+      phoneHint: "+47 XXX XX XXX",
+      invalidPhone: "Enter a valid phone number.",
+      verifySms: "Verify SMS",
+      enterCodeFromSms: "Enter the code you received by SMS",
+      codeFromSms: "Code from SMS",
+      useEmailInstead: "Send code to email instead",
+      phoneFallbackError: "No active phone verification. Please try again.",
     },
   },
 } as const;

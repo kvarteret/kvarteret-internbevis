@@ -2,6 +2,7 @@ import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from "react-native"
+import { AuthMethod } from "@/features/auth/vm/useLoginForm"
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
 import { themeColors } from "@/shared/theme/colors"
 import { Button } from "@/shared/ui/Button"
@@ -10,13 +11,18 @@ import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 
 interface LoginFormProps {
+    authMethod: AuthMethod
     email: string
+    phone: string
     emailErrorText: string | null
+    phoneErrorText: string | null
     privacyPolicyChecked: boolean
     sendingOtp: boolean
     onChangeEmail: (value: string) => void
+    onChangePhone: (value: string) => void
     onTogglePrivacy: () => void
     onPrivacyPress: () => void
+    onSubmitPhone: () => Promise<void>
     onSubmitEmail: () => Promise<void>
     onDemoLogin: () => void
     onContinueAnonymous: () => void
@@ -24,19 +30,27 @@ interface LoginFormProps {
 }
 
 export const LoginForm = ({
+    authMethod,
     email,
+    phone,
     emailErrorText,
+    phoneErrorText,
     privacyPolicyChecked,
     sendingOtp,
     onChangeEmail,
+    onChangePhone,
     onTogglePrivacy,
     onPrivacyPress,
+    onSubmitPhone,
     onSubmitEmail,
     onDemoLogin,
     onContinueAnonymous,
     showDemoButton,
 }: LoginFormProps): React.JSX.Element => {
     const { t } = useTranslation()
+
+    const isPhoneMode = authMethod === "phone"
+    const onSubmit = isPhoneMode ? onSubmitPhone : onSubmitEmail
 
     return (
         <ScrollView
@@ -54,15 +68,27 @@ export const LoginForm = ({
                 </Text>
 
                 <View className="mt-6 gap-6">
-                    <IconTextField
-                        autoCapitalize="none"
-                        errorText={emailErrorText}
-                        iconName="mail"
-                        keyboardType="email-address"
-                        placeholder={t("emailHint")}
-                        value={email}
-                        onChangeText={onChangeEmail}
-                    />
+                    {isPhoneMode ? (
+                        <IconTextField
+                            autoCapitalize="none"
+                            errorText={phoneErrorText}
+                            iconName="phone"
+                            keyboardType="phone-pad"
+                            placeholder={t("phoneHint")}
+                            value={phone}
+                            onChangeText={onChangePhone}
+                        />
+                    ) : (
+                        <IconTextField
+                            autoCapitalize="none"
+                            errorText={emailErrorText}
+                            iconName="mail"
+                            keyboardType="email-address"
+                            placeholder={t("emailHint")}
+                            value={email}
+                            onChangeText={onChangeEmail}
+                        />
+                    )}
 
                     {sendingOtp ? (
                         <View className="my-2">
@@ -70,7 +96,7 @@ export const LoginForm = ({
                         </View>
                     ) : (
                         <View className="gap-3">
-                            <Button onPress={() => void onSubmitEmail()}>
+                            <Button onPress={() => void onSubmit()}>
                                 <Text className="text-base leading-5 text-surface font-semibold">
                                     {t("login")}
                                 </Text>

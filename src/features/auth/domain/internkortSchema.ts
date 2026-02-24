@@ -56,6 +56,7 @@ export const internKortInformationApiSchema = z
         pingvinPoengSum: z.number().int(),
         aktiveVerv: z.array(internKortVervApiSchema).nullable().optional(),
         dagensOrd: nullableStringSchema,
+        accessToken: nullableStringSchema,
     })
     .strict()
 

@@ -22,6 +22,7 @@
       "supportsTablet": true,
       "icon": "./assets/icons/ios-icon-square.png",
       "bundleIdentifier": "com.kvarteret.internbevis.internBevisKvarteret",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -34,12 +35,15 @@
         "backgroundColor": "#000000"
       },
       "package": "com.kvarteret.internbevis.internBevisKvarteret",
+      "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
       "expo-localization",
       "expo-secure-store",
       [

@@ -46,22 +46,9 @@ export const LoginScreen = (): React.JSX.Element => {
                 keyboardVerticalOffset={12}
             >
                 <View className="w-full items-center justify-center">
-                    {form.mode === "email" ? (
-                        <LoginForm
-                            email={form.email}
-                            emailErrorText={form.emailErrorText}
-                            privacyPolicyChecked={form.privacyPolicyChecked}
-                            sendingOtp={form.sendingOtp}
-                            onChangeEmail={form.setEmail}
-                            onTogglePrivacy={form.togglePrivacy}
-                            onPrivacyPress={() => router.push("/privacy")}
-                            onSubmitEmail={form.submitEmail}
-                            onDemoLogin={form.loginDemo}
-                            onContinueAnonymous={form.continueAnonymous}
-                            showDemoButton={form.showDemoButton}
-                        />
-                    ) : (
+                    {form.mode === "verify" ? (
                         <VerifyCodeForm
+                            authMethod={form.authMethod}
                             otpCode={form.otpCode}
                             otpFieldErrorText={form.otpFieldErrorText}
                             globalErrorText={form.globalErrorText}
@@ -70,7 +57,27 @@ export const LoginScreen = (): React.JSX.Element => {
                             onVerifyCode={form.submitOtp}
                             onSendOtp={form.resendOtp}
                             onUseClipboardLink={form.useClipboardLink}
-                            onBack={form.backToEmail}
+                            onBack={form.backToPhone}
+                            onUseEmailFallback={form.switchToEmailFallback}
+                        />
+                    ) : (
+                        <LoginForm
+                            authMethod={form.authMethod}
+                            email={form.email}
+                            phone={form.phone}
+                            emailErrorText={form.emailErrorText}
+                            phoneErrorText={form.phoneErrorText}
+                            privacyPolicyChecked={form.privacyPolicyChecked}
+                            sendingOtp={form.sendingOtp}
+                            onChangeEmail={form.setEmail}
+                            onChangePhone={form.setPhone}
+                            onTogglePrivacy={form.togglePrivacy}
+                            onPrivacyPress={() => router.push("/privacy")}
+                            onSubmitPhone={form.submitPhone}
+                            onSubmitEmail={form.submitEmail}
+                            onDemoLogin={form.loginDemo}
+                            onContinueAnonymous={form.continueAnonymous}
+                            showDemoButton={form.showDemoButton}
                         />
                     )}
                 </View>

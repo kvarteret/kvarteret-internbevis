@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react"
 import { Linking } from "react-native"
 import { extractAccessTokenFromUrl } from "@/core/linking/deepLinkParser"
-
-type LoginMode = "email" | "verify"
+import { LoginMode } from "@/features/auth/vm/useLoginForm"
 
 export const useDeepLinkLogin = (
     mode: LoginMode,

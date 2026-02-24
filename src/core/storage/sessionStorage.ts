@@ -2,6 +2,7 @@ import { getSecureValue, removeSecureValue, setSecureValue } from "@/core/storag
 
 export const SESSION_STORAGE_KEYS = {
     email: "email",
+    phone: "phone",
     accessToken: "accessToken",
     deepLinkToken: "deep_link_token",
 } as const
