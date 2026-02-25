@@ -1,4 +1,4 @@
-import { BlurView } from "expo-blur"
+import { GlassView, isGlassEffectAPIAvailable } from "expo-glass-effect"
 import React from "react"
 import { Platform, StyleProp, StyleSheet, View, ViewProps, ViewStyle } from "react-native"
 import { themeColors } from "@/shared/theme/colors"
@@ -17,7 +17,9 @@ interface CardProps extends ViewProps {
 // Design token references (must match tailwind.config.js)
 const TOKEN_BORDER = themeColors.border // border
 const TOKEN_SURFACE = themeColors.surface // surface
-const TOKEN_SURFACE_MUTED = themeColors.surfaceMuted // surface-muted (near-white for Android)
+const TOKEN_ANDROID_OUTLINE = themeColors.androidSurfaceOutline
+const TOKEN_ANDROID_GROUPED_SURFACE = themeColors.androidCardGroupedSurface
+const TOKEN_ANDROID_ELEVATED_SURFACE = themeColors.androidCardElevatedSurface
 
 const CARD_RADIUS = Platform.OS === "ios" ? 16 : 14
 const CARD_BORDER_WIDTH = Platform.OS === "ios" ? 0.5 : 1
@@ -38,9 +40,9 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.34)",
     },
     groupedAndroid: {
-        borderColor: TOKEN_BORDER,
-        borderWidth: CARD_BORDER_WIDTH,
-        backgroundColor: TOKEN_SURFACE_MUTED,
+        borderColor: TOKEN_ANDROID_OUTLINE,
+        borderWidth: 0.75,
+        backgroundColor: TOKEN_ANDROID_GROUPED_SURFACE,
         elevation: 1,
     },
     elevatedIOS: {
@@ -62,12 +64,12 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
     },
     elevatedAndroid: {
-        borderColor: TOKEN_BORDER,
-        borderWidth: CARD_BORDER_WIDTH,
-        backgroundColor: TOKEN_SURFACE_MUTED,
-        elevation: 2,
+        borderColor: TOKEN_ANDROID_OUTLINE,
+        borderWidth: 0.5,
+        backgroundColor: TOKEN_ANDROID_ELEVATED_SURFACE,
+        elevation: 3,
     },
-    blurFill: {
+    glassFill: {
         ...StyleSheet.absoluteFillObject,
     },
 })
@@ -92,16 +94,22 @@ export const Card = ({
     children,
     ...props
 }: CardProps): React.JSX.Element => {
-    const useLiquidEffect = Platform.OS === "ios" && effect === "liquid"
+    const useLiquidEffect =
+        Platform.OS === "ios" && effect === "liquid" && isGlassEffectAPIAvailable()
 
     return (
         <View
-            className={cn(effect === "liquid" ? null : "bg-surface", className)}
+            className={cn(className)}
             style={[styles.base, resolveVariantStyle(variant, effect), style]}
             {...props}
         >
             {useLiquidEffect ? (
-                <BlurView intensity={32} style={styles.blurFill} tint="light" />
+                <GlassView
+                    colorScheme="light"
+                    glassEffectStyle="regular"
+                    pointerEvents="none"
+                    style={styles.glassFill}
+                />
             ) : null}
             {children}
         </View>
