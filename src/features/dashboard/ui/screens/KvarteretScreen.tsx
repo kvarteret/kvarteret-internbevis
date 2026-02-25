@@ -1,26 +1,19 @@
 import { useIsFocused } from "@react-navigation/native"
-import { useRouter } from "expo-router"
 import { useQuery } from "@tanstack/react-query"
-import React, { useEffect, useState } from "react"
+import { useRouter } from "expo-router"
+import React, { useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    View,
-} from "react-native"
+import { ActivityIndicator, Image, ScrollView, View } from "react-native"
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
+import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
-import { MenuSheet } from "@/features/dashboard/ui/components/MenuSheet"
-import { TopShellHeader } from "@/features/dashboard/ui/components/TopShellHeader"
 import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
+import { themeColors } from "@/shared/theme/colors"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
-import { themeColors } from "@/shared/theme/colors"
-import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
 import { Text } from "@/shared/ui/Text"
 
 const NOW_PLAYING_POLL_INTERVAL_MS = 10_000
@@ -48,7 +41,9 @@ const OpeningStatusHero = ({
             variant="grouped"
         >
             <Text className="text-3xl leading-tight text-editorial-ink font-black">{title}</Text>
-            {nowPlaying ? <NowPlayingWidget nowPlaying={nowPlaying} progressWidth={progressWidth} /> : null}
+            {nowPlaying ? (
+                <NowPlayingWidget nowPlaying={nowPlaying} progressWidth={progressWidth} />
+            ) : null}
         </Card>
     )
 }
@@ -86,15 +81,26 @@ const NowPlayingWidget = ({
                 <View className="h-16 w-16 rounded-lg bg-surface-muted" />
             )}
             <View className="flex-1 gap-1.5">
-                <Text className="text-base text-editorial-ink font-extrabold" ellipsizeMode="tail" numberOfLines={1}>
+                <Text
+                    className="text-base text-editorial-ink font-extrabold"
+                    ellipsizeMode="tail"
+                    numberOfLines={1}
+                >
                     {nowPlaying.name ?? "-"}
                 </Text>
-                <Text className="text-sm text-editorial-ink-soft" ellipsizeMode="tail" numberOfLines={1}>
+                <Text
+                    className="text-sm text-editorial-ink-soft"
+                    ellipsizeMode="tail"
+                    numberOfLines={1}
+                >
                     {nowPlaying.artists ?? "-"}
                     {nowPlaying.album ? ` - ${nowPlaying.album}` : ""}
                 </Text>
                 <View className="h-1.5 w-full overflow-hidden rounded-full bg-border-soft">
-                    <View className="h-full rounded-full bg-editorial-valid" style={{ width: progressWidth }} />
+                    <View
+                        className="h-full rounded-full bg-editorial-valid"
+                        style={{ width: progressWidth }}
+                    />
                 </View>
             </View>
         </View>
@@ -107,9 +113,6 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const { user, isAnonymous, isLoading, logout, exitAnonymousMode } = useSession()
     const insets = useSafeAreaInsets()
     const isFocused = useIsFocused()
-
-    const [menuVisible, setMenuVisible] = useState(false)
-    const [languageSelectorVisible, setLanguageSelectorVisible] = useState(false)
 
     useEffect(() => {
         if (!user && !isAnonymous) {
@@ -159,29 +162,13 @@ export const KvarteretScreen = (): React.JSX.Element => {
         )
     }
 
-    const authAction = user
-        ? {
-              label: t("logout"),
-              icon: "logout" as const,
-              destructive: true,
-              onPress: () => void logout(),
-          }
-        : {
-              label: t("login"),
-              icon: "login" as const,
-              onPress: async () => {
-                  await exitAnonymousMode()
-                  router.replace("/login")
-              },
-          }
+    const handleLogin = async (): Promise<void> => {
+        await exitAnonymousMode()
+        router.replace("/login")
+    }
 
     return (
-        <SafeAreaView className="flex-1 bg-background">
-            <TopShellHeader
-                openMenuLabel={t("openMenu")}
-                onOpenMenu={() => setMenuVisible(true)}
-            />
-
+        <DashboardShellLayout isLoggedIn={Boolean(user)} onLogin={handleLogin} onLogout={logout}>
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
@@ -203,20 +190,26 @@ export const KvarteretScreen = (): React.JSX.Element => {
                         effect="liquid"
                         variant="grouped"
                     >
-                        <Text className="text-base text-editorial-ink-soft">{t("notRegistered")}</Text>
+                        <Text className="text-base text-editorial-ink-soft">
+                            {t("notRegistered")}
+                        </Text>
                         <Button
                             onPress={async () => {
-                                await exitAnonymousMode()
-                                router.replace("/login")
+                                await handleLogin()
                             }}
                         >
-                            <Text className="text-base text-surface font-semibold">{t("login")}</Text>
+                            <Text className="text-base text-surface font-semibold">
+                                {t("login")}
+                            </Text>
                         </Button>
                     </Card>
                 ) : null}
 
                 <View className="w-full gap-3">
-                    <SectionHeader eyebrow={t("kvarteretEventsEyebrow")} title={t("homeEventsTitle")} />
+                    <SectionHeader
+                        eyebrow={t("kvarteretEventsEyebrow")}
+                        title={t("homeEventsTitle")}
+                    />
                     <EventCarousel
                         events={events}
                         isPending={eventsPending}
@@ -229,21 +222,6 @@ export const KvarteretScreen = (): React.JSX.Element => {
 
                 <EtjenestenFooter />
             </ScrollView>
-
-            <MenuSheet
-                visible={menuVisible}
-                onClose={() => setMenuVisible(false)}
-                onOpenLanguage={() => setLanguageSelectorVisible(true)}
-                onOpenGames={() => router.push("/games")}
-                onOpenPrivacy={() => router.push("/privacy")}
-                onOpenAbout={() => router.push("/about")}
-                authAction={authAction}
-            />
-
-            <LanguageSelectorModal
-                visible={languageSelectorVisible}
-                onClose={() => setLanguageSelectorVisible(false)}
-            />
-        </SafeAreaView>
+        </DashboardShellLayout>
     )
 }

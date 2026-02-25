@@ -9,19 +9,6 @@ export default function TabsLayoutWeb(): React.JSX.Element {
             screenOptions={{
                 headerShown: false,
                 tabBarActiveTintColor: themeColors.tabActive,
-                tabBarInactiveTintColor: themeColors.textSecondary,
-                tabBarStyle: {
-                    backgroundColor: themeColors.background,
-                    borderTopColor: themeColors.editorialBorder,
-                    borderTopWidth: 0.6,
-                },
-                tabBarLabelStyle: {
-                    fontSize: 10,
-                    fontWeight: "600",
-                },
-                tabBarItemStyle: {
-                    minWidth: 136,
-                },
             }}
         >
             <Tabs.Screen

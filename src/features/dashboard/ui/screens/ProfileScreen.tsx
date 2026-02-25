@@ -1,25 +1,17 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import {
-    ActivityIndicator,
-    Image,
-    Pressable,
-    ScrollView,
-    View,
-} from "react-native"
-import { SafeAreaView, useSafeAreaInsets, useSafeAreaFrame } from "react-native-safe-area-context"
+import { ActivityIndicator, Image, Pressable, ScrollView, View } from "react-native"
+import { SafeAreaView, useSafeAreaFrame, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import { getIdVerificationStatus } from "@/features/dashboard/domain/idVerification"
 import { buildDisplayRoles, resolveDisplayedRole } from "@/features/dashboard/domain/profileRoles"
-import { MenuSheet } from "@/features/dashboard/ui/components/MenuSheet"
-import { TopShellHeader } from "@/features/dashboard/ui/components/TopShellHeader"
+import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
+import { themeColors } from "@/shared/theme/colors"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
-import { themeColors } from "@/shared/theme/colors"
-import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
 import { Text } from "@/shared/ui/Text"
 
 const localImageMap: Record<string, number> = {
@@ -52,7 +44,11 @@ const IdentityHero = ({
     const hasRemoteImage = Boolean(remoteImageUrl && !localImageSource)
 
     return (
-        <Card className="w-full items-center gap-4 px-4 pb-5 pt-4" effect="liquid" variant="grouped">
+        <Card
+            className="w-full items-center gap-4 px-4 pb-5 pt-4"
+            effect="liquid"
+            variant="grouped"
+        >
             <View
                 className="overflow-hidden rounded-full border border-editorial-border bg-surface-muted"
                 style={{ width: avatarSize, height: avatarSize }}
@@ -62,12 +58,20 @@ const IdentityHero = ({
                 ) : null}
 
                 {!localImageSource && hasRemoteImage ? (
-                    <Image className="h-full w-full" resizeMode="cover" source={{ uri: remoteImageUrl }} />
+                    <Image
+                        className="h-full w-full"
+                        resizeMode="cover"
+                        source={{ uri: remoteImageUrl }}
+                    />
                 ) : null}
 
                 {!localImageSource && !hasRemoteImage ? (
                     <View className="h-full w-full items-center justify-center">
-                        <MaterialIcons color={themeColors.textSecondary} name="person" size={Math.min(avatarSize * 0.38, 128)} />
+                        <MaterialIcons
+                            color={themeColors.textSecondary}
+                            name="person"
+                            size={Math.min(avatarSize * 0.38, 128)}
+                        />
                     </View>
                 ) : null}
             </View>
@@ -86,7 +90,10 @@ const IdentityHero = ({
                 >
                     <View className="w-full flex-row items-center justify-between rounded-2xl bg-text-primary/5 px-4 py-3.5">
                         <View className="min-w-0 flex-1 gap-0.5">
-                            <Text className="text-xl font-extrabold text-editorial-ink" numberOfLines={1}>
+                            <Text
+                                className="text-xl font-extrabold text-editorial-ink"
+                                numberOfLines={1}
+                            >
                                 {roleName}
                             </Text>
                             <Text className="text-base text-text-secondary" numberOfLines={1}>
@@ -94,7 +101,11 @@ const IdentityHero = ({
                             </Text>
                         </View>
                         <View className="h-9 w-9 items-center justify-center rounded-full bg-text-primary/10">
-                            <MaterialIcons color={themeColors.textSecondary} name="chevron-right" size={24} />
+                            <MaterialIcons
+                                color={themeColors.textSecondary}
+                                name="chevron-right"
+                                size={24}
+                            />
                         </View>
                     </View>
                 </Pressable>
@@ -116,7 +127,9 @@ const VerificationStatusCard = ({
         <View
             className="w-full rounded-3xl border px-4 py-5"
             style={{
-                backgroundColor: isValid ? themeColors.editorialValid : themeColors.editorialInvalid,
+                backgroundColor: isValid
+                    ? themeColors.editorialValid
+                    : themeColors.editorialInvalid,
                 borderColor: isValid ? themeColors.editorialValid : themeColors.editorialInvalid,
             }}
         >
@@ -138,9 +151,7 @@ const SecondaryDetailCard = ({ label, value }: SecondaryDetailCardProps): React.
             <Text className="text-xs uppercase tracking-wide text-text-secondary font-semibold">
                 {label}
             </Text>
-            <Text className="text-3xl leading-9 font-semibold text-editorial-ink">
-                {value}
-            </Text>
+            <Text className="text-3xl leading-9 font-semibold text-editorial-ink">{value}</Text>
         </Card>
     )
 }
@@ -180,9 +191,6 @@ export const ProfileScreen = (): React.JSX.Element => {
     const frame = useSafeAreaFrame()
     const insets = useSafeAreaInsets()
 
-    const [menuVisible, setMenuVisible] = useState(false)
-    const [languageSelectorVisible, setLanguageSelectorVisible] = useState(false)
-
     useEffect(() => {
         if (!user && !isAnonymous) {
             router.replace("/login")
@@ -196,22 +204,6 @@ export const ProfileScreen = (): React.JSX.Element => {
         () => resolveDisplayedRole(displayRoles, selectedFrontpageRoleSelection),
         [displayRoles, selectedFrontpageRoleSelection],
     )
-
-    const authAction: React.ComponentProps<typeof MenuSheet>["authAction"] = user
-        ? {
-              label: t("logout"),
-              icon: "logout",
-              destructive: true,
-              onPress: () => void logout(),
-          }
-        : {
-              label: t("login"),
-              icon: "login",
-              onPress: async () => {
-                  await exitAnonymousMode()
-                  router.replace("/login")
-              },
-          }
 
     const handleLoginPress = async (): Promise<void> => {
         await exitAnonymousMode()
@@ -245,12 +237,11 @@ export const ProfileScreen = (): React.JSX.Element => {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-background">
-            <TopShellHeader
-                openMenuLabel={t("openMenu")}
-                onOpenMenu={() => setMenuVisible(true)}
-            />
-
+        <DashboardShellLayout
+            isLoggedIn={Boolean(user)}
+            onLogin={handleLoginPress}
+            onLogout={logout}
+        >
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
@@ -274,10 +265,7 @@ export const ProfileScreen = (): React.JSX.Element => {
                             remoteImageUrl={remoteImageUrl}
                         />
 
-                        <VerificationStatusCard
-                            tierLabel={tierLabel}
-                            isValid={isValid}
-                        />
+                        <VerificationStatusCard tierLabel={tierLabel} isValid={isValid} />
 
                         <SecondaryDetailCard label={t("wordOfTheDay")} value={wordOfDayValue} />
                     </>
@@ -291,21 +279,6 @@ export const ProfileScreen = (): React.JSX.Element => {
 
                 <EtjenestenFooter />
             </ScrollView>
-
-            <MenuSheet
-                visible={menuVisible}
-                onClose={() => setMenuVisible(false)}
-                onOpenLanguage={() => setLanguageSelectorVisible(true)}
-                onOpenGames={() => router.push("/games")}
-                onOpenPrivacy={() => router.push("/privacy")}
-                onOpenAbout={() => router.push("/about")}
-                authAction={authAction}
-            />
-
-            <LanguageSelectorModal
-                visible={languageSelectorVisible}
-                onClose={() => setLanguageSelectorVisible(false)}
-            />
-        </SafeAreaView>
+        </DashboardShellLayout>
     )
 }
