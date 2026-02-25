@@ -109,7 +109,7 @@ const NowPlayingWidget = ({
 export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
-    const { user, isAnonymous, isLoading, logout, exitAnonymousMode } = useSession()
+    const { user, isAnonymous, isLoading } = useSession()
     const insets = useSafeAreaInsets()
     const isFocused = useIsFocused()
 
@@ -161,15 +161,11 @@ export const KvarteretScreen = (): React.JSX.Element => {
         )
     }
 
-    const handleLogin = async (): Promise<void> => {
-        await exitAnonymousMode()
-        router.replace("/login")
-    }
-
     return (
-        <DashboardShellLayout isLoggedIn={Boolean(user)} onLogin={handleLogin} onLogout={logout}>
+        <DashboardShellLayout>
             <ScrollView
                 className="flex-1"
+                contentInsetAdjustmentBehavior="always"
                 contentContainerStyle={{
                     gap: 24,
                     paddingTop: 10,
@@ -177,11 +173,13 @@ export const KvarteretScreen = (): React.JSX.Element => {
                     paddingBottom: Math.max(insets.bottom + 120, 136),
                 }}
             >
-                <OpeningStatusHero
-                    title={isVenueOpen ? t("kvarteretOpenStatusTitle") : t("kvarteretClosed")}
-                    nowPlaying={showNowPlayingWidget && nowPlaying ? nowPlaying : null}
-                    progressWidth={nowPlayingProgressWidth}
-                />
+                {isVenueOpen ? (
+                    <OpeningStatusHero
+                        title={t("kvarteretOpenStatusTitle")}
+                        nowPlaying={showNowPlayingWidget && nowPlaying ? nowPlaying : null}
+                        progressWidth={nowPlayingProgressWidth}
+                    />
+                ) : null}
 
                 <View className="w-full gap-3">
                     <SectionHeader

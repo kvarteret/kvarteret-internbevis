@@ -185,7 +185,6 @@ export const ProfileScreen = (): React.JSX.Element => {
         isAnonymous,
         selectedFrontpageRoleSelection,
         isLoading,
-        logout,
         exitAnonymousMode,
     } = useSession()
     const frame = useSafeAreaFrame()
@@ -237,13 +236,10 @@ export const ProfileScreen = (): React.JSX.Element => {
     }
 
     return (
-        <DashboardShellLayout
-            isLoggedIn={Boolean(user)}
-            onLogin={handleLoginPress}
-            onLogout={logout}
-        >
+        <DashboardShellLayout>
             <ScrollView
                 className="flex-1"
+                contentInsetAdjustmentBehavior="always"
                 contentContainerStyle={{
                     gap: 14,
                     paddingTop: 6,

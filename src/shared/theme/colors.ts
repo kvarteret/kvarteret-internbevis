@@ -20,4 +20,9 @@ export const themeColors = {
     editorialBorder: "#0000001A",
     overlay: "#00000033",
     overlayStrong: "#00000059",
+    androidHeaderSurface: "#F6ECDC",
+    androidCardGroupedSurface: "#F8EAD8",
+    androidCardElevatedSurface: "#FFF4E7",
+    androidSurfaceOutline: "#0000001F",
+    androidActionSurface: "#FFFFFFCC",
 } as const

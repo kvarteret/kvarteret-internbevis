@@ -20,11 +20,8 @@ export const buildNativeMenuActions = ({
     t,
     isLoggedIn,
 }: BuildNativeMenuActionsParams): MenuAction[] => {
-    const menuImage = ({ ios, android }: { ios: string; android: string }): string | undefined => {
-        if (Platform.OS === "ios") return ios
-        if (Platform.OS === "android") return android
-        return undefined
-    }
+    const menuImage = ({ ios }: { ios: string }): string | undefined =>
+        Platform.OS === "ios" ? ios : undefined
 
     const languageSubactions: MenuAction[] = [
         {
@@ -46,7 +43,6 @@ export const buildNativeMenuActions = ({
               },
               image: menuImage({
                   ios: "rectangle.portrait.and.arrow.right.fill",
-                  android: "ic_menu_close_clear_cancel",
               }),
               imageColor: "#D70015",
           }
@@ -55,7 +51,6 @@ export const buildNativeMenuActions = ({
               title: t("login"),
               image: menuImage({
                   ios: "person.crop.circle",
-                  android: "ic_menu_myplaces",
               }),
               imageColor: "#111827",
           }
@@ -66,7 +61,6 @@ export const buildNativeMenuActions = ({
             title: t("privacy"),
             image: menuImage({
                 ios: "lock.fill",
-                android: "ic_menu_info_details",
             }),
             imageColor: "#111827",
         },
@@ -75,7 +69,6 @@ export const buildNativeMenuActions = ({
             title: t("about"),
             image: menuImage({
                 ios: "info.circle",
-                android: "ic_menu_help",
             }),
             imageColor: "#111827",
         },
@@ -84,7 +77,6 @@ export const buildNativeMenuActions = ({
             title: t("games"),
             image: menuImage({
                 ios: "gamecontroller.fill",
-                android: "ic_menu_manage",
             }),
             imageColor: "#111827",
         },
