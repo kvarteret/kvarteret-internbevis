@@ -7,7 +7,6 @@
         "start:dev-client": "expo start --dev-client",
         "android": "expo run:android",
         "ios": "expo run:ios",
-        "web": "expo start --web",
         "build:dev:android": "eas build --platform android --profile development-android",
         "build:dev:ios": "eas build --platform ios --profile development-ios",
         "build:dev:ios-simulator": "eas build --platform ios --profile development-ios-simulator",
@@ -43,7 +42,6 @@
         "i18next": "^25.8.5",
         "nativewind": "^4.1.23",
         "react": "19.1.0",
-        "react-dom": "19.1.0",
         "react-i18next": "^16.5.4",
         "react-native": "0.81.5",
         "react-native-gesture-handler": "~2.28.0",
@@ -53,7 +51,6 @@
         "react-native-safe-area-context": "~5.6.0",
         "react-native-screens": "~4.16.0",
         "react-native-svg": "15.12.1",
-        "react-native-web": "^0.21.0",
         "react-native-worklets": "0.5.1",
         "tailwind-merge": "^3.4.0",
         "zod": "^4.3.6"

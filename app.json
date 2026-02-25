@@ -10,6 +10,7 @@
             "url": "https://u.expo.dev/8e46104c-a94c-4205-9884-4f813b6371c3"
         },
         "orientation": "portrait",
+        "platforms": ["ios", "android"],
         "icon": "./assets/icons/app-icon-square.png",
         "scheme": "internbeviskvarteret",
         "userInterfaceStyle": "light",
@@ -35,9 +36,6 @@
             },
             "package": "com.kvarteret.internbevis.internBevisKvarteret",
             "predictiveBackGestureEnabled": false
-        },
-        "web": {
-            "favicon": "./assets/favicon.png"
         },
         "plugins": [
             "expo-localization",

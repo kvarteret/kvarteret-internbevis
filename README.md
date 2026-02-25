@@ -62,7 +62,6 @@ npm run start:dev-client
 2. iOS device: testers must be on the Ad Hoc provisioning profile (UDID
    registered via Apple Developer/EAS).
 3. iOS simulator: teammates can install with `npx eas build:run --platform ios --profile development-ios-simulator`.
-4. Web: development builds do not apply to web. Keep using PR previews/deploy previews for browser testing.
 
 ### Optional: run all dev builds via EAS Workflow
 

@@ -8,7 +8,6 @@ export default function TabsLayout(): React.JSX.Element {
         <NativeTabs
             iconColor={{ default: themeColors.textSecondary, selected: themeColors.tabActive }}
             indicatorColor={themeColors.tabActive}
-            minimizeBehavior="never"
             tintColor={themeColors.tabActive}
         >
             <NativeTabs.Trigger name="kontroll">
