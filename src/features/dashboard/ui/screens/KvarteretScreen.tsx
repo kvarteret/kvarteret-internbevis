@@ -11,7 +11,6 @@ import { DashboardShellLayout } from "@/features/dashboard/ui/components/Dashboa
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
 import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
 import { themeColors } from "@/shared/theme/colors"
-import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
@@ -152,7 +151,7 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const nowPlayingProgressWidth =
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
 
-    const isVenueOpen = true
+    const isVenueOpen = showNowPlayingWidget
 
     if (isLoading) {
         return (
@@ -183,27 +182,6 @@ export const KvarteretScreen = (): React.JSX.Element => {
                     nowPlaying={showNowPlayingWidget && nowPlaying ? nowPlaying : null}
                     progressWidth={nowPlayingProgressWidth}
                 />
-
-                {!user ? (
-                    <Card
-                        className="w-full gap-3 border border-editorial-border bg-editorial-surface px-4 py-4"
-                        effect="liquid"
-                        variant="grouped"
-                    >
-                        <Text className="text-base text-editorial-ink-soft">
-                            {t("notRegistered")}
-                        </Text>
-                        <Button
-                            onPress={async () => {
-                                await handleLogin()
-                            }}
-                        >
-                            <Text className="text-base text-surface font-semibold">
-                                {t("login")}
-                            </Text>
-                        </Button>
-                    </Card>
-                ) : null}
 
                 <View className="w-full gap-3">
                     <SectionHeader

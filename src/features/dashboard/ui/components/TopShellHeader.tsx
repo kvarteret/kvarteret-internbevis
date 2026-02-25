@@ -22,6 +22,12 @@ export const TopShellHeader = ({
   onMenuAction,
 }: TopShellHeaderProps): React.JSX.Element => {
   const nativeTriggerHitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
+  const nativeTriggerStyle = {
+    width: 40,
+    height: 40,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  };
   const iosMenuButtonStyle =
     Platform.OS === "ios"
       ? {
@@ -36,9 +42,6 @@ export const TopShellHeader = ({
 
   const menuButton = (
     <View
-      accessibilityLabel={openMenuLabel}
-      accessibilityRole="button"
-      accessible
       className={
         Platform.OS === "ios"
           ? "h-10 w-10 items-center justify-center rounded-full border"
@@ -72,6 +75,7 @@ export const TopShellHeader = ({
 
       <View className="items-end">
         <MenuView
+          style={nativeTriggerStyle}
           actions={menuActions}
           hitSlop={nativeTriggerHitSlop}
           shouldOpenOnLongPress={false}
