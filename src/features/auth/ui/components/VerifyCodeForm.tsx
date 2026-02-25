@@ -37,11 +37,7 @@ export const VerifyCodeForm = ({
             contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4"
             keyboardShouldPersistTaps="handled"
         >
-            <Card
-                className="w-11/12 max-w-xl px-5 py-7"
-                effect="liquid"
-                variant="elevated"
-            >
+            <Card className="w-11/12 max-w-xl px-5 py-7" effect="liquid" variant="elevated">
                 <Text className="text-center text-2xl leading-8 text-text-primary font-medium">
                     {t("verifyEmail")}
                 </Text>

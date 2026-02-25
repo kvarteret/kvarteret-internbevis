@@ -2,8 +2,8 @@ import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { useTranslation } from "react-i18next"
 import { Modal, Pressable, View } from "react-native"
-import { Card } from "@/shared/ui/Card"
 import { themeColors } from "@/shared/theme/colors"
+import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 
@@ -79,7 +79,11 @@ export const MenuSheet = ({
                             <MaterialIcons
                                 name={action.icon}
                                 size={20}
-                                color={action.destructive ? themeColors.stateDanger : themeColors.textPrimary}
+                                color={
+                                    action.destructive
+                                        ? themeColors.stateDanger
+                                        : themeColors.textPrimary
+                                }
                             />
                             <Text
                                 className={

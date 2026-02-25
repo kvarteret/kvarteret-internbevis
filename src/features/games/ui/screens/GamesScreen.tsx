@@ -3,8 +3,8 @@ import React, { useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { COMMON_DICE_TYPES, useDiceRoll } from "@/features/games/vm/useDiceRoll"
 import { useChessTimer } from "@/features/games/vm/useChessTimer"
+import { COMMON_DICE_TYPES, useDiceRoll } from "@/features/games/vm/useDiceRoll"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
@@ -78,14 +78,8 @@ export const GamesScreen = (): React.JSX.Element => {
     const navigation = useNavigation()
 
     const [mode, setMode] = useState<GameMode>("d6")
-    const {
-        selectedDiceType,
-        diceValue,
-        diceRollCount,
-        isRolling,
-        selectDiceType,
-        rollDice,
-    } = useDiceRoll()
+    const { selectedDiceType, diceValue, diceRollCount, isRolling, selectDiceType, rollDice } =
+        useDiceRoll()
 
     const { timerState, toggleTimer, resetChessTimer, pressCurrentPlayer } = useChessTimer(
         INITIAL_CHESS_MS,
@@ -130,7 +124,9 @@ export const GamesScreen = (): React.JSX.Element => {
                                     <Text
                                         className={cn(
                                             "text-center text-sm font-semibold",
-                                            isSelected ? "text-text-primary" : "text-text-secondary",
+                                            isSelected
+                                                ? "text-text-primary"
+                                                : "text-text-secondary",
                                         )}
                                     >
                                         {tab.label}
@@ -143,7 +139,9 @@ export const GamesScreen = (): React.JSX.Element => {
 
                 {mode === "d6" ? (
                     <Card className="gap-4 p-4" effect="liquid" variant="grouped">
-                        <Text className="text-2xl font-bold text-text-primary">{t("gamesDice")}</Text>
+                        <Text className="text-2xl font-bold text-text-primary">
+                            {t("gamesDice")}
+                        </Text>
                         <View className="gap-2">
                             <Text className="text-sm text-text-secondary font-semibold">
                                 {t("gamesSelectDie")}
@@ -156,9 +154,7 @@ export const GamesScreen = (): React.JSX.Element => {
                                             key={diceType}
                                             className={cn(
                                                 "rounded-full px-3 py-2",
-                                                selected
-                                                    ? "bg-text-primary"
-                                                    : "bg-surface/80",
+                                                selected ? "bg-text-primary" : "bg-surface/80",
                                                 isRolling && "opacity-70",
                                             )}
                                             disabled={isRolling}
@@ -179,7 +175,11 @@ export const GamesScreen = (): React.JSX.Element => {
                                 })}
                             </View>
                         </View>
-                        <Card className="items-center gap-1 py-6" effect="liquid" variant="elevated">
+                        <Card
+                            className="items-center gap-1 py-6"
+                            effect="liquid"
+                            variant="elevated"
+                        >
                             <Text className="text-center text-7xl font-bold text-text-primary">
                                 {diceValue}
                             </Text>

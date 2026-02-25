@@ -62,14 +62,23 @@ export const EventCard = ({
                 )}
 
                 <View className="gap-1.5 p-4">
-                    <Text className="text-xs uppercase tracking-wide text-text-secondary font-semibold" numberOfLines={1}>
+                    <Text
+                        className="text-xs uppercase tracking-wide text-text-secondary font-semibold"
+                        numberOfLines={1}
+                    >
                         {formattedDate}
                     </Text>
-                    <Text className="text-lg leading-6 text-editorial-ink font-extrabold" numberOfLines={2}>
+                    <Text
+                        className="text-lg leading-6 text-editorial-ink font-extrabold"
+                        numberOfLines={2}
+                    >
                         {translation.value.title}
                     </Text>
                     {descriptionPreview ? (
-                        <Text className="text-sm leading-5 text-editorial-ink-soft" numberOfLines={3}>
+                        <Text
+                            className="text-sm leading-5 text-editorial-ink-soft"
+                            numberOfLines={3}
+                        >
                             {descriptionPreview}
                         </Text>
                     ) : null}

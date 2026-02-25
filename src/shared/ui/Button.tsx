@@ -110,7 +110,9 @@ export const Button = ({
             accessibilityRole={accessibilityRole ?? "button"}
             android_ripple={resolvedAndroidRipple}
             className={cn(
-                isGhost ? resolveGhostClassName(disabled) : resolveButtonClassName(variant, disabled),
+                isGhost
+                    ? resolveGhostClassName(disabled)
+                    : resolveButtonClassName(variant, disabled),
                 className,
             )}
             disabled={disabled}

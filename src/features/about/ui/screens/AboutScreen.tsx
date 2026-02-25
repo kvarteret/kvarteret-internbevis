@@ -5,9 +5,9 @@ import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { openExternalUrl } from "@/core/linking/linkClient"
+import { themeColors } from "@/shared/theme/colors"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
-import { themeColors } from "@/shared/theme/colors"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 
@@ -17,13 +17,20 @@ interface ExternalLinkRowProps {
     isLast?: boolean
 }
 
-const ExternalLinkRow = ({ label, url, isLast = false }: ExternalLinkRowProps): React.JSX.Element => {
+const ExternalLinkRow = ({
+    label,
+    url,
+    isLast = false,
+}: ExternalLinkRowProps): React.JSX.Element => {
     return (
         <Pressable
             accessibilityHint={url}
             accessibilityLabel={label}
             accessibilityRole="link"
-            className={cn("flex-row items-center justify-between gap-3 px-4 py-3.5", !isLast && "border-b border-editorial-border")}
+            className={cn(
+                "flex-row items-center justify-between gap-3 px-4 py-3.5",
+                !isLast && "border-b border-editorial-border",
+            )}
             onPress={() => {
                 void openExternalUrl(url)
             }}
@@ -57,8 +64,12 @@ export const AboutScreen = (): React.JSX.Element => {
                 contentInsetAdjustmentBehavior="automatic"
             >
                 <Card className="mb-3 gap-3 px-4 py-4" effect="liquid" variant="grouped">
-                    <Text className="text-2xl font-black text-text-primary">{t("aboutKvarteretTitle")}</Text>
-                    <Text className="text-base leading-6 text-text-secondary">{t("aboutKvarteretText")}</Text>
+                    <Text className="text-2xl font-black text-text-primary">
+                        {t("aboutKvarteretTitle")}
+                    </Text>
+                    <Text className="text-base leading-6 text-text-secondary">
+                        {t("aboutKvarteretText")}
+                    </Text>
                 </Card>
 
                 <Card className="mb-3 overflow-hidden" effect="liquid" variant="grouped">
@@ -70,8 +81,12 @@ export const AboutScreen = (): React.JSX.Element => {
                 </Card>
 
                 <Card className="mb-3 gap-3 px-4 py-4" effect="liquid" variant="grouped">
-                    <Text className="text-2xl font-black text-text-primary">{t("aboutEtjenestenTitle")}</Text>
-                    <Text className="text-base leading-6 text-text-secondary">{t("aboutEtjenestenText")}</Text>
+                    <Text className="text-2xl font-black text-text-primary">
+                        {t("aboutEtjenestenTitle")}
+                    </Text>
+                    <Text className="text-base leading-6 text-text-secondary">
+                        {t("aboutEtjenestenText")}
+                    </Text>
                     <Pressable
                         accessibilityHint="mailto:it.leder@kvarteret.no"
                         accessibilityLabel={t("aboutEmailLabel")}

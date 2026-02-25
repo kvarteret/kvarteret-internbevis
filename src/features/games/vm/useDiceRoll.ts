@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react"
 import {
-    Easing,
     cancelAnimation,
+    Easing,
     runOnJS,
     useAnimatedReaction,
     useSharedValue,

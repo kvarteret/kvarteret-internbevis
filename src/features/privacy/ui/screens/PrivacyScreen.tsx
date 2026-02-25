@@ -6,9 +6,9 @@ import Markdown from "react-native-markdown-display"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { PRIVACY_POLICY_MARKDOWN } from "@/features/privacy/domain/privacyPolicy"
+import { themeColors } from "@/shared/theme/colors"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
-import { themeColors } from "@/shared/theme/colors"
 import { Text } from "@/shared/ui/Text"
 
 export const PrivacyScreen = (): React.JSX.Element => {

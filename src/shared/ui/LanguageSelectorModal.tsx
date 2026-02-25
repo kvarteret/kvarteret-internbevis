@@ -3,8 +3,8 @@ import React from "react"
 import { useTranslation } from "react-i18next"
 import { Modal, Pressable, View } from "react-native"
 import { SupportedLanguage, useLanguage } from "@/app/providers/LanguageProvider"
-import { Card } from "@/shared/ui/Card"
 import { themeColors } from "@/shared/theme/colors"
+import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 
@@ -81,7 +81,11 @@ export const LanguageSelectorModal = ({
 
                                 <View className="flex-1" />
                                 {selected ? (
-                                    <MaterialIcons name="check" size={20} color={themeColors.textSecondary} />
+                                    <MaterialIcons
+                                        name="check"
+                                        size={20}
+                                        color={themeColors.textSecondary}
+                                    />
                                 ) : null}
                             </Pressable>
                         )

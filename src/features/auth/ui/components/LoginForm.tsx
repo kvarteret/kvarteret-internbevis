@@ -44,11 +44,7 @@ export const LoginForm = ({
             contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4"
             keyboardShouldPersistTaps="handled"
         >
-            <Card
-                className="w-11/12 max-w-xl p-6"
-                effect="liquid"
-                variant="elevated"
-            >
+            <Card className="w-11/12 max-w-xl p-6" effect="liquid" variant="elevated">
                 <Text className="text-center text-3xl leading-9 text-text-primary font-bold">
                     {t("login")}
                 </Text>
@@ -129,7 +125,11 @@ export const LoginForm = ({
                                 <Text className="flex-1 text-sm leading-5 text-link underline font-medium">
                                     {t("privacyPolicyConsent")}
                                 </Text>
-                                <MaterialIcons color={themeColors.link} name="open-in-new" size={16} />
+                                <MaterialIcons
+                                    color={themeColors.link}
+                                    name="open-in-new"
+                                    size={16}
+                                />
                             </Pressable>
                         </View>
                     </Card>
