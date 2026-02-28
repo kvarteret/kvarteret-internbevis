@@ -38,7 +38,7 @@ export const VerifyCodeForm = ({
             keyboardShouldPersistTaps="handled"
         >
             <Card className="w-11/12 max-w-xl px-5 py-7" effect="liquid" variant="elevated">
-                <Text className="text-center text-2xl leading-8 text-text-primary font-medium">
+                <Text className="text-center text-2xl leading-8 font-medium">
                     {t("verifyEmail")}
                 </Text>
 
@@ -74,19 +74,19 @@ export const VerifyCodeForm = ({
                             </Text>
                         </Button>
                         <Button variant="secondary" onPress={() => void onSendOtp()}>
-                            <Text className="text-base leading-5 text-text-primary font-semibold">
+                            <Text className="text-base leading-5 font-semibold">
                                 {t("sendNewCode")}
                             </Text>
                         </Button>
                         {isExpoGo ? (
                             <Button variant="secondary" onPress={() => void onUseClipboardLink()}>
-                                <Text className="text-base leading-5 text-text-primary font-semibold">
+                                <Text className="text-base leading-5 font-semibold">
                                     {t("useLinkFromClipboard")}
                                 </Text>
                             </Button>
                         ) : null}
                         <Button variant="secondary" onPress={onBack}>
-                            <Text className="text-base leading-5 text-text-primary font-semibold">
+                            <Text className="text-base leading-5 font-semibold">
                                 {t("back")}
                             </Text>
                         </Button>

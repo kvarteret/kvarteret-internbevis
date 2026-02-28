@@ -10,6 +10,7 @@ interface TextFieldProps extends TextInputProps {
 export const TextField = ({
     className,
     placeholderTextColor,
+    style,
     ...props
 }: TextFieldProps): React.JSX.Element => {
     return (
@@ -19,6 +20,7 @@ export const TextField = ({
                 "min-h-12 w-full rounded-xl border border-surface bg-surface-muted px-3 py-3 text-base text-text-primary",
                 className,
             )}
+            style={style}
             placeholderTextColor={placeholderTextColor ?? themeColors.textSecondary}
             {...props}
         />

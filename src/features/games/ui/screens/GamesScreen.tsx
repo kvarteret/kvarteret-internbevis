@@ -52,7 +52,7 @@ const ClockCard = ({
     })()
 
     return (
-        <View className={cardClass}>
+                <View className={cardClass}>
             <Text
                 className={cn(
                     "mb-1.5 text-sm font-semibold",
@@ -64,7 +64,7 @@ const ClockCard = ({
             <Text
                 className={cn(
                     "text-5xl font-bold",
-                    isActive ? "text-surface" : "text-text-primary",
+                    isActive ? "text-surface" : null,
                 )}
             >
                 {formatClock(timeMs)}
@@ -124,9 +124,7 @@ export const GamesScreen = (): React.JSX.Element => {
                                     <Text
                                         className={cn(
                                             "text-center text-sm font-semibold",
-                                            isSelected
-                                                ? "text-text-primary"
-                                                : "text-text-secondary",
+                                            isSelected ? null : "text-text-secondary",
                                         )}
                                     >
                                         {tab.label}
@@ -139,7 +137,7 @@ export const GamesScreen = (): React.JSX.Element => {
 
                 {mode === "d6" ? (
                     <Card className="gap-4 p-4" effect="liquid" variant="grouped">
-                        <Text className="text-2xl font-bold text-text-primary">
+                        <Text className="text-2xl font-bold">
                             {t("gamesDice")}
                         </Text>
                         <View className="gap-2">
@@ -165,7 +163,7 @@ export const GamesScreen = (): React.JSX.Element => {
                                             <Text
                                                 className={cn(
                                                     "text-sm font-semibold",
-                                                    selected ? "text-surface" : "text-text-primary",
+                                                    selected ? "text-surface" : null,
                                                 )}
                                             >
                                                 {`d${diceType}`}
@@ -180,7 +178,7 @@ export const GamesScreen = (): React.JSX.Element => {
                             effect="liquid"
                             variant="elevated"
                         >
-                            <Text className="text-center text-7xl font-bold text-text-primary">
+                            <Text className="text-center text-7xl font-bold">
                                 {diceValue}
                             </Text>
                             <Text className="text-center text-sm text-text-secondary">
@@ -189,14 +187,14 @@ export const GamesScreen = (): React.JSX.Element => {
                         </Card>
 
                         <Button onPress={rollDice}>
-                            <Text className="text-base text-surface font-bold">
+                            <Text className="text-base leading-5 font-semibold text-surface">
                                 {t("gamesRollDie", { die: `d${selectedDiceType}` })}
                             </Text>
                         </Button>
                     </Card>
                 ) : (
                     <Card className="gap-4 p-4" effect="liquid" variant="grouped">
-                        <Text className="text-2xl font-bold text-text-primary">
+                        <Text className="text-2xl font-bold">
                             {t("gamesChessTimer")}
                         </Text>
 
@@ -237,15 +235,13 @@ export const GamesScreen = (): React.JSX.Element => {
 
                         <View className="mt-1 gap-2.5">
                             <Button onPress={toggleTimer}>
-                                <Text className="text-base text-surface font-bold">
+                                <Text className="text-base leading-5 font-semibold text-surface">
                                     {timerState.isRunning ? t("chessPause") : t("chessStart")}
                                 </Text>
                             </Button>
 
                             <Button variant="secondary" onPress={resetChessTimer}>
-                                <Text className="text-base text-text-primary font-semibold">
-                                    {t("chessReset")}
-                                </Text>
+                                {t("chessReset")}
                             </Button>
                         </View>
                     </Card>

@@ -29,7 +29,7 @@ export const PrivacyScreen = (): React.JSX.Element => {
                 contentInsetAdjustmentBehavior="automatic"
             >
                 <Card className="mb-3 gap-2 px-4 py-4" effect="liquid" variant="grouped">
-                    <Text className="text-2xl font-black text-text-primary">{t("privacy")}</Text>
+                    <Text className="text-2xl font-black">{t("privacy")}</Text>
                     <Text className="text-sm leading-5 text-text-secondary">
                         {t("privacyPolicyConsent")}
                     </Text>

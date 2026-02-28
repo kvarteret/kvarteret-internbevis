@@ -3,7 +3,7 @@ import { useRouter } from "expo-router"
 import React, { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Image, Pressable, ScrollView, View } from "react-native"
-import { SafeAreaView, useSafeAreaFrame, useSafeAreaInsets } from "react-native-safe-area-context"
+import { SafeAreaView, useSafeAreaFrame } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import { getIdVerificationStatus } from "@/features/dashboard/domain/idVerification"
 import { buildDisplayRoles, resolveDisplayedRole } from "@/features/dashboard/domain/profileRoles"
@@ -125,16 +125,16 @@ const VerificationStatusCard = ({
 }: VerificationStatusCardProps): React.JSX.Element => {
     return (
         <View
-            className="w-full rounded-3xl border px-4 py-5"
-            style={{
-                backgroundColor: isValid
-                    ? themeColors.editorialValid
-                    : themeColors.editorialInvalid,
-                borderColor: isValid ? themeColors.editorialValid : themeColors.editorialInvalid,
-            }}
+            className={
+                isValid
+                    ? "w-full rounded-3xl border border-editorial-valid bg-editorial-valid px-4 py-5"
+                    : "w-full rounded-3xl border border-editorial-invalid bg-editorial-invalid px-4 py-5"
+            }
         >
             <View className="items-center gap-1">
-                <Text className="text-4xl leading-tight text-surface font-black">{tierLabel}</Text>
+                <Text className="text-4xl leading-tight text-surface font-black">
+                    {tierLabel}
+                </Text>
             </View>
         </View>
     )
@@ -170,9 +170,7 @@ const LoggedOutCard = ({
     return (
         <Card className="w-full gap-4 px-4 py-5" effect="liquid" variant="grouped">
             <Text className="text-base text-text-secondary">{promptText}</Text>
-            <Button onPress={onLoginPress}>
-                <Text className="text-base text-surface font-semibold">{loginLabel}</Text>
-            </Button>
+            <Button onPress={onLoginPress}>{loginLabel}</Button>
         </Card>
     )
 }
@@ -188,7 +186,6 @@ export const ProfileScreen = (): React.JSX.Element => {
         exitAnonymousMode,
     } = useSession()
     const frame = useSafeAreaFrame()
-    const insets = useSafeAreaInsets()
 
     useEffect(() => {
         if (!user && !isAnonymous) {
@@ -239,13 +236,8 @@ export const ProfileScreen = (): React.JSX.Element => {
         <DashboardShellLayout>
             <ScrollView
                 className="flex-1"
-                contentInsetAdjustmentBehavior="always"
-                contentContainerStyle={{
-                    gap: 14,
-                    paddingTop: 6,
-                    paddingHorizontal: 16,
-                    paddingBottom: Math.max(insets.bottom + 120, 136),
-                }}
+                contentInsetAdjustmentBehavior="automatic"
+                contentContainerClassName="gap-3.5 px-4 pb-36 pt-1.5"
             >
                 {user ? (
                     <>

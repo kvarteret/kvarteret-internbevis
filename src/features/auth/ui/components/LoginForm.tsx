@@ -45,7 +45,7 @@ export const LoginForm = ({
             keyboardShouldPersistTaps="handled"
         >
             <Card className="w-11/12 max-w-xl p-6" effect="liquid" variant="elevated">
-                <Text className="text-center text-3xl leading-9 text-text-primary font-bold">
+                <Text className="text-center text-3xl leading-9 font-bold">
                     {t("login")}
                 </Text>
 
@@ -73,7 +73,7 @@ export const LoginForm = ({
                             </Button>
                             {showDemoButton ? (
                                 <Button variant="secondary" onPress={onDemoLogin}>
-                                    <Text className="text-base leading-5 text-text-primary font-semibold">
+                                    <Text className="text-base leading-5 font-semibold">
                                         {t("tryDemo")}
                                     </Text>
                                 </Button>
@@ -85,7 +85,7 @@ export const LoginForm = ({
                         variant="secondary"
                         onPress={onContinueAnonymous}
                     >
-                        <Text className="text-base leading-5 text-text-primary font-semibold">
+                        <Text className="text-base leading-5 font-semibold">
                             {t("continueAnonymously")}
                         </Text>
                     </Button>

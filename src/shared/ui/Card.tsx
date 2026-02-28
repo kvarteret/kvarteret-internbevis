@@ -1,7 +1,8 @@
+import { BlurView } from "expo-blur"
 import { GlassView, isGlassEffectAPIAvailable } from "expo-glass-effect"
 import React from "react"
-import { Platform, StyleProp, StyleSheet, View, ViewProps, ViewStyle } from "react-native"
-import { themeColors } from "@/shared/theme/colors"
+import { Platform, StyleProp, View, ViewProps, ViewStyle } from "react-native"
+import { useBlurTargetRef } from "@/shared/ui/blur/BlurTargetProvider"
 import { cn } from "@/shared/utils/cn"
 
 type CardVariant = "grouped" | "elevated"
@@ -14,76 +15,74 @@ interface CardProps extends ViewProps {
     style?: StyleProp<ViewStyle>
 }
 
-// Design token references (must match tailwind.config.js)
-const TOKEN_BORDER = themeColors.border // border
-const TOKEN_SURFACE = themeColors.surface // surface
-const TOKEN_ANDROID_OUTLINE = themeColors.androidSurfaceOutline
-const TOKEN_ANDROID_GROUPED_SURFACE = themeColors.androidCardGroupedSurface
-const TOKEN_ANDROID_ELEVATED_SURFACE = themeColors.androidCardElevatedSurface
+const ABSOLUTE_FILL_STYLE: ViewStyle = {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+}
 
-const CARD_RADIUS = Platform.OS === "ios" ? 16 : 14
-const CARD_BORDER_WIDTH = Platform.OS === "ios" ? 0.5 : 1
-
-const styles = StyleSheet.create({
-    base: {
-        borderRadius: CARD_RADIUS,
-        overflow: "hidden",
-    },
-    groupedIOS: {
-        borderColor: TOKEN_BORDER,
-        borderWidth: CARD_BORDER_WIDTH,
-        backgroundColor: TOKEN_SURFACE,
-    },
-    groupedLiquidIOS: {
-        borderColor: "rgba(255,255,255,0.45)",
-        borderWidth: 0.75,
-        backgroundColor: "rgba(255,255,255,0.34)",
-    },
-    groupedAndroid: {
-        borderColor: TOKEN_ANDROID_OUTLINE,
-        borderWidth: 0.75,
-        backgroundColor: TOKEN_ANDROID_GROUPED_SURFACE,
-        elevation: 1,
-    },
-    elevatedIOS: {
-        borderColor: TOKEN_BORDER,
-        borderWidth: CARD_BORDER_WIDTH,
-        backgroundColor: TOKEN_SURFACE,
-        shadowColor: themeColors.textPrimary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-    },
-    elevatedLiquidIOS: {
-        borderColor: "rgba(255,255,255,0.45)",
-        borderWidth: 0.75,
-        backgroundColor: "rgba(255,255,255,0.34)",
-        shadowColor: themeColors.textPrimary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-    },
-    elevatedAndroid: {
-        borderColor: TOKEN_ANDROID_OUTLINE,
-        borderWidth: 0.5,
-        backgroundColor: TOKEN_ANDROID_ELEVATED_SURFACE,
-        elevation: 3,
-    },
-    glassFill: {
-        ...StyleSheet.absoluteFillObject,
-    },
-})
-
+// Style escape hatch: platform-specific border widths/elevation are not represented by our utility tokens.
 const resolveVariantStyle = (variant: CardVariant, effect: CardEffect): ViewStyle => {
     if (Platform.OS === "ios" && effect === "liquid") {
-        return variant === "elevated" ? styles.elevatedLiquidIOS : styles.groupedLiquidIOS
+        return {
+            borderWidth: 0.75,
+        }
+    }
+
+    if (Platform.OS === "android" && effect === "liquid") {
+        return {
+            borderWidth: 0.75,
+            elevation: variant === "elevated" ? 3 : 1,
+        }
     }
 
     if (variant === "elevated") {
-        return Platform.OS === "ios" ? styles.elevatedIOS : styles.elevatedAndroid
+        return Platform.OS === "ios"
+            ? {
+                  borderWidth: 0.5,
+              }
+            : {
+                  borderWidth: 0.5,
+                  elevation: 3,
+              }
     }
 
-    return Platform.OS === "ios" ? styles.groupedIOS : styles.groupedAndroid
+    return Platform.OS === "ios"
+        ? {
+              borderWidth: 0.5,
+          }
+        : {
+              borderWidth: 0.75,
+              elevation: 1,
+          }
+}
+
+const resolveVariantClassName = (variant: CardVariant, effect: CardEffect): string => {
+    const shared = Platform.OS === "ios" ? "rounded-2xl overflow-hidden" : "rounded-card overflow-hidden"
+
+    if (Platform.OS === "ios" && effect === "liquid") {
+        return cn(shared, "border-white/45 bg-white/35", variant === "elevated" ? "shadow-card" : null)
+    }
+
+    if (Platform.OS === "android" && effect === "liquid") {
+        return cn(shared, "border-white/30 bg-white/20")
+    }
+
+    if (variant === "elevated") {
+        return cn(
+            shared,
+            "border-border bg-surface",
+            Platform.OS === "ios" ? "shadow-card" : "border-android-surface-outline bg-android-card-elevated-surface",
+        )
+    }
+
+    return cn(
+        shared,
+        "border-border bg-surface",
+        Platform.OS === "android" ? "border-android-surface-outline bg-android-card-grouped-surface" : null,
+    )
 }
 
 export const Card = ({
@@ -94,21 +93,34 @@ export const Card = ({
     children,
     ...props
 }: CardProps): React.JSX.Element => {
+    const blurTargetRef = useBlurTargetRef()
     const useLiquidEffect =
         Platform.OS === "ios" && effect === "liquid" && isGlassEffectAPIAvailable()
+    const useAndroidBlurEffect =
+        Platform.OS === "android" && effect === "liquid" && Boolean(blurTargetRef)
 
     return (
         <View
-            className={cn(className)}
-            style={[styles.base, resolveVariantStyle(variant, effect), style]}
+            className={cn(resolveVariantClassName(variant, effect), className)}
+            style={[resolveVariantStyle(variant, effect), style]}
             {...props}
         >
+            {useAndroidBlurEffect ? (
+                <BlurView
+                    blurMethod="dimezisBlurViewSdk31Plus"
+                    blurTarget={blurTargetRef ?? undefined}
+                    intensity={85}
+                    pointerEvents="none"
+                    style={ABSOLUTE_FILL_STYLE}
+                    tint="light"
+                />
+            ) : null}
             {useLiquidEffect ? (
                 <GlassView
                     colorScheme="light"
                     glassEffectStyle="regular"
                     pointerEvents="none"
-                    style={styles.glassFill}
+                    style={ABSOLUTE_FILL_STYLE}
                 />
             ) : null}
             {children}

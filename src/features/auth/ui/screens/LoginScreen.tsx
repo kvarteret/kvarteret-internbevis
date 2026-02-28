@@ -5,7 +5,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet,
   View,
 } from "react-native";
 import {
@@ -46,17 +45,17 @@ export const LoginScreen = (): React.JSX.Element => {
       >
         <View className="relative overflow-hidden rounded-3xl border border-surface/70 px-4 py-5">
           {useGlassHeroOverlay ? (
-            <GlassView
-              colorScheme="light"
-              glassEffectStyle="regular"
-              pointerEvents="none"
-              style={StyleSheet.absoluteFillObject}
-            />
+            <View className="absolute inset-0" pointerEvents="none">
+              <GlassView
+                className="flex-1"
+                colorScheme="light"
+                glassEffectStyle="regular"
+              />
+            </View>
           ) : (
             <View
-              className="absolute inset-0"
+              className="absolute inset-0 bg-white/35"
               pointerEvents="none"
-              style={{ backgroundColor: "rgba(255,255,255,0.34)" }}
             />
           )}
           <View className="gap-1.5">
@@ -64,12 +63,11 @@ export const LoginScreen = (): React.JSX.Element => {
               VELKOMMEN TIL
             </Text>
             <View className="flex-row items-start gap-2">
-              <View className="h-[84px] justify-center">
+              <View className="h-20 justify-center">
                 <Image
                   accessible={false}
-                  className="h-[67px]"
+                  className="h-16 w-24"
                   resizeMode="contain"
-                  style={{ aspectRatio: 352 / 224 }}
                   source={require("@assets/images/nobg.png")}
                 />
               </View>

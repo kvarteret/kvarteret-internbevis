@@ -153,7 +153,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                 renderItem={renderRole}
                 ListHeaderComponent={
                     <View className="mb-3 gap-3">
-                        <Text className="px-1 text-lg text-text-primary font-bold">
+                        <Text className="px-1 text-lg font-bold">
                             {t("profileMemberInfo")}
                         </Text>
 
@@ -183,7 +183,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                             <Text className="text-2xl font-extrabold">{user.pingvinPoengSum}</Text>
                         </Card>
 
-                        <Text className="px-1 pt-1 text-lg text-text-primary font-bold">
+                        <Text className="px-1 pt-1 text-lg font-bold">
                             {t("profileActiveRoles")}
                         </Text>
                     </View>

@@ -36,7 +36,7 @@ const ExternalLinkRow = ({
             }}
         >
             <View className="min-w-0 flex-1">
-                <Text className="text-base text-text-primary font-semibold" numberOfLines={2}>
+                <Text className="text-base font-semibold" numberOfLines={2}>
                     {label}
                 </Text>
                 <Text className="text-sm text-link" numberOfLines={1}>
@@ -64,7 +64,7 @@ export const AboutScreen = (): React.JSX.Element => {
                 contentInsetAdjustmentBehavior="automatic"
             >
                 <Card className="mb-3 gap-3 px-4 py-4" effect="liquid" variant="grouped">
-                    <Text className="text-2xl font-black text-text-primary">
+                    <Text className="text-2xl font-black">
                         {t("aboutKvarteretTitle")}
                     </Text>
                     <Text className="text-base leading-6 text-text-secondary">
@@ -81,7 +81,7 @@ export const AboutScreen = (): React.JSX.Element => {
                 </Card>
 
                 <Card className="mb-3 gap-3 px-4 py-4" effect="liquid" variant="grouped">
-                    <Text className="text-2xl font-black text-text-primary">
+                    <Text className="text-2xl font-black">
                         {t("aboutEtjenestenTitle")}
                     </Text>
                     <Text className="text-base leading-6 text-text-secondary">
@@ -97,7 +97,7 @@ export const AboutScreen = (): React.JSX.Element => {
                         }}
                     >
                         <MaterialIcons color={themeColors.textPrimary} name="email" size={18} />
-                        <Text className="text-base font-semibold text-text-primary">
+                        <Text className="text-base font-semibold">
                             it.leder@kvarteret.no
                         </Text>
                     </Pressable>

@@ -8,11 +8,11 @@ export const EtjenestenFooter = (): React.JSX.Element => {
     const { t } = useTranslation()
 
     return (
-        <View className="w-full items-center justify-center pb-2 pt-1">
-            <View className="w-full flex-row flex-nowrap items-center justify-center px-3">
+        <View className="w-full items-center justify-center pt-1 pb-2">
+            <View className="w-full flex-row items-center justify-center px-3">
                 <Text
                     adjustsFontSizeToFit
-                    className="shrink text-lg leading-6 text-editorial-ink font-medium"
+                    className="flex-shrink text-lg leading-6 text-editorial-ink font-medium"
                     ellipsizeMode="tail"
                     minimumFontScale={0.72}
                     numberOfLines={1}
@@ -24,8 +24,8 @@ export const EtjenestenFooter = (): React.JSX.Element => {
                 </Text>
                 <TouchableOpacity
                     accessibilityRole="link"
-                    className="shrink"
                     onPress={() => void openExternalUrl("https://blifrivillig.no")}
+                    className="flex-shrink"
                 >
                     <Text
                         adjustsFontSizeToFit

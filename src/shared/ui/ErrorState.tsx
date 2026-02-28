@@ -22,9 +22,7 @@ export const ErrorState = ({
             <Text className="text-base">{message}</Text>
             {onRetry ? (
                 <Button variant="secondary" onPress={onRetry}>
-                    <Text className="text-base leading-5 text-text-primary font-semibold">
-                        {retryLabel ?? t("retry")}
-                    </Text>
+                    {retryLabel ?? t("retry")}
                 </Button>
             ) : null}
         </Card>

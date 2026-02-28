@@ -1,5 +1,5 @@
 import React from "react"
-import { SafeAreaView } from "react-native-safe-area-context"
+import { View } from "react-native"
 
 interface DashboardShellLayoutProps {
     children: React.ReactNode
@@ -7,8 +7,8 @@ interface DashboardShellLayoutProps {
 
 export const DashboardShellLayout = ({ children }: DashboardShellLayoutProps): React.JSX.Element => {
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
+        <View className="flex-1 bg-background">
             {children}
-        </SafeAreaView>
+        </View>
     )
 }
