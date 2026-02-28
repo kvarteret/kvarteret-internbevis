@@ -1,5 +1,5 @@
 import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
-import { pickHomeEvents, selectEventTranslation } from "../eventSelection"
+import { pickHomeEvents, selectEventTranslation, splitHomeEventsByType } from "../eventSelection"
 
 function createTimestamp(date: Date): FirestoreEventDocument["event_start"] {
     return {
@@ -15,12 +15,14 @@ function createEvent(
         end?: Date
         norwegianTitle?: string | null
         englishTitle?: string | null
+        categories?: { id: number; name: string }[]
     },
 ): FirestoreEventDocument {
     const start = options?.start ?? new Date("2026-02-20T12:00:00.000Z")
     const end = options?.end ?? new Date("2026-02-20T14:00:00.000Z")
     const norwegianTitle = options?.norwegianTitle
     const englishTitle = options?.englishTitle
+    const categories = options?.categories ?? []
 
     return {
         id,
@@ -34,7 +36,7 @@ function createEvent(
         facebook_url: null,
         image: null,
         organizer: null,
-        categories: [],
+        categories,
         price: null,
         translations: {
             no:
@@ -109,5 +111,23 @@ describe("eventsService", () => {
         const result = pickHomeEvents(events, { now: base })
         expect(result).toHaveLength(5)
         expect(result.map(event => event.id)).toEqual(["1", "2", "3", "4", "5"])
+    })
+
+    test("splitHomeEventsByType groups by schema category IDs", () => {
+        const debate = createEvent("debate", {
+            categories: [{ id: 10011, name: "Debatter og foredrag" }],
+        })
+        const concert = createEvent("concert", {
+            categories: [{ id: 10007, name: "Konsert og musikk" }],
+        })
+        const other = createEvent("other", {
+            categories: [{ id: 10002, name: "Kunst og kultur" }],
+        })
+
+        const result = splitHomeEventsByType([debate, concert, other])
+
+        expect(result.debates.map(event => event.id)).toEqual(["debate"])
+        expect(result.concerts.map(event => event.id)).toEqual(["concert"])
+        expect(result.others.map(event => event.id)).toEqual(["other"])
     })
 })

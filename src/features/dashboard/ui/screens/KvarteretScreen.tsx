@@ -1,12 +1,14 @@
 import { useIsFocused } from "@react-navigation/native"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "expo-router"
-import React, { useEffect } from "react"
+import React, { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Image, ScrollView, View } from "react-native"
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
+import { SafeAreaView } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
+import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
+import { splitHomeEventsByType } from "@/features/dashboard/domain/eventSelection"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
 import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
@@ -47,21 +49,48 @@ const OpeningStatusHero = ({
     )
 }
 
-interface SectionHeaderProps {
-    eyebrow: string
+interface EventSectionProps {
     title: string
+    events: FirestoreEventDocument[]
+    onRetry: () => Promise<unknown>
+    onEventPress: (eventId: string) => void
 }
 
-const SectionHeader = ({ eyebrow, title }: SectionHeaderProps): React.JSX.Element => {
+const EventSection = ({
+    title,
+    events,
+    onRetry,
+    onEventPress,
+}: EventSectionProps): React.JSX.Element => {
     return (
-        <View className="w-full gap-0.5 px-1">
-            <Text className="text-xs uppercase tracking-wide text-text-muted font-semibold">
-                {eyebrow}
-            </Text>
-            <Text className="text-2xl leading-8 text-editorial-ink font-black">{title}</Text>
+        <View className="w-full gap-2.5">
+            <Text className="px-1 text-2xl leading-8 text-editorial-ink font-black">{title}</Text>
+            <EventCarousel
+                events={events}
+                isPending={false}
+                isError={false}
+                onRetry={onRetry}
+                onEventPress={onEventPress}
+                showTitle={false}
+            />
         </View>
     )
 }
+
+const EVENT_SECTION_CONFIG = [
+    {
+        key: "debates",
+        titleKey: "homeEventsDebatesTitle",
+    },
+    {
+        key: "concerts",
+        titleKey: "homeEventsConcertsTitle",
+    },
+    {
+        key: "others",
+        titleKey: "homeEventsOtherTitle",
+    },
+] as const
 
 interface NowPlayingWidgetProps {
     nowPlaying: NowPlayingState
@@ -110,7 +139,6 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
     const { user, isAnonymous, isLoading } = useSession()
-    const insets = useSafeAreaInsets()
     const isFocused = useIsFocused()
 
     useEffect(() => {
@@ -152,6 +180,24 @@ export const KvarteretScreen = (): React.JSX.Element => {
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
 
     const isVenueOpen = showNowPlayingWidget
+    const groupedEvents = useMemo(() => splitHomeEventsByType(events ?? []), [events])
+    const renderedEventSections = useMemo(() => {
+        return EVENT_SECTION_CONFIG
+            .map(section => ({
+                ...section,
+                events: groupedEvents[section.key],
+            }))
+            .filter(section => section.events.length > 0)
+            .map(section => (
+                <EventSection
+                    key={section.key}
+                    events={section.events}
+                    title={t(section.titleKey)}
+                    onRetry={async () => refetchEvents()}
+                    onEventPress={eventId => router.push(`/event/${eventId}`)}
+                />
+            ))
+    }, [groupedEvents, refetchEvents, router, t])
 
     if (isLoading) {
         return (
@@ -165,13 +211,8 @@ export const KvarteretScreen = (): React.JSX.Element => {
         <DashboardShellLayout>
             <ScrollView
                 className="flex-1"
-                contentInsetAdjustmentBehavior="always"
-                contentContainerStyle={{
-                    gap: 24,
-                    paddingTop: 10,
-                    paddingHorizontal: 16,
-                    paddingBottom: Math.max(insets.bottom + 120, 136),
-                }}
+                contentInsetAdjustmentBehavior="automatic"
+                contentContainerClassName="gap-6 px-4 pb-36 pt-2.5"
             >
                 {isVenueOpen ? (
                     <OpeningStatusHero
@@ -182,18 +223,24 @@ export const KvarteretScreen = (): React.JSX.Element => {
                 ) : null}
 
                 <View className="w-full gap-3">
-                    <SectionHeader
-                        eyebrow={t("kvarteretEventsEyebrow")}
-                        title={t("homeEventsTitle")}
-                    />
-                    <EventCarousel
-                        events={events}
-                        isPending={eventsPending}
-                        isError={eventsError}
-                        onRetry={async () => refetchEvents()}
-                        onEventPress={eventId => router.push(`/event/${eventId}`)}
-                        showTitle={false}
-                    />
+                    {eventsPending || eventsError ? (
+                        <EventCarousel
+                            events={events}
+                            isPending={eventsPending}
+                            isError={eventsError}
+                            onRetry={async () => refetchEvents()}
+                            onEventPress={eventId => router.push(`/event/${eventId}`)}
+                            showTitle={false}
+                        />
+                    ) : (
+                        <View className="w-full gap-5">
+                            {renderedEventSections.length > 0 ? (
+                                renderedEventSections
+                            ) : (
+                                <Text className="text-sm text-text-secondary">{t("homeEventsEmpty")}</Text>
+                            )}
+                        </View>
+                    )}
                 </View>
 
                 <EtjenestenFooter />

@@ -9,7 +9,7 @@ import { useLanguage } from "@/app/providers/LanguageProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchEventById, selectEventTranslation } from "@/features/dashboard/data/eventsRepository"
 import {
-    formatEventDateTime,
+    formatEventStartStopWithDuration,
     getEventCategoriesText,
     selectPrimaryDetailsHtml,
     toRenderableHtml,
@@ -53,10 +53,13 @@ export const EventDetailsScreen = (): React.JSX.Element => {
     const details = useMemo(() => {
         if (!event || !translationSelection) return null
         const detailsHtml = toRenderableHtml(selectPrimaryDetailsHtml(translationSelection.value))
-        const start = formatEventDateTime(event.event_start.toDate(), language)
-        const end = formatEventDateTime(event.event_end.toDate(), language)
+        const whenValue = formatEventStartStopWithDuration(
+            event.event_start.toDate(),
+            event.event_end.toDate(),
+            language,
+        )
         const categories = getEventCategoriesText(event)
-        return { event, detailsHtml, whenValue: `${start} - ${end}`, categories }
+        return { event, detailsHtml, whenValue, categories }
     }, [event, language, translationSelection])
 
     const openLink = useCallback(async (url: string): Promise<void> => {
@@ -115,7 +118,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                         variant="secondary"
                         onPress={retry}
                     >
-                        <Text className="text-base leading-5 text-text-primary font-semibold">
+                        <Text className="text-base leading-5 font-semibold">
                             {t("eventDetailsRetry")}
                         </Text>
                     </Button>
@@ -180,15 +183,13 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                             url: event.ticket_url,
                             label: t("eventDetailsTickets"),
                             variant: "destructive" as const,
-                            textClass: "text-surface",
                         },
                         {
                             url: event.facebook_url,
                             label: t("eventDetailsFacebook"),
                             variant: "secondary" as const,
-                            textClass: "text-text-primary",
                         },
-                    ].map(({ url, label, variant, textClass }) =>
+                    ].map(({ url, label, variant }) =>
                         url?.trim() ? (
                             <Button
                                 key={label}
@@ -196,9 +197,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                                 variant={variant}
                                 onPress={() => void openLink(url)}
                             >
-                                <Text className={`text-base leading-5 font-semibold ${textClass}`}>
-                                    {label}
-                                </Text>
+                                {label}
                             </Button>
                         ) : null,
                     )}

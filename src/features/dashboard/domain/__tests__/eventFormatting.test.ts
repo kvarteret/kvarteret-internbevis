@@ -1,18 +1,26 @@
 import {
+    formatEventStart,
+    formatEventStartStopWithDuration,
     selectPrimaryDetailsHtml,
     selectProjectedDescriptionPreview,
     toRenderableHtml,
 } from "../eventFormatting"
+import type { FirestoreEventTranslation } from "../types"
 
-type Translation = {
-    description: string | null
-}
+const buildTranslation = (description: string | null): FirestoreEventTranslation => ({
+    available: true,
+    title: "Test event",
+    description,
+    image_caption: null,
+})
 
 describe("eventFormatting", () => {
+    afterEach(() => {
+        jest.useRealTimers()
+    })
+
     test("selectPrimaryDetailsHtml uses description", () => {
-        const translation: Translation = {
-            description: "<p>Article body with <strong>rich text</strong></p>",
-        }
+        const translation = buildTranslation("<p>Article body with <strong>rich text</strong></p>")
 
         expect(selectPrimaryDetailsHtml(translation)).toBe(
             "<p>Article body with <strong>rich text</strong></p>",
@@ -20,41 +28,31 @@ describe("eventFormatting", () => {
     })
 
     test("selectPrimaryDetailsHtml returns empty string when description is missing", () => {
-        const translation: Translation = {
-            description: null,
-        }
+        const translation = buildTranslation(null)
 
         expect(selectPrimaryDetailsHtml(translation)).toBe("")
     })
 
     test("selectPrimaryDetailsHtml returns empty string when description is empty", () => {
-        const translation: Translation = {
-            description: "   ",
-        }
+        const translation = buildTranslation("   ")
 
         expect(selectPrimaryDetailsHtml(translation)).toBe("")
     })
 
     test("selectProjectedDescriptionPreview strips html from description", () => {
-        const translation: Translation = {
-            description: "<p><strong>Hello</strong> world</p>",
-        }
+        const translation = buildTranslation("<p><strong>Hello</strong> world</p>")
 
         expect(selectProjectedDescriptionPreview(translation)).toBe("Hello world")
     })
 
     test("selectProjectedDescriptionPreview returns description when present", () => {
-        const translation: Translation = {
-            description: "Description fallback",
-        }
+        const translation = buildTranslation("Description fallback")
 
         expect(selectProjectedDescriptionPreview(translation)).toBe("Description fallback")
     })
 
     test("selectProjectedDescriptionPreview truncates to 200 chars", () => {
-        const translation: Translation = {
-            description: `<p>${"a".repeat(240)}</p>`,
-        }
+        const translation = buildTranslation(`<p>${"a".repeat(240)}</p>`)
 
         expect(selectProjectedDescriptionPreview(translation)).toBe(`${"a".repeat(200)}...`)
     })
@@ -77,10 +75,29 @@ describe("eventFormatting", () => {
     })
 
     test("selectProjectedDescriptionPreview ignores wrapping quotes", () => {
-        const translation: Translation = {
-            description: '"<p><strong>Hello</strong> world</p>"',
-        }
+        const translation = buildTranslation('"<p><strong>Hello</strong> world</p>"')
 
         expect(selectProjectedDescriptionPreview(translation)).toBe("Hello world")
+    })
+
+    test("formatEventStart uses relative phrasing for same-week dates", () => {
+        jest.useFakeTimers().setSystemTime(new Date(2026, 2, 2, 12, 0, 0))
+
+        const value = formatEventStart(new Date(2026, 2, 5, 18, 0, 0), "no")
+
+        expect(value).toContain(" - 18:00")
+        expect(value).toContain("om")
+    })
+
+    test("formatEventStartStopWithDuration renders when and duration on separate lines", () => {
+        jest.useFakeTimers().setSystemTime(new Date(2026, 2, 1, 12, 0, 0))
+
+        const value = formatEventStartStopWithDuration(
+            new Date(2026, 2, 5, 18, 0, 0),
+            new Date(2026, 2, 5, 19, 0, 0),
+            "no",
+        )
+
+        expect(value).toContain("\n1 time")
     })
 })

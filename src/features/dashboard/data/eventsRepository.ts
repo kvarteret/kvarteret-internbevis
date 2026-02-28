@@ -25,7 +25,7 @@ export const fetchHomeEvents = async (_signal?: AbortSignal): Promise<FirestoreE
         mapEventDocument(docSnapshot.id, docSnapshot.data() as Record<string, unknown>),
     )
 
-    return pickHomeEvents(events)
+    return pickHomeEvents(events, { maxCount: HOME_EVENTS_QUERY_LIMIT })
 }
 
 export const fetchEventById = async (

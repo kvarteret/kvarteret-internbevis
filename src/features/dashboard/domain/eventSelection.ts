@@ -5,6 +5,14 @@ import {
 } from "@/features/dashboard/domain/types"
 
 const DEFAULT_HOME_EVENTS_MAX_COUNT = 5
+const EVENT_CATEGORY_ID_DEBATE = 10011
+const EVENT_CATEGORY_ID_CONCERT = 10007
+
+export interface HomeEventSections {
+    debates: FirestoreEventDocument[]
+    concerts: FirestoreEventDocument[]
+    others: FirestoreEventDocument[]
+}
 
 export const selectEventTranslation = (
     translations: FirestoreEventTranslations,
@@ -49,4 +57,31 @@ export const pickHomeEvents = (
         .filter(hasDisplayableTranslation)
         .sort((left, right) => left.event_start.toMillis() - right.event_start.toMillis())
         .slice(0, maxCount)
+}
+
+const hasCategoryId = (event: FirestoreEventDocument, categoryId: number): boolean =>
+    event.categories.some(category => category.id === categoryId)
+
+export const splitHomeEventsByType = (events: FirestoreEventDocument[]): HomeEventSections => {
+    const sections: HomeEventSections = {
+        debates: [],
+        concerts: [],
+        others: [],
+    }
+
+    for (const event of events) {
+        if (hasCategoryId(event, EVENT_CATEGORY_ID_DEBATE)) {
+            sections.debates.push(event)
+            continue
+        }
+
+        if (hasCategoryId(event, EVENT_CATEGORY_ID_CONCERT)) {
+            sections.concerts.push(event)
+            continue
+        }
+
+        sections.others.push(event)
+    }
+
+    return sections
 }

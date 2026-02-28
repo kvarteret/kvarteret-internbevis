@@ -1,5 +1,6 @@
 import React from "react"
 import { Image, Pressable, View } from "react-native"
+import { useLanguage } from "@/app/providers/LanguageProvider"
 import {
     formatEventStart,
     selectProjectedDescriptionPreview,
@@ -23,13 +24,14 @@ export const EventCard = ({
     onPress,
     accessibilityOpenHint,
 }: EventCardProps): React.JSX.Element | null => {
+    const { language } = useLanguage()
     const translation = selectEventTranslation(event.translations)
     if (!translation) {
         return null
     }
 
     const descriptionPreview = selectProjectedDescriptionPreview(translation.value)
-    const formattedDate = formatEventStart(event.event_start.toDate())
+    const formattedDate = formatEventStart(event.event_start.toDate(), language)
     const accessibilityLabel = `${translation.value.title}. ${formattedDate}.`
 
     return (

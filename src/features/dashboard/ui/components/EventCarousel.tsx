@@ -15,12 +15,12 @@ interface EventCarouselProps {
     onRetry: () => Promise<unknown>
     onEventPress: (eventId: string) => void
     showTitle?: boolean
+    emptyText?: string
 }
 
 const CAROUSEL_CARD_WIDTH_RATIO = 0.8
 const MIN_CAROUSEL_CARD_WIDTH = 240
 const CAROUSEL_CARD_GAP = 12
-const CAROUSEL_SIDE_PADDING = 2
 
 export const EventCarousel = ({
     events,
@@ -29,6 +29,7 @@ export const EventCarousel = ({
     onRetry,
     onEventPress,
     showTitle = true,
+    emptyText,
 }: EventCarouselProps): React.JSX.Element => {
     const { t } = useTranslation()
     const { width } = useWindowDimensions()
@@ -59,23 +60,19 @@ export const EventCarousel = ({
                             void onRetry()
                         }}
                     >
-                        <Text className="text-base leading-5 text-text-primary font-semibold">
-                            {t("homeEventsRetry")}
-                        </Text>
+                        {t("homeEventsRetry")}
                     </Button>
                 </Card>
             )
         }
         if (!events || events.length === 0) {
-            return <Text className="text-sm text-text-secondary">{t("homeEventsEmpty")}</Text>
+            return <Text className="text-sm text-text-secondary">{emptyText ?? t("homeEventsEmpty")}</Text>
         }
         return (
             <FlatList
                 horizontal
-                ItemSeparatorComponent={() => <View style={{ width: CAROUSEL_CARD_GAP }} />}
-                contentContainerStyle={{
-                    paddingHorizontal: CAROUSEL_SIDE_PADDING,
-                }}
+                ItemSeparatorComponent={() => <View className="w-3" />}
+                contentContainerClassName="px-0.5"
                 data={events}
                 keyExtractor={item => item.id}
                 renderItem={renderItem}
@@ -90,7 +87,7 @@ export const EventCarousel = ({
     return (
         <View className="w-full gap-2.5">
             {showTitle ? (
-                <Text className="text-lg text-text-primary font-bold">{t("homeEventsTitle")}</Text>
+                <Text className="text-lg font-bold">{t("homeEventsTitle")}</Text>
             ) : null}
             {content}
         </View>
