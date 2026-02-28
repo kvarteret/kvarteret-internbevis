@@ -1,8 +1,15 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import React, { useEffect, useMemo } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Image, Pressable, ScrollView, View } from "react-native"
+import Animated, {
+    cancelAnimation,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring,
+} from "react-native-reanimated"
 import { SafeAreaView, useSafeAreaFrame } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import { getIdVerificationStatus } from "@/features/dashboard/domain/idVerification"
@@ -21,6 +28,7 @@ const localImageMap: Record<string, number> = {
 interface IdentityHeroProps {
     fullName: string
     avatarSize: number
+    animationTrigger: number
     roleName: string
     roleGroup: string
     openProfileDetailsLabel: string
@@ -33,6 +41,7 @@ interface IdentityHeroProps {
 const IdentityHero = ({
     fullName,
     avatarSize,
+    animationTrigger,
     roleName,
     roleGroup,
     openProfileDetailsLabel,
@@ -42,6 +51,29 @@ const IdentityHero = ({
     remoteImageUrl,
 }: IdentityHeroProps): React.JSX.Element => {
     const hasRemoteImage = Boolean(remoteImageUrl && !localImageSource)
+    const avatarScale = useSharedValue(1)
+    const avatarAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: avatarScale.value }],
+    }))
+
+    useEffect(() => {
+        if (animationTrigger === 0) return
+
+        cancelAnimation(avatarScale)
+        avatarScale.value = 0.88
+        avatarScale.value = withSequence(
+            withSpring(1.16, {
+                damping: 7,
+                stiffness: 300,
+                mass: 0.52,
+            }),
+            withSpring(1, {
+                damping: 10,
+                stiffness: 240,
+                mass: 0.62,
+            }),
+        )
+    }, [animationTrigger, avatarScale])
 
     return (
         <Card
@@ -49,32 +81,34 @@ const IdentityHero = ({
             effect="liquid"
             variant="grouped"
         >
-            <View
-                className="overflow-hidden rounded-full border border-editorial-border bg-surface-muted"
-                style={{ width: avatarSize, height: avatarSize }}
-            >
-                {localImageSource ? (
-                    <Image className="h-full w-full" resizeMode="cover" source={localImageSource} />
-                ) : null}
+            <Animated.View style={avatarAnimatedStyle}>
+                <View
+                    className="overflow-hidden rounded-full border border-editorial-border bg-surface-muted"
+                    style={{ width: avatarSize, height: avatarSize }}
+                >
+                    {localImageSource ? (
+                        <Image className="h-full w-full" resizeMode="cover" source={localImageSource} />
+                    ) : null}
 
-                {!localImageSource && hasRemoteImage ? (
-                    <Image
-                        className="h-full w-full"
-                        resizeMode="cover"
-                        source={{ uri: remoteImageUrl }}
-                    />
-                ) : null}
-
-                {!localImageSource && !hasRemoteImage ? (
-                    <View className="h-full w-full items-center justify-center">
-                        <MaterialIcons
-                            color={themeColors.textSecondary}
-                            name="person"
-                            size={Math.min(avatarSize * 0.38, 128)}
+                    {!localImageSource && hasRemoteImage ? (
+                        <Image
+                            className="h-full w-full"
+                            resizeMode="cover"
+                            source={{ uri: remoteImageUrl }}
                         />
-                    </View>
-                ) : null}
-            </View>
+                    ) : null}
+
+                    {!localImageSource && !hasRemoteImage ? (
+                        <View className="h-full w-full items-center justify-center">
+                            <MaterialIcons
+                                color={themeColors.textSecondary}
+                                name="person"
+                                size={Math.min(avatarSize * 0.38, 128)}
+                            />
+                        </View>
+                    ) : null}
+                </View>
+            </Animated.View>
 
             <View className="w-full items-center gap-4 px-2">
                 <Text className="text-center text-4xl leading-tight font-black text-editorial-ink">
@@ -117,25 +151,62 @@ const IdentityHero = ({
 interface VerificationStatusCardProps {
     tierLabel: string
     isValid: boolean
+    onTierPress: () => void
 }
 
 const VerificationStatusCard = ({
     tierLabel,
     isValid,
+    onTierPress,
 }: VerificationStatusCardProps): React.JSX.Element => {
-    return (
-        <View
-            className={
-                isValid
-                    ? "w-full rounded-3xl border border-editorial-valid bg-editorial-valid px-4 py-5"
-                    : "w-full rounded-3xl border border-editorial-invalid bg-editorial-invalid px-4 py-5"
+    const [tapCount, setTapCount] = useState(0)
+    const [showPenguin, setShowPenguin] = useState(false)
+
+    const handlePress = (): void => {
+        onTierPress()
+        setTapCount(previous => {
+            const next = previous + 1
+            if (next >= 10) {
+                setShowPenguin(true)
             }
-        >
-            <View className="items-center gap-1">
-                <Text className="text-4xl leading-tight text-surface font-black">
-                    {tierLabel}
-                </Text>
-            </View>
+            return next
+        })
+    }
+
+    const resetPenguin = (): void => {
+        setTapCount(0)
+        setShowPenguin(false)
+    }
+
+    return (
+        <View className="w-full gap-2.5">
+            <Pressable
+                accessibilityLabel={tierLabel}
+                accessibilityRole="button"
+                className={
+                    isValid
+                        ? "w-full rounded-3xl border border-editorial-valid bg-editorial-valid px-4 py-5"
+                        : "w-full rounded-3xl border border-editorial-invalid bg-editorial-invalid px-4 py-5"
+                }
+                onPress={handlePress}
+            >
+                <View className="items-center gap-1">
+                    <Text className="text-4xl leading-tight text-surface font-black">
+                        {tierLabel}
+                    </Text>
+                </View>
+            </Pressable>
+
+            {showPenguin ? (
+                <View className="items-center justify-center">
+                    <Pressable onPress={resetPenguin}>
+                        <Image
+                            className="h-24 w-24"
+                            source={require("@assets/images/penguin-eg.png")}
+                        />
+                    </Pressable>
+                </View>
+            ) : null}
         </View>
     )
 }
@@ -186,6 +257,7 @@ export const ProfileScreen = (): React.JSX.Element => {
         exitAnonymousMode,
     } = useSession()
     const frame = useSafeAreaFrame()
+    const [avatarAnimationTrigger, setAvatarAnimationTrigger] = useState(0)
 
     useEffect(() => {
         if (!user && !isAnonymous) {
@@ -244,6 +316,7 @@ export const ProfileScreen = (): React.JSX.Element => {
                         <IdentityHero
                             fullName={userFullName}
                             avatarSize={avatarSize}
+                            animationTrigger={avatarAnimationTrigger}
                             roleName={roleName}
                             roleGroup={roleGroup}
                             openProfileDetailsLabel={t("openProfileDetails")}
@@ -253,7 +326,13 @@ export const ProfileScreen = (): React.JSX.Element => {
                             remoteImageUrl={remoteImageUrl}
                         />
 
-                        <VerificationStatusCard tierLabel={tierLabel} isValid={isValid} />
+                        <VerificationStatusCard
+                            tierLabel={tierLabel}
+                            isValid={isValid}
+                            onTierPress={() =>
+                                setAvatarAnimationTrigger(previous => previous + 1)
+                            }
+                        />
 
                         <SecondaryDetailCard label={t("wordOfTheDay")} value={wordOfDayValue} />
                     </>
