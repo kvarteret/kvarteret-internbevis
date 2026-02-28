@@ -1,28 +1,3 @@
-export const themeColors = {
-    background: "#F3E2CC",
-    brandPrimary: "#F54B4B",
-    surface: "#FFFFFF",
-    surfaceMuted: "#FAFAFA",
-    border: "#D1D5DB",
-    borderSoft: "#E5E7EB",
-    textPrimary: "#000000",
-    textSecondary: "#4B5563",
-    textMuted: "#6B7280",
-    editorialInk: "#111827",
-    editorialInkSoft: "#5B6270",
-    editorialSurface: "#F9F5EC",
-    editorialValid: "#2F5E3D",
-    editorialInvalid: "#7F2E2E",
-    link: "#2563EB",
-    stateDanger: "#AA0000",
-    stateSuccess: "#16A34A",
-    tabActive: "#7F2E2E",
-    editorialBorder: "#0000001A",
-    overlay: "#00000033",
-    overlayStrong: "#00000059",
-    androidHeaderSurface: "#F6ECDC",
-    androidCardGroupedSurface: "#F8EAD8",
-    androidCardElevatedSurface: "#FFF4E7",
-    androidSurfaceOutline: "#0000001F",
-    androidActionSurface: "#FFFFFFCC",
-} as const
+import tokens from "@/shared/theme/tokens.json"
+
+export const themeColors = tokens.colors
