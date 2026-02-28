@@ -1,5 +1,4 @@
-import { MenuAction } from "@react-native-menu/menu"
-import { Platform } from "react-native"
+import { AppHeaderMenuItem } from "@/features/dashboard/ui/menu/headerMenu.types"
 
 export const NATIVE_MENU_ACTION_ID = {
     privacy: "privacy",
@@ -19,11 +18,11 @@ interface BuildNativeMenuActionsParams {
 export const buildNativeMenuActions = ({
     t,
     isLoggedIn,
-}: BuildNativeMenuActionsParams): MenuAction[] => {
+}: BuildNativeMenuActionsParams): AppHeaderMenuItem[] => {
     const menuImage = ({ ios }: { ios: string }): string | undefined =>
-        Platform.OS === "ios" ? ios : undefined
+        process.env.EXPO_OS === "ios" ? ios : undefined
 
-    const languageSubactions: MenuAction[] = [
+    const languageSubactions: AppHeaderMenuItem[] = [
         {
             id: NATIVE_MENU_ACTION_ID.languageNo,
             title: "Norsk",
@@ -34,7 +33,7 @@ export const buildNativeMenuActions = ({
         },
     ]
 
-    const authAction: MenuAction = isLoggedIn
+    const authAction: AppHeaderMenuItem = isLoggedIn
         ? {
               id: NATIVE_MENU_ACTION_ID.authLogout,
               title: t("logout"),
