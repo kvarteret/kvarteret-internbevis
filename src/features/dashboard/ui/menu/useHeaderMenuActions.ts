@@ -5,6 +5,7 @@ import {
 import { useRouter } from "expo-router"
 import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { Platform } from "react-native"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { useSession } from "@/app/providers/SessionProvider"
 import { AppHeaderMenuItem } from "@/features/dashboard/ui/menu/headerMenu.types"
@@ -72,6 +73,7 @@ export const useHeaderMenuActions = (): {
             buildNativeMenuActions({
                 t,
                 isLoggedIn,
+                platform: Platform.OS === "android" ? "android" : "ios",
             }),
         [isLoggedIn, t],
     )
@@ -87,6 +89,9 @@ export const useHeaderMenuActions = (): {
                     return
                 case NATIVE_MENU_ACTION_ID.games:
                     router.push("/games")
+                    return
+                case NATIVE_MENU_ACTION_ID.nerdStats:
+                    router.push("/nerd-stats")
                     return
                 case NATIVE_MENU_ACTION_ID.languageNo:
                     await changeLanguage("no")

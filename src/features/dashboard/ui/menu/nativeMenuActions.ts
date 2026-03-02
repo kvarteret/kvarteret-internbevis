@@ -4,6 +4,7 @@ export const NATIVE_MENU_ACTION_ID = {
     privacy: "privacy",
     about: "about",
     games: "games",
+    nerdStats: "nerd_stats",
     authLogin: "auth_login",
     authLogout: "auth_logout",
     languageNo: "language_no",
@@ -13,11 +14,13 @@ export const NATIVE_MENU_ACTION_ID = {
 interface BuildNativeMenuActionsParams {
     t: (key: string) => string
     isLoggedIn: boolean
+    platform: "ios" | "android"
 }
 
 export const buildNativeMenuActions = ({
     t,
     isLoggedIn,
+    platform,
 }: BuildNativeMenuActionsParams): AppHeaderMenuItem[] => {
     const menuImage = ({ ios }: { ios: string }): string | undefined =>
         process.env.EXPO_OS === "ios" ? ios : undefined
@@ -54,7 +57,7 @@ export const buildNativeMenuActions = ({
               imageColor: "#111827",
           }
 
-    return [
+    const actions: AppHeaderMenuItem[] = [
         {
             id: NATIVE_MENU_ACTION_ID.privacy,
             title: t("privacy"),
@@ -87,4 +90,13 @@ export const buildNativeMenuActions = ({
         },
         authAction,
     ]
+
+    if (platform === "android") {
+        actions.splice(3, 0, {
+            id: NATIVE_MENU_ACTION_ID.nerdStats,
+            title: t("nerdStats"),
+        })
+    }
+
+    return actions
 }
