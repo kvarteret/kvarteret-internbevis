@@ -6,4 +6,9 @@ if rg --line-number "StyleSheet\\.create\\(" src; then
   exit 1
 fi
 
+if rg --line-number "themeColors" src; then
+  echo "\n[style-check] Found legacy themeColors usage. Use CSS token classes or useThemeRuntimeColors for native-only runtime props."
+  exit 1
+fi
+
 echo "[style-check] OK: no StyleSheet.create usage in src"

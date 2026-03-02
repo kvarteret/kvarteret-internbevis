@@ -3,9 +3,8 @@ import { useNavigation } from "expo-router"
 import React, { useLayoutEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, View } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
 import { openExternalUrl } from "@/core/linking/linkClient"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
@@ -22,6 +21,8 @@ const ExternalLinkRow = ({
     url,
     isLast = false,
 }: ExternalLinkRowProps): React.JSX.Element => {
+    const { textSecondary } = useThemeRuntimeColors()
+
     return (
         <Pressable
             accessibilityHint={url}
@@ -43,7 +44,7 @@ const ExternalLinkRow = ({
                     {url}
                 </Text>
             </View>
-            <MaterialIcons color={themeColors.textSecondary} name="open-in-new" size={20} />
+            <MaterialIcons color={textSecondary} name="open-in-new" size={20} />
         </Pressable>
     )
 }
@@ -51,13 +52,14 @@ const ExternalLinkRow = ({
 export const AboutScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
+    const { textPrimary } = useThemeRuntimeColors()
 
     useLayoutEffect(() => {
         navigation.setOptions({ title: t("about") })
     }, [navigation, t])
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={["top", "left", "right", "bottom"]}>
+        <View className="flex-1 bg-background">
             <ScrollView
                 className="flex-1"
                 contentContainerClassName="px-4 pb-8 pt-4"
@@ -96,7 +98,7 @@ export const AboutScreen = (): React.JSX.Element => {
                             void openExternalUrl("mailto:it.leder@kvarteret.no")
                         }}
                     >
-                        <MaterialIcons color={themeColors.textPrimary} name="email" size={18} />
+                        <MaterialIcons color={textPrimary} name="email" size={18} />
                         <Text className="text-base font-semibold">
                             it.leder@kvarteret.no
                         </Text>
@@ -121,6 +123,6 @@ export const AboutScreen = (): React.JSX.Element => {
 
                 <EtjenestenFooter />
             </ScrollView>
-        </SafeAreaView>
+        </View>
     )
 }

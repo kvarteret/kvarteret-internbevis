@@ -3,7 +3,6 @@ import { useNavigation, useRouter } from "expo-router"
 import React, { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { FlatList, ListRenderItem, Pressable, View } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import {
     buildDisplayRoles,
@@ -12,7 +11,7 @@ import {
     serializeRoleSelection,
 } from "@/features/dashboard/domain/profileRoles"
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
@@ -39,6 +38,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
     const router = useRouter()
+    const { editorialValid } = useThemeRuntimeColors()
     const { user, selectedFrontpageRoleSelection, setSelectedFrontpageRoleSelection } = useSession()
     const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
     const selectedRole = useMemo(
@@ -65,12 +65,12 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
 
     if (!user) {
         return (
-            <SafeAreaView className="flex-1 items-center justify-center px-4">
+            <View className="flex-1 items-center justify-center bg-background px-4">
                 <Text className="text-base text-text-secondary">{t("notRegistered")}</Text>
                 <View className="absolute inset-x-0 bottom-0">
                     <EtjenestenFooter />
                 </View>
-            </SafeAreaView>
+            </View>
         )
     }
 
@@ -127,7 +127,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                         {isSelected ? (
                             <MaterialIcons
                                 accessibilityLabel={t("profileRoleSelected")}
-                                color={themeColors.editorialValid}
+                                color={editorialValid}
                                 name="check-circle"
                                 size={20}
                             />
@@ -139,15 +139,11 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={["top", "left", "right", "bottom"]}>
+        <View className="flex-1 bg-background">
             <FlatList
                 className="flex-1"
                 contentInsetAdjustmentBehavior="automatic"
-                contentContainerStyle={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    paddingBottom: 24,
-                }}
+                contentContainerClassName="px-3 py-3 pb-6"
                 data={displayRoles}
                 keyExtractor={(item, index) => `${item.selectionKey}:${index}`}
                 renderItem={renderRole}
@@ -201,6 +197,6 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                     </View>
                 }
             />
-        </SafeAreaView>
+        </View>
     )
 }

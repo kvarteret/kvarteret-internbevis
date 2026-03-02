@@ -54,16 +54,19 @@ Use **MVVM pattern** when screen logic is non-trivial:
 
 ### 5) Styling
 
-- **Everywhere (`src/shared`, `src/features`, `src/routes`) is NativeWind `className` first.**
+- **Everywhere (`src/shared`, `src/features`, `src/routes`) is Uniwind `className` first.**
 - `style` is an escape hatch only for:
   - computed runtime values (measured dimensions, animation values, interpolation output)
   - native-only style APIs not expressible with utility classes
   - third-party component contracts requiring style objects
 - **Design-system components must expose `className` as the primary styling API.**
-- Keep `themeColors` for runtime-driven style values; prefer semantic token classes for static styling.
+- `global.css` is the only design-token source.
+- Use `useThemeRuntimeColors` when a native prop needs a concrete runtime color value.
 - Prefer inherited defaults from layout shells (`bg-background`, default text from shared `Text`) and only override colors for semantic exceptions.
-- Prefer semantic tokens (`state-danger`, `state-success`, etc.) from `src/shared/theme/tokens.json`.
+- Prefer semantic token classes (`state-danger`, `state-success`, etc.) from `global.css`.
 - Avoid introducing new hard-coded color values outside token source files.
+- For stack/tab screens with native navigation chrome, prefer the first `ScrollView`/`FlatList` with `contentInsetAdjustmentBehavior="automatic"` over route-level `SafeAreaView` wrappers.
+- Treat `SafeAreaView` as exception-only for hidden-header or non-scroll layouts.
 
 ### 6) Style exception annotation
 

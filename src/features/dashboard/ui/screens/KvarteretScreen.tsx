@@ -4,7 +4,6 @@ import { useRouter } from "expo-router"
 import React, { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Image, ScrollView, View } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
 import { useSession } from "@/app/providers/SessionProvider"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
 import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
@@ -12,7 +11,7 @@ import { splitHomeEventsByType } from "@/features/dashboard/domain/eventSelectio
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
 import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
@@ -140,6 +139,7 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const router = useRouter()
     const { user, isAnonymous, isLoading } = useSession()
     const isFocused = useIsFocused()
+    const { textPrimary } = useThemeRuntimeColors()
 
     useEffect(() => {
         if (!user && !isAnonymous) {
@@ -201,9 +201,11 @@ export const KvarteretScreen = (): React.JSX.Element => {
 
     if (isLoading) {
         return (
-            <SafeAreaView className="flex-1 items-center justify-center">
-                <ActivityIndicator color={themeColors.textPrimary} size="large" />
-            </SafeAreaView>
+            <DashboardShellLayout>
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator color={textPrimary} size="large" />
+                </View>
+            </DashboardShellLayout>
         )
     }
 

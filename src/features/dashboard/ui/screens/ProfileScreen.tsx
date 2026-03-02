@@ -10,12 +10,12 @@ import Animated, {
     withSequence,
     withSpring,
 } from "react-native-reanimated"
-import { SafeAreaView, useSafeAreaFrame } from "react-native-safe-area-context"
+import { useSafeAreaFrame } from "@/shared/ui/interop"
 import { useSession } from "@/app/providers/SessionProvider"
 import { getIdVerificationStatus } from "@/features/dashboard/domain/idVerification"
 import { buildDisplayRoles, resolveDisplayedRole } from "@/features/dashboard/domain/profileRoles"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
@@ -51,6 +51,7 @@ const IdentityHero = ({
     remoteImageUrl,
 }: IdentityHeroProps): React.JSX.Element => {
     const hasRemoteImage = Boolean(remoteImageUrl && !localImageSource)
+    const { textSecondary } = useThemeRuntimeColors()
     const avatarScale = useSharedValue(1)
     const avatarAnimatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: avatarScale.value }],
@@ -101,7 +102,7 @@ const IdentityHero = ({
                     {!localImageSource && !hasRemoteImage ? (
                         <View className="h-full w-full items-center justify-center">
                             <MaterialIcons
-                                color={themeColors.textSecondary}
+                                color={textSecondary}
                                 name="person"
                                 size={Math.min(avatarSize * 0.38, 128)}
                             />
@@ -136,7 +137,7 @@ const IdentityHero = ({
                         </View>
                         <View className="h-9 w-9 items-center justify-center rounded-full bg-text-primary/10">
                             <MaterialIcons
-                                color={themeColors.textSecondary}
+                                color={textSecondary}
                                 name="chevron-right"
                                 size={24}
                             />
@@ -257,6 +258,7 @@ export const ProfileScreen = (): React.JSX.Element => {
         exitAnonymousMode,
     } = useSession()
     const frame = useSafeAreaFrame()
+    const { textPrimary } = useThemeRuntimeColors()
     const [avatarAnimationTrigger, setAvatarAnimationTrigger] = useState(0)
 
     useEffect(() => {
@@ -298,9 +300,11 @@ export const ProfileScreen = (): React.JSX.Element => {
 
     if (isLoading) {
         return (
-            <SafeAreaView className="flex-1 items-center justify-center">
-                <ActivityIndicator color={themeColors.textPrimary} size="large" />
-            </SafeAreaView>
+            <DashboardShellLayout>
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator color={textPrimary} size="large" />
+                </View>
+            </DashboardShellLayout>
         )
     }
 

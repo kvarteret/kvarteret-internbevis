@@ -2,7 +2,6 @@ import { useNavigation } from "expo-router"
 import React, { useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, View } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
 import { useChessTimer } from "@/features/games/vm/useChessTimer"
 import { COMMON_DICE_TYPES, useDiceRoll } from "@/features/games/vm/useDiceRoll"
 import { Button } from "@/shared/ui/Button"
@@ -100,7 +99,7 @@ export const GamesScreen = (): React.JSX.Element => {
     ]
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={["top", "left", "right", "bottom"]}>
+        <View className="flex-1 bg-background">
             <ScrollView
                 className="flex-1"
                 contentContainerClassName="flex-grow gap-4 p-4"
@@ -249,6 +248,6 @@ export const GamesScreen = (): React.JSX.Element => {
 
                 <EtjenestenFooter />
             </ScrollView>
-        </SafeAreaView>
+        </View>
     )
 }

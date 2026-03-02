@@ -4,7 +4,6 @@ import React, { useCallback, useLayoutEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Image, ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
-import { SafeAreaView } from "react-native-safe-area-context"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchEventById, selectEventTranslation } from "@/features/dashboard/data/eventsRepository"
@@ -93,45 +92,51 @@ export const EventDetailsScreen = (): React.JSX.Element => {
 
     if (isPending) {
         return (
-            <SafeAreaView
-                className="flex-1 bg-background p-4"
-                edges={["top", "left", "right", "bottom"]}
-            >
-                <Text className="text-base">{t("eventDetailsLoading")}</Text>
-                <View className="mt-auto">
-                    <EtjenestenFooter />
-                </View>
-            </SafeAreaView>
+            <View className="flex-1 bg-background">
+                <ScrollView
+                    className="flex-1"
+                    contentContainerClassName="flex-grow gap-4 p-4"
+                    contentInsetAdjustmentBehavior="automatic"
+                >
+                    <Text className="text-base">{t("eventDetailsLoading")}</Text>
+                    <View className="mt-auto">
+                        <EtjenestenFooter />
+                    </View>
+                </ScrollView>
+            </View>
         )
     }
 
     if (!resolvedEventId || isError || !event || !translationSelection || !details) {
         return (
-            <SafeAreaView
-                className="flex-1 bg-background p-4"
-                edges={["top", "left", "right", "bottom"]}
-            >
-                <Card className="gap-3 p-4">
-                    <Text className="mb-3 text-base">{t("eventDetailsError")}</Text>
-                    <Button
-                        accessibilityLabel={t("eventDetailsRetry")}
-                        variant="secondary"
-                        onPress={retry}
-                    >
-                        <Text className="text-base leading-5 font-semibold">
-                            {t("eventDetailsRetry")}
-                        </Text>
-                    </Button>
-                </Card>
-                <View className="mt-auto">
-                    <EtjenestenFooter />
-                </View>
-            </SafeAreaView>
+            <View className="flex-1 bg-background">
+                <ScrollView
+                    className="flex-1"
+                    contentContainerClassName="flex-grow gap-4 p-4"
+                    contentInsetAdjustmentBehavior="automatic"
+                >
+                    <Card className="gap-3 p-4">
+                        <Text className="mb-3 text-base">{t("eventDetailsError")}</Text>
+                        <Button
+                            accessibilityLabel={t("eventDetailsRetry")}
+                            variant="secondary"
+                            onPress={retry}
+                        >
+                            <Text className="text-base leading-5 font-semibold">
+                                {t("eventDetailsRetry")}
+                            </Text>
+                        </Button>
+                    </Card>
+                    <View className="mt-auto">
+                        <EtjenestenFooter />
+                    </View>
+                </ScrollView>
+            </View>
         )
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={["top", "left", "right", "bottom"]}>
+        <View className="flex-1 bg-background">
             <ScrollView
                 className="flex-1"
                 contentContainerClassName="gap-3 p-4"
@@ -206,6 +211,6 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                 <View className="h-3" />
                 <EtjenestenFooter />
             </ScrollView>
-        </SafeAreaView>
+        </View>
     )
 }
