@@ -2,6 +2,7 @@ import { MaterialIcons } from "@expo/vector-icons"
 import React, { useEffect, useMemo, useRef } from "react"
 import { Animated, Easing, Image, useWindowDimensions, View } from "react-native"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
+import { CachedImage } from "@/shared/ui/CachedImage"
 import { Text } from "@/shared/ui/Text"
 
 interface MemberHeaderProps {
@@ -125,10 +126,10 @@ export const MemberHeader = ({
                             ) : null}
 
                             {!localImageSource && hasRemoteImage ? (
-                                <Image
+                                <CachedImage
                                     className="h-full w-full"
-                                    resizeMode="cover"
-                                    source={{ uri: imageUrl }}
+                                    contentFit="cover"
+                                    source={imageUrl}
                                 />
                             ) : null}
 

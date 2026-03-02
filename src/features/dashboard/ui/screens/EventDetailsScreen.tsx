@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useLocalSearchParams, useNavigation } from "expo-router"
 import React, { useCallback, useLayoutEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { Image, ScrollView, useWindowDimensions, View } from "react-native"
+import { ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
@@ -14,6 +14,7 @@ import {
     toRenderableHtml,
 } from "@/features/dashboard/domain/eventFormatting"
 import { Button } from "@/shared/ui/Button"
+import { CachedImage } from "@/shared/ui/CachedImage"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { LabeledValueRow } from "@/shared/ui/LabeledValueRow"
@@ -144,9 +145,10 @@ export const EventDetailsScreen = (): React.JSX.Element => {
             >
                 {event.image?.url ? (
                     <Card variant="elevated">
-                        <Image
+                        <CachedImage
                             className="h-56 w-full rounded-card"
-                            source={{ uri: event.image.url }}
+                            contentFit="cover"
+                            source={event.image.url}
                         />
                     </Card>
                 ) : null}

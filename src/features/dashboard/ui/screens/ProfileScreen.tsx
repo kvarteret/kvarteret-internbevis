@@ -17,6 +17,7 @@ import { buildDisplayRoles, resolveDisplayedRole } from "@/features/dashboard/do
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
+import { CachedImage } from "@/shared/ui/CachedImage"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
@@ -92,10 +93,10 @@ const IdentityHero = ({
                     ) : null}
 
                     {!localImageSource && hasRemoteImage ? (
-                        <Image
+                        <CachedImage
                             className="h-full w-full"
-                            resizeMode="cover"
-                            source={{ uri: remoteImageUrl }}
+                            contentFit="cover"
+                            source={remoteImageUrl}
                         />
                     ) : null}
 

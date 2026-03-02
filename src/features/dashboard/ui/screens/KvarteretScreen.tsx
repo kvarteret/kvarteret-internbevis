@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "expo-router"
 import React, { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, Image, ScrollView, View } from "react-native"
+import { ActivityIndicator, ScrollView, View } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
 import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
@@ -12,6 +12,7 @@ import { DashboardShellLayout } from "@/features/dashboard/ui/components/Dashboa
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
 import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
+import { CachedImage } from "@/shared/ui/CachedImage"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
@@ -103,7 +104,11 @@ const NowPlayingWidget = ({
     return (
         <View className="w-full flex-row items-center gap-3 pt-3">
             {nowPlaying.image ? (
-                <Image className="h-16 w-16 rounded-lg" source={{ uri: nowPlaying.image }} />
+                <CachedImage
+                    className="h-16 w-16 rounded-lg"
+                    contentFit="cover"
+                    source={nowPlaying.image}
+                />
             ) : (
                 <View className="h-16 w-16 rounded-lg bg-surface-muted" />
             )}

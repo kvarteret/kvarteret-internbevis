@@ -8,6 +8,7 @@ import {
 import { selectEventTranslation } from "@/features/dashboard/domain/eventSelection"
 import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
 import { Card } from "@/shared/ui/Card"
+import { CachedImage } from "@/shared/ui/CachedImage"
 import { Text } from "@/shared/ui/Text"
 import { triggerSelectionHaptic } from "@/shared/utils/haptics"
 
@@ -58,7 +59,7 @@ export const EventCard = ({
                 ]}
             >
                 {event.image?.url ? (
-                    <Image className="h-44 w-full" source={{ uri: event.image.url }} />
+                    <CachedImage className="h-44 w-full" contentFit="cover" source={event.image.url} />
                 ) : (
                     <View className="h-44 w-full bg-surface-muted" />
                 )}
