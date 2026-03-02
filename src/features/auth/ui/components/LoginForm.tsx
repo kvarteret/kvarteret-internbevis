@@ -3,7 +3,7 @@ import React from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from "react-native"
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
@@ -37,6 +37,7 @@ export const LoginForm = ({
     showDemoButton,
 }: LoginFormProps): React.JSX.Element => {
     const { t } = useTranslation()
+    const colors = useThemeRuntimeColors()
 
     return (
         <ScrollView
@@ -62,7 +63,7 @@ export const LoginForm = ({
 
                     {sendingOtp ? (
                         <View className="my-2">
-                            <ActivityIndicator color={themeColors.editorialInk} size="small" />
+                            <ActivityIndicator color={colors.editorialInk} size="small" />
                         </View>
                     ) : (
                         <View className="gap-3">
@@ -126,7 +127,7 @@ export const LoginForm = ({
                                     {t("privacyPolicyConsent")}
                                 </Text>
                                 <MaterialIcons
-                                    color={themeColors.link}
+                                    color={colors.link}
                                     name="open-in-new"
                                     size={16}
                                 />

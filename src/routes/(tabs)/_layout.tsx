@@ -2,26 +2,27 @@ import { NativeTabs } from "expo-router/unstable-native-tabs"
 import React from "react"
 import { Platform } from "react-native"
 import { getIOSCapabilities } from "@/shared/platform/ios-version"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 
 export default function TabsLayout(): React.JSX.Element {
     const isAndroid = Platform.OS === "android"
     const { isLegacyIOS } = getIOSCapabilities()
+    const colors = useThemeRuntimeColors()
     const useSolidTabBarBackground = isAndroid || isLegacyIOS
-    const selectedTabContentColor = isAndroid ? themeColors.editorialInk : themeColors.tabActive
-    const tabIndicatorColor = isAndroid ? themeColors.androidActionSurface : themeColors.tabActive
+    const selectedTabContentColor = isAndroid ? colors.editorialInk : colors.tabActive
+    const tabIndicatorColor = isAndroid ? colors.androidActionSurface : colors.tabActive
 
     return (
         <NativeTabs
-            backgroundColor={useSolidTabBarBackground ? themeColors.background : undefined}
+            backgroundColor={useSolidTabBarBackground ? colors.background : undefined}
             blurEffect={useSolidTabBarBackground ? "none" : "systemMaterial"}
             disableTransparentOnScrollEdge={useSolidTabBarBackground}
-            iconColor={{ default: themeColors.textSecondary, selected: selectedTabContentColor }}
+            iconColor={{ default: colors.textSecondary, selected: selectedTabContentColor }}
             indicatorColor={tabIndicatorColor}
             labelStyle={
                 isAndroid
                     ? {
-                          default: { color: themeColors.textSecondary },
+                          default: { color: colors.textSecondary },
                           selected: { color: selectedTabContentColor },
                       }
                     : undefined
@@ -30,15 +31,12 @@ export default function TabsLayout(): React.JSX.Element {
             rippleColor={isAndroid ? "rgba(17,24,39,0.14)" : undefined}
             tintColor={selectedTabContentColor}
         >
-            <NativeTabs.Trigger disableTransparentOnScrollEdge={useSolidTabBarBackground} name="kontroll">
+            <NativeTabs.Trigger name="kontroll">
                 <NativeTabs.Trigger.Icon md="person" sf="person" />
                 <NativeTabs.Trigger.Label>Profil</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>
 
-            <NativeTabs.Trigger
-                disableTransparentOnScrollEdge={useSolidTabBarBackground}
-                name="kvarteret"
-            >
+            <NativeTabs.Trigger name="kvarteret">
                 <NativeTabs.Trigger.Icon md="home" sf="house.fill" />
                 <NativeTabs.Trigger.Label>Kvarteret</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>

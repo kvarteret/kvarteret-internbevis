@@ -33,8 +33,8 @@ const resolveVariantStyle = (variant: CardVariant, effect: CardEffect): ViewStyl
 
     if (Platform.OS === "android" && effect === "liquid") {
         return {
-            borderWidth: 0.75,
-            elevation: variant === "elevated" ? 3 : 1,
+            borderWidth: 0,
+            elevation: variant === "elevated" ? 1 : 0,
         }
     }
 
@@ -67,7 +67,7 @@ const resolveVariantClassName = (variant: CardVariant, effect: CardEffect): stri
     }
 
     if (Platform.OS === "android" && effect === "liquid") {
-        return cn(shared, "border-white/30 bg-white/20")
+        return cn(shared, "border-transparent bg-white/14")
     }
 
     if (variant === "elevated") {
@@ -111,6 +111,7 @@ export const Card = ({
                     blurTarget={blurTargetRef ?? undefined}
                     intensity={85}
                     pointerEvents="none"
+                    // Style escape hatch: Expo Blur still requires a native style object here.
                     style={ABSOLUTE_FILL_STYLE}
                     tint="light"
                 />
@@ -120,6 +121,7 @@ export const Card = ({
                     colorScheme="light"
                     glassEffectStyle="regular"
                     pointerEvents="none"
+                    // Style escape hatch: Expo Glass currently positions this overlay via style prop.
                     style={ABSOLUTE_FILL_STYLE}
                 />
             ) : null}

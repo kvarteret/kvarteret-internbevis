@@ -12,49 +12,39 @@ import { useLanguage } from "@/app/providers/LanguageProvider";
 import { useSession } from "@/app/providers/SessionProvider";
 import { AndroidHeaderMenuButton } from "@/features/dashboard/ui/components/AndroidHeaderMenuButton";
 import { useHeaderMenuActions } from "@/features/dashboard/ui/menu/useHeaderMenuActions";
-import { getIOSCapabilities } from "@/shared/platform/ios-version";
-import { themeColors } from "@/shared/theme/colors";
+import { useNavigationStyles } from "@/shared/theme/use-navigation-styles";
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors";
 
 const RootNavigator = (): React.JSX.Element => {
   const { t } = useTranslation();
   const { isHydrating: sessionHydrating } = useSession();
   const { isHydrating: languageHydrating } = useLanguage();
   const { menuActions, nativeMenuItems, onMenuAction } = useHeaderMenuActions();
-  const { supportsHeaderBlurFallback, supportsScrollEdgeEffects } =
-    getIOSCapabilities();
+  const colors = useThemeRuntimeColors();
+  const { rootContentStyle, androidHeaderStyle } = useNavigationStyles();
 
   if (sessionHydrating || languageHydrating) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={themeColors.textPrimary} size="large" />
+        <ActivityIndicator color={colors.textPrimary} size="large" />
       </View>
     );
   }
 
   const rootScreenOptions: NativeStackNavigationOptions = {
-    contentStyle: { backgroundColor: themeColors.background },
+    contentStyle: rootContentStyle,
     headerBackTitle: "",
-    headerTintColor: themeColors.textPrimary,
+    headerTintColor: colors.textPrimary,
     ...(Platform.OS === "ios"
       ? {
           headerTransparent: true,
           headerShadowVisible: false,
           headerBackButtonDisplayMode: "minimal" as const,
-          ...(supportsScrollEdgeEffects
-            ? {
-                scrollEdgeEffects: {
-                  top: "automatic",
-                },
-              }
-            : supportsHeaderBlurFallback
-              ? {
-                  headerBlurEffect: "systemMaterial",
-                }
-              : undefined),
         }
       : {
           // Android: top app bar uses a tonal surface with shadow separation.
-          headerStyle: { backgroundColor: themeColors.androidHeaderSurface },
+          headerStyle:
+            androidHeaderStyle as NativeStackNavigationOptions["headerStyle"],
           headerShadowVisible: true,
         }),
   };
@@ -68,7 +58,7 @@ const RootNavigator = (): React.JSX.Element => {
         options={{
           title: "DET AKADEMISKE KVARTER",
           headerTitleStyle: {
-            color: themeColors.editorialInk,
+            color: colors.editorialInk,
             fontSize: 14,
             fontWeight: "800",
           },
@@ -137,12 +127,13 @@ const RootNavigator = (): React.JSX.Element => {
       <Stack.Screen name="privacy" />
       <Stack.Screen name="about" />
       <Stack.Screen name="games" />
+      <Stack.Screen name="nerd-stats" />
       <Stack.Screen
         name="event/[eventId]"
         options={{
           headerShadowVisible: false,
           headerTitleStyle: {
-            color: themeColors.textPrimary,
+            color: colors.textPrimary,
           },
         }}
       />

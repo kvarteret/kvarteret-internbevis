@@ -1,6 +1,6 @@
 import React from "react"
 import { TextInput, TextInputProps } from "react-native"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { cn } from "@/shared/utils/cn"
 
 interface TextFieldProps extends TextInputProps {
@@ -13,6 +13,8 @@ export const TextField = ({
     style,
     ...props
 }: TextFieldProps): React.JSX.Element => {
+    const { textSecondary } = useThemeRuntimeColors()
+
     return (
         <TextInput
             autoCorrect={false}
@@ -21,7 +23,7 @@ export const TextField = ({
                 className,
             )}
             style={style}
-            placeholderTextColor={placeholderTextColor ?? themeColors.textSecondary}
+            placeholderTextColor={placeholderTextColor ?? textSecondary}
             {...props}
         />
     )

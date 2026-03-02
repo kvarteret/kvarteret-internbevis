@@ -1,7 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React, { useEffect, useMemo, useRef } from "react"
 import { Animated, Easing, Image, useWindowDimensions, View } from "react-native"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Text } from "@/shared/ui/Text"
 
 interface MemberHeaderProps {
@@ -28,6 +28,7 @@ export const MemberHeader = ({
     wordOfTheDay,
 }: MemberHeaderProps): React.JSX.Element => {
     const { width } = useWindowDimensions()
+    const { textSecondary } = useThemeRuntimeColors()
     const avatarSize = useMemo(() => Math.min(92, Math.max(64, width * 0.22)), [width])
     const normalizedRoleGroup = roleGroup.trim()
     const normalizedRoleTitle = roleTitle.trim()
@@ -134,7 +135,7 @@ export const MemberHeader = ({
                             {!localImageSource && !hasRemoteImage ? (
                                 <View className="h-full w-full items-center justify-center">
                                     <MaterialIcons
-                                        color={themeColors.textSecondary}
+                                        color={textSecondary}
                                         name="person"
                                         size={avatarSize * 0.54}
                                     />

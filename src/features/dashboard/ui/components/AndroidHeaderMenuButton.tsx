@@ -4,7 +4,7 @@ import { Animated, Easing, Pressable, View, ViewStyle } from "react-native"
 import { Divider, Menu as PaperMenu } from "react-native-paper"
 import { AppHeaderMenuItem } from "@/features/dashboard/ui/menu/headerMenu.types"
 import { NATIVE_MENU_ACTION_ID } from "@/features/dashboard/ui/menu/nativeMenuActions"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Text } from "@/shared/ui/Text"
 import { triggerSoftImpactHaptic } from "@/shared/utils/haptics"
 
@@ -29,15 +29,8 @@ interface AndroidMenuGroup {
 }
 
 const triggerHitSlop = { top: 8, bottom: 8, left: 8, right: 8 }
-const androidMenuSurfaceStyle: ViewStyle = {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: themeColors.androidSurfaceOutline,
-    backgroundColor: themeColors.androidCardElevatedSurface,
-}
-const destructiveItemTitleStyle = {
-    color: themeColors.stateDanger,
-}
+const ANDROID_MENU_ICON_ANIMATION_DURATION_MS = 260
+const ANDROID_MENU_ANIMATION_SCALE = 1.3
 
 const resolveAndroidMenuIcon = (actionId: string): string | undefined => {
     switch (actionId) {
@@ -47,6 +40,8 @@ const resolveAndroidMenuIcon = (actionId: string): string | undefined => {
             return "information-outline"
         case NATIVE_MENU_ACTION_ID.games:
             return "gamepad-variant-outline"
+        case NATIVE_MENU_ACTION_ID.nerdStats:
+            return "query-stats"
         case NATIVE_MENU_ACTION_ID.authLogin:
             return "login"
         case NATIVE_MENU_ACTION_ID.authLogout:
@@ -111,14 +106,30 @@ export const AndroidHeaderMenuButton = ({
 }: AndroidHeaderMenuButtonProps): React.JSX.Element => {
     const [isAndroidMenuOpen, setAndroidMenuOpen] = useState(false)
     const menuAnimation = useRef(new Animated.Value(0)).current
-    const menuIconColor = themeColors.editorialInk
+    const colors = useThemeRuntimeColors()
+    const menuIconColor = colors.editorialInk
     const androidMenuGroups = useMemo(() => buildAndroidMenuGroups(menuActions), [menuActions])
+    const androidMenuSurfaceStyle = useMemo<ViewStyle>(
+        () => ({
+            borderRadius: 18,
+            borderWidth: 1,
+            borderColor: colors.androidSurfaceOutline,
+            backgroundColor: colors.androidCardElevatedSurface,
+        }),
+        [colors.androidCardElevatedSurface, colors.androidSurfaceOutline],
+    )
+    const destructiveItemTitleStyle = useMemo(
+        () => ({
+            color: colors.stateDanger,
+        }),
+        [colors.stateDanger],
+    )
 
     useEffect(() => {
         Animated.timing(menuAnimation, {
             toValue: isAndroidMenuOpen ? 1 : 0,
-            duration: 170,
-            easing: Easing.out(Easing.cubic),
+            duration: ANDROID_MENU_ICON_ANIMATION_DURATION_MS,
+            easing: Easing.inOut(Easing.cubic),
             useNativeDriver: true,
         }).start()
     }, [isAndroidMenuOpen, menuAnimation])
@@ -174,6 +185,7 @@ export const AndroidHeaderMenuButton = ({
                 }
                 anchorPosition="bottom"
                 contentStyle={androidMenuSurfaceStyle}
+                theme={{ animation: { scale: ANDROID_MENU_ANIMATION_SCALE } }}
                 visible={isAndroidMenuOpen}
                 onDismiss={closeAndroidMenu}
             >

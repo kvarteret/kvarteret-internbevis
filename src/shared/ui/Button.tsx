@@ -11,7 +11,7 @@ import {
     View,
 } from "react-native"
 import { Button as PaperButton } from "react-native-paper"
-import { themeColors } from "@/shared/theme/colors"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
 import { triggerSelectionHaptic, triggerSoftImpactHaptic } from "@/shared/utils/haptics"
@@ -69,27 +69,34 @@ const resolveAndroidPaperMode = (variant: ButtonVariant): "text" | "contained" |
     return "contained"
 }
 
-const resolveAndroidPaperButtonColor = (variant: ButtonVariant): string | undefined => {
-    if (variant === "default") return themeColors.editorialInk
-    if (variant === "destructive") return themeColors.stateDanger
-    if (variant === "secondary") return themeColors.androidCardGroupedSurface
+const resolveAndroidPaperButtonColor = (
+    variant: ButtonVariant,
+    colors: ReturnType<typeof useThemeRuntimeColors>,
+): string | undefined => {
+    if (variant === "default") return colors.editorialInk
+    if (variant === "destructive") return colors.stateDanger
+    if (variant === "secondary") return colors.androidCardGroupedSurface
     return undefined
 }
 
-const resolveAndroidPaperTextColor = (variant: ButtonVariant): string => {
-    if (variant === "default" || variant === "destructive") return themeColors.surface
-    return themeColors.editorialInk
+const resolveAndroidPaperTextColor = (
+    variant: ButtonVariant,
+    colors: ReturnType<typeof useThemeRuntimeColors>,
+): string => {
+    if (variant === "default" || variant === "destructive") return colors.surface
+    return colors.editorialInk
 }
 
 const resolveAndroidPaperStyle = (
     variant: ButtonVariant,
     disabled: boolean,
     style: ButtonProps["style"],
+    colors: ReturnType<typeof useThemeRuntimeColors>,
 ): StyleProp<ViewStyle> => {
     const disabledGhostStyle =
         variant === "ghost" && disabled
             ? {
-                  backgroundColor: themeColors.surfaceMuted,
+                  backgroundColor: colors.surfaceMuted,
                   opacity: 0.7,
               }
             : null
@@ -144,6 +151,7 @@ export const Button = ({
     const isAndroid = Platform.OS === "android"
     const isGhost = variant === "ghost"
     const isDisabled = Boolean(disabled)
+    const colors = useThemeRuntimeColors()
 
     const resolvedAndroidRipple =
         !isAndroid || androidRipple === null
@@ -187,14 +195,14 @@ export const Button = ({
                     accessibilityRole={accessibilityRole ?? "button"}
                     accessibilityState={accessibilityState}
                     accessibilityValue={accessibilityValue}
-                    buttonColor={resolveAndroidPaperButtonColor(variant)}
+                    buttonColor={resolveAndroidPaperButtonColor(variant, colors)}
                     contentStyle={{ minHeight: 48 }}
                     delayLongPress={delayLongPress ?? undefined}
                     disabled={isDisabled}
                     mode={resolveAndroidPaperMode(variant)}
                     rippleColor={rippleColor}
-                    style={resolveAndroidPaperStyle(variant, isDisabled, style)}
-                    textColor={resolveAndroidPaperTextColor(variant)}
+                    style={resolveAndroidPaperStyle(variant, isDisabled, style, colors)}
+                    textColor={resolveAndroidPaperTextColor(variant, colors)}
                     labelStyle={labelStyle}
                     testID={testID}
                     onLongPress={onLongPress ?? undefined}
