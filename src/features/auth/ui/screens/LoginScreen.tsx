@@ -1,4 +1,4 @@
-import { GlassView, isGlassEffectAPIAvailable } from "expo-glass-effect";
+import { isGlassEffectAPIAvailable } from "expo-glass-effect";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import {
@@ -8,9 +8,10 @@ import {
   View,
 } from "react-native";
 import {
+  GlassView,
   SafeAreaView,
   useSafeAreaInsets,
-} from "react-native-safe-area-context";
+} from "@/shared/ui/interop";
 import { useSession } from "@/app/providers/SessionProvider";
 import { LoginForm } from "@/features/auth/ui/components/LoginForm";
 import { VerifyCodeForm } from "@/features/auth/ui/components/VerifyCodeForm";
