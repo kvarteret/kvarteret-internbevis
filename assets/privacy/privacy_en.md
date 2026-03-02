@@ -19,14 +19,16 @@ We use personal data solely to:
 3. Show your status and rights within the organization
 
 ## Data Storage
-The app does not store any new personal data. All information displayed in the app is retrieved directly from Kvarteret's existing membership database, where the information is already stored as part of your membership.
+The app stores limited data locally on the device to improve performance and reliability. This may include cached membership information, event content, and images. Local cache data is used only to make the app faster and more reliable, and is refreshed or replaced when newer data is available.
 
 ## Security
 - Login is done through secure two-factor authentication with email
-- No personal data is stored locally on the device
+
+## Operational Telemetry and Update Services
+We use Expo services, including EAS Update and EAS Insights, to deliver app updates and monitor technical app usage. This may include technical information such as app version, platform, operating system version, update adoption, project identifier, and a randomized installation token used by Expo to process update and usage events. We use this information to operate, maintain, troubleshoot, and improve the app. This telemetry is not intended to directly identify you as an individual user.
 
 ## Sharing of Personal Data
-We do not share your personal data with third parties. The information displayed in the app is only accessible to you and authorized personnel at Kvarteret.
+We do not sell your personal data or share it with third parties for advertising purposes. We use service providers where necessary to operate the app, including Expo for update delivery and operational telemetry. The information displayed in the app is otherwise only accessible to you and authorized personnel at Kvarteret.
 
 ## Your Rights
 You have the right to:
@@ -43,4 +45,4 @@ For questions about privacy or to exercise your rights, contact:
 - Email: pr.it@kvarteret.no
 - Address: Det Akademiske Kvarter, Olav Kyrres gate 49, 5015 Bergen
 
-Last updated: [31/10/2024]
+Last updated: [02/03/2026]
