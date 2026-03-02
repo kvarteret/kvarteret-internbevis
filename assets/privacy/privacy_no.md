@@ -1,10 +1,10 @@
-# Personvernerklæring for Kvarteret Internbevis
+# Personvernerklæring for Kvarteret
 
 ## Om appen
-Kvarteret Internbevis er en app som lar aktive medlemmer på Kvarteret se sitt medlemsbevis digitalt. Appen er utviklet for å gjøre det enklere for medlemmer å vise sitt medlemskap og trinnivå.
+Denne appen (heretter kalt: Kvarteret) lar deg vise ditt digitale internbevis på Det Akademiske Kvarter.
 
 ## Hvilke personopplysninger vi behandler
-Appen behandler følgende personopplysninger:
+Kvarteret behandler følgende personopplysninger:
 - Navn
 - E-postadresse
 - Fødselsdato
@@ -19,7 +19,7 @@ Vi bruker personopplysningene utelukkende for å:
 3. Vise din status og dine rettigheter i organisasjonen
 
 ## Datalagring
-Appen lagrer begrensede data lokalt på enheten for å forbedre ytelse og stabilitet. Dette kan inkludere hurtiglagret medlemsinformasjon, arrangementsinnhold og bilder. Lokale cache-data brukes kun for å gjøre appen raskere og mer robust, og oppdateres eller erstattes når nyere data er tilgjengelige.
+Kvarteret lagrer begrensede data lokalt på enheten for å forbedre ytelse og stabilitet. Dette kan inkludere hurtiglagret medlemsinformasjon, arrangementsinnhold og bilder. Lokale cache-data brukes kun for å gjøre Kvarteret raskere og mer robust, og oppdateres eller erstattes når nyere data er tilgjengelige.
 
 ## Sikkerhet
 - Innlogging skjer via en sikker to-faktor autentisering med e-post
@@ -35,14 +35,13 @@ Du har rett til å:
 - Få innsyn i hvilke personopplysninger vi har om deg
 - Kreve retting av feilaktige opplysninger
 
-For å utøve disse rettighetene, kontakt it-ansvarlig på Kvarteret.
-
 ## Endringer i personvernerklæringen
 Vi forbeholder oss retten til å oppdatere denne personvernerklæringen. Større endringer vil bli varslet via e-post eller i appen.
 
 ## Kontaktinformasjon
 For spørsmål om personvern eller utøvelse av dine rettigheter, kontakt:
-- E-post: pr.it@kvarteret.no
-- Adresse: Det Akademiske Kvarter, Olav Kyrres gate 49, 5015 Bergen
+**E-post:** it.leder@kvarteret.no
+
+**Adresse:** Det Akademiske Kvarter, Olav Kyrres gate 49, 5015 Bergen
 
 Sist oppdatert: [02/03/2026]

@@ -6,9 +6,7 @@ import Markdown from "react-native-markdown-display"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { PRIVACY_POLICY_MARKDOWN } from "@/features/privacy/domain/privacyPolicy"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
-import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
-import { Text } from "@/shared/ui/Text"
 
 export const PrivacyScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
@@ -26,24 +24,21 @@ export const PrivacyScreen = (): React.JSX.Element => {
             heading1: {
                 color: colors.editorialInk,
                 fontSize: 26,
+                lineHeight: 32,
                 fontWeight: "700" as const,
                 marginBottom: 10,
+                marginTop: 2,
             } satisfies TextStyle,
             heading2: {
                 color: colors.editorialInk,
                 fontSize: 20,
+                lineHeight: 26,
                 fontWeight: "700" as const,
                 marginBottom: 8,
                 marginTop: 4,
             } satisfies TextStyle,
             paragraph: {
                 marginBottom: 12,
-            },
-            bullet_list: {
-                marginBottom: 12,
-            },
-            list_item: {
-                marginBottom: 6,
             },
             link: {
                 color: colors.link,
@@ -61,21 +56,14 @@ export const PrivacyScreen = (): React.JSX.Element => {
         <View className="flex-1 bg-background">
             <ScrollView
                 className="flex-1"
-                contentContainerClassName="px-4 pb-8 pt-4"
+                contentContainerClassName="px-4 pb-8 pt-5"
                 contentInsetAdjustmentBehavior="automatic"
             >
-                <Card className="mb-3 gap-2 px-4 py-4" effect="liquid" variant="grouped">
-                    <Text className="text-2xl font-black">{t("privacy")}</Text>
-                    <Text className="text-sm leading-5 text-text-secondary">
-                        {t("privacyPolicyConsent")}
-                    </Text>
-                </Card>
-
-                <Card className="px-4 py-4" effect="liquid" variant="grouped">
+                <View className="w-full px-1 py-2">
                     <Markdown style={markdownStyle}>
                         {markdown}
                     </Markdown>
-                </Card>
+                </View>
 
                 <EtjenestenFooter />
             </ScrollView>

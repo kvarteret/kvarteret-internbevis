@@ -5,7 +5,7 @@ export const translations = {
             homeTitle: "Det Akademiske Kvarter",
             login: "Logg inn",
             tryDemo: "Prøv demo",
-            continueAnonymously: "Fortsett anonymt",
+            continueAnonymously: "Jeg er ikke intern",
             continueAnonymouslyHint: "Fortsett uten innlogging. Du kan logge inn senere.",
             emailHint: "eksempel@mail.no",
             invalidEmail: "Skriv inn en gyldig e-postadresse.",

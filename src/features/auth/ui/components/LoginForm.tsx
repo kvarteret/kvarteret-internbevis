@@ -1,13 +1,22 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View, ViewStyle } from "react-native"
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
-import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
+
+const BRUTAL_PANEL_STYLE: ViewStyle = {
+    boxShadow: "8px 8px 0px #111827",
+}
+
+const BRUTAL_BUTTON_STYLE: ViewStyle = {
+    borderWidth: 2,
+    borderColor: "#111827",
+    borderRadius: 0,
+}
 
 interface LoginFormProps {
     email: string
@@ -44,17 +53,23 @@ export const LoginForm = ({
             className="w-full"
             contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4"
             keyboardShouldPersistTaps="handled"
+            scrollEnabled={false}
         >
-            <Card className="w-11/12 max-w-xl p-6" effect="liquid" variant="elevated">
-                <Text className="text-center text-3xl leading-9 font-bold">
+            <View
+                className="w-11/12 max-w-xl border-2 border-editorial-ink bg-surface px-6 py-6"
+                style={BRUTAL_PANEL_STYLE}
+            >
+                <Text className="text-center text-3xl leading-9 font-black uppercase tracking-tight">
                     {t("login")}
                 </Text>
 
                 <View className="mt-6 gap-6">
                     <IconTextField
                         autoCapitalize="none"
+                        containerClassName="border-2 border-editorial-ink bg-surface px-4"
                         errorText={emailErrorText}
                         iconName="mail"
+                        inputClassName="py-4 text-lg"
                         keyboardType="email-address"
                         placeholder={t("emailHint")}
                         value={email}
@@ -67,14 +82,23 @@ export const LoginForm = ({
                         </View>
                     ) : (
                         <View className="gap-3">
-                            <Button onPress={() => void onSubmitEmail()}>
+                            <Button
+                                className="bg-editorial-ink"
+                                style={BRUTAL_BUTTON_STYLE}
+                                onPress={() => void onSubmitEmail()}
+                            >
                                 <Text className="text-base leading-5 text-surface font-semibold">
                                     {t("login")}
                                 </Text>
                             </Button>
                             {showDemoButton ? (
-                                <Button variant="secondary" onPress={onDemoLogin}>
-                                    <Text className="text-base leading-5 font-semibold">
+                                <Button
+                                    variant="secondary"
+                                    className="bg-background"
+                                    style={BRUTAL_BUTTON_STYLE}
+                                    onPress={onDemoLogin}
+                                >
+                                    <Text className="text-base leading-5 text-editorial-ink font-semibold">
                                         {t("tryDemo")}
                                     </Text>
                                 </Button>
@@ -83,15 +107,17 @@ export const LoginForm = ({
                     )}
                     <Button
                         accessibilityHint={t("continueAnonymouslyHint")}
+                        className="bg-brand-primary"
+                        style={BRUTAL_BUTTON_STYLE}
                         variant="secondary"
                         onPress={onContinueAnonymous}
                     >
-                        <Text className="text-base leading-5 font-semibold">
+                        <Text className="text-base leading-5 text-editorial-ink font-semibold">
                             {t("continueAnonymously")}
                         </Text>
                     </Button>
 
-                    <Card className="px-3 py-3" effect="liquid" variant="grouped">
+                    <View className="border-2 border-editorial-ink bg-surface px-3 py-3">
                         <Text className="mb-2 text-xs uppercase tracking-wide text-text-secondary font-semibold">
                             {t("privacy")}
                         </Text>
@@ -133,9 +159,9 @@ export const LoginForm = ({
                                 />
                             </Pressable>
                         </View>
-                    </Card>
+                    </View>
                 </View>
-            </Card>
+            </View>
         </ScrollView>
     )
 }

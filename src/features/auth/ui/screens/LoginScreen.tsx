@@ -1,14 +1,12 @@
-import { isGlassEffectAPIAvailable } from "expo-glass-effect";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import {
   Image,
   KeyboardAvoidingView,
-  Platform,
   View,
+  ViewStyle,
 } from "react-native";
 import {
-  GlassView,
   SafeAreaView,
   useSafeAreaInsets,
 } from "@/shared/ui/interop";
@@ -20,14 +18,16 @@ import { useLoginForm } from "@/features/auth/vm/useLoginForm";
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter";
 import { Text } from "@/shared/ui/Text";
 
+const BRUTAL_HERO_STYLE: ViewStyle = {
+  boxShadow: "8px 8px 0px #111827",
+};
+
 export const LoginScreen = (): React.JSX.Element => {
   const router = useRouter();
   const { user, isAnonymous } = useSession();
   const insets = useSafeAreaInsets();
   const form = useLoginForm();
   useDeepLinkLogin(form.mode, form.performTokenLogin);
-  const useGlassHeroOverlay =
-    Platform.OS === "ios" && isGlassEffectAPIAvailable();
 
   useEffect(() => {
     if (user || isAnonymous) {
@@ -44,42 +44,31 @@ export const LoginScreen = (): React.JSX.Element => {
         className="px-4 pb-2"
         style={{ paddingTop: Math.max(insets.top + 10, 56) }}
       >
-        <View className="relative overflow-hidden rounded-3xl border border-surface/70 px-4 py-5">
-          {useGlassHeroOverlay ? (
-            <View className="absolute inset-0" pointerEvents="none">
-              <GlassView
-                className="flex-1"
-                colorScheme="light"
-                glassEffectStyle="regular"
-              />
-            </View>
-          ) : (
-            <View
-              className="absolute inset-0 bg-white/35"
-              pointerEvents="none"
-            />
-          )}
-          <View className="gap-1.5">
-            <Text className="text-3xl leading-tight font-black text-editorial-ink">
-              VELKOMMEN TIL
+        <View
+          className="overflow-hidden border-2 border-editorial-ink bg-brand-primary px-5 py-5"
+          style={BRUTAL_HERO_STYLE}
+        >
+          <View className="gap-2.5">
+            <Text className="text-xl font-black uppercase text-editorial-ink">
+              Det er os en Glæde at byde Dem velkommen til
             </Text>
-            <View className="flex-row items-start gap-2">
-              <View className="h-20 justify-center">
+            <View className="flex-row items-center gap-4">
+              <View className="w-28 shrink-0 items-center justify-center">
                 <Image
                   accessible={false}
-                  className="h-16 w-24"
+                  className="h-28 w-28"
                   resizeMode="contain"
                   source={require("@assets/images/nobg.png")}
                 />
               </View>
-              <View className="flex">
-                <Text className="text-xl leading-7 font-black text-editorial-ink">
+              <View className="flex-1 justify-center gap-0.5">
+                <Text className="text-2xl leading-none font-black uppercase tracking-wider text-editorial-ink">
                   DET
                 </Text>
-                <Text className="text-xl leading-7 font-black text-editorial-ink">
+                <Text className="text-2xl leading-none font-black uppercase tracking-wider text-editorial-ink">
                   AKADEMISKE
                 </Text>
-                <Text className="text-xl leading-7 font-black text-editorial-ink">
+                <Text className="text-2xl leading-none font-black uppercase tracking-wider text-editorial-ink">
                   KVARTER
                 </Text>
               </View>
