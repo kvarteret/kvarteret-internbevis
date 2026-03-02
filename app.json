@@ -42,6 +42,7 @@
       "versionCode": 2026022602
     },
     "plugins": [
+      "./plugins/with-android-gradle-memory",
       "expo-localization",
       "expo-secure-store",
       [
