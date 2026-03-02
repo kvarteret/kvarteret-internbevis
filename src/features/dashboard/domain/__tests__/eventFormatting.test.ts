@@ -89,7 +89,7 @@ describe("eventFormatting", () => {
         expect(value).toContain("om")
     })
 
-    test("formatEventStartStopWithDuration renders when and duration on separate lines", () => {
+    test("formatEventStartStopWithDuration renders Norwegian duration phrasing on separate lines", () => {
         jest.useFakeTimers().setSystemTime(new Date(2026, 2, 1, 12, 0, 0))
 
         const value = formatEventStartStopWithDuration(
@@ -98,6 +98,18 @@ describe("eventFormatting", () => {
             "no",
         )
 
-        expect(value).toContain("\n1 time")
+        expect(value).toContain("\nvarer i 1 time")
+    })
+
+    test("formatEventStartStopWithDuration renders English duration phrasing on separate lines", () => {
+        jest.useFakeTimers().setSystemTime(new Date(2026, 2, 1, 12, 0, 0))
+
+        const value = formatEventStartStopWithDuration(
+            new Date(2026, 2, 5, 18, 0, 0),
+            new Date(2026, 2, 5, 19, 0, 0),
+            "en",
+        )
+
+        expect(value).toContain("\nlasts 1 hour")
     })
 })

@@ -129,7 +129,10 @@ export const formatEventStartStopWithDuration = (
 ): string => {
     const whenLabel = formatEventWhen(startDate, language, new Date())
     const durationLabel = formatEventDuration(startDate, endDate, language)
-    return `${whenLabel}\n${durationLabel}`
+    const durationSentence =
+        language === "en" ? `lasts ${durationLabel}` : `varer i ${durationLabel}`
+
+    return `${whenLabel}\n${durationSentence}`
 }
 
 export const getEventCategoriesText = (event: FirestoreEventDocument): string =>

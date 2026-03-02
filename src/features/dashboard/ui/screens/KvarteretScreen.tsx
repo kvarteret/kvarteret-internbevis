@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { ActivityIndicator, ScrollView, View } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
+import { shouldShowGrondahlsStatusCard } from "@/features/dashboard/domain/grondahlsOpening"
 import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
 import { splitHomeEventsByType } from "@/features/dashboard/domain/eventSelection"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
@@ -174,13 +175,7 @@ export const KvarteretScreen = (): React.JSX.Element => {
         retry: 1,
     })
 
-    const showNowPlayingWidget = Boolean(
-        nowPlaying &&
-            !nowPlayingError &&
-            nowPlaying.authorized &&
-            nowPlaying.hasTrack &&
-            nowPlaying.isPlaybackActive,
-    )
+    const showNowPlayingWidget = !nowPlayingError && shouldShowGrondahlsStatusCard(nowPlaying)
     const nowPlayingProgressWidth =
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
 
