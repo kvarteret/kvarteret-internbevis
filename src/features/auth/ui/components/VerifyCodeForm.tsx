@@ -69,11 +69,16 @@ export const VerifyCodeForm = ({
 
                 <View className="mt-7 gap-4">
                     <IconTextField
+                        autoCapitalize="none"
+                        autoComplete="one-time-code"
                         containerClassName="border-2 border-editorial-ink bg-surface px-4"
                         errorText={otpFieldErrorText}
                         iconName="lock"
                         inputClassName="py-4 text-lg"
+                        keyboardType="number-pad"
+                        maxLength={6}
                         placeholder={t("codeFromEmail")}
+                        textContentType="oneTimeCode"
                         value={otpCode}
                         onChangeText={onChangeOtpCode}
                     />
