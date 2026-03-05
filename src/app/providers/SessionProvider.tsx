@@ -11,9 +11,12 @@ import {
     AuthResult,
     authResultFromError,
     clearCredentials,
+    clearCachedUser,
     clearDeepLinkToken,
+    getCachedUser,
     getInternkortInformation,
     getSavedCredentials,
+    saveCachedUser,
     saveCredentials,
     saveDeepLinkToken,
 } from "@/features/auth/data/authRepository"
@@ -21,6 +24,7 @@ import {
     getHydrationErrorMessage,
     shouldClearCredentialsOnHydrationError,
 } from "@/features/auth/domain/authHydration"
+import { isTransientAuthError } from "@/features/auth/domain/authError"
 import {
     buildDisplayRoles,
     hasPersistedRoleSelectionMatch,
@@ -34,6 +38,7 @@ import { User } from "@/shared/types/user"
 interface SessionContextValue {
     user: User | null
     isAnonymous: boolean
+    hasStoredCredentials: boolean
     selectedFrontpageRoleSelection: PersistedRoleSelection | null
     isHydrating: boolean
     isLoading: boolean
@@ -69,6 +74,7 @@ const parsePersistedRoleSelection = (rawValue: string | null): PersistedRoleSele
 export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Element => {
     const [user, setUser] = useState<User | null>(null)
     const [isAnonymous, setIsAnonymous] = useState(false)
+    const [hasStoredCredentials, setHasStoredCredentials] = useState(false)
     const [selectedFrontpageRoleSelection, setSelectedFrontpageRoleSelectionState] =
         useState<PersistedRoleSelection | null>(null)
     const [isHydrating, setIsHydrating] = useState(true)
@@ -79,6 +85,8 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         const hydrateUser = async (): Promise<void> => {
             try {
                 const credentials = await getSavedCredentials()
+                const hasCredentials = Boolean(credentials.email && credentials.accessToken)
+                setHasStoredCredentials(hasCredentials)
                 let hydratedUser: User | null = null
 
                 if (credentials.email && credentials.accessToken) {
@@ -90,6 +98,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
 
                 if (hydratedUser) {
                     setUser(hydratedUser)
+                    await saveCachedUser(hydratedUser)
                     setIsAnonymous(false)
                     setError(null)
                     await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
@@ -97,6 +106,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
                 }
 
                 setUser(null)
+                setHasStoredCredentials(false)
                 const anonymousFlag = await getStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
                 setIsAnonymous(anonymousFlag === "true")
                 setError(null)
@@ -104,6 +114,17 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
                 if (shouldClearCredentialsOnHydrationError(nextError)) {
                     await clearCredentials()
                     await clearDeepLinkToken()
+                    await clearCachedUser()
+                    setHasStoredCredentials(false)
+                } else if (isTransientAuthError(nextError)) {
+                    const cachedUser = await getCachedUser()
+                    if (cachedUser) {
+                        setUser(cachedUser)
+                        setIsAnonymous(false)
+                        setError(getHydrationErrorMessage(nextError))
+                        await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+                        return
+                    }
                 }
 
                 setUser(null)
@@ -193,7 +214,9 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
             const nextUser = await getInternkortInformation(email, accessToken)
             await saveCredentials(email, accessToken)
             await saveDeepLinkToken(accessToken)
+            await saveCachedUser(nextUser)
             setUser(nextUser)
+            setHasStoredCredentials(true)
             setIsAnonymous(false)
             await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
             return { success: true, status: 200 }
@@ -233,8 +256,10 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
     const logout = async (): Promise<void> => {
         await clearCredentials()
         await clearDeepLinkToken()
+        await clearCachedUser()
         await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
         setIsAnonymous(false)
+        setHasStoredCredentials(false)
         setSelectedFrontpageRoleSelectionState(null)
         setUser(null)
     }
@@ -243,6 +268,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         () => ({
             user,
             isAnonymous,
+            hasStoredCredentials,
             selectedFrontpageRoleSelection,
             isHydrating,
             isLoading,
@@ -259,6 +285,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
             error,
             exitAnonymousMode,
             isAnonymous,
+            hasStoredCredentials,
             isHydrating,
             isLoading,
             selectedFrontpageRoleSelection,

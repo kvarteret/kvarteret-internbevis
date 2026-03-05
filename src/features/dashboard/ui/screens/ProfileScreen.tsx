@@ -254,6 +254,7 @@ export const ProfileScreen = (): React.JSX.Element => {
     const {
         user,
         isAnonymous,
+        hasStoredCredentials,
         selectedFrontpageRoleSelection,
         isLoading,
         exitAnonymousMode,
@@ -263,10 +264,10 @@ export const ProfileScreen = (): React.JSX.Element => {
     const [avatarAnimationTrigger, setAvatarAnimationTrigger] = useState(0)
 
     useEffect(() => {
-        if (!user && !isAnonymous) {
+        if (!user && !isAnonymous && !hasStoredCredentials) {
             router.replace("/login")
         }
-    }, [isAnonymous, router, user])
+    }, [hasStoredCredentials, isAnonymous, router, user])
 
     const avatarSize = Math.min(340, Math.max(180, frame.width * 0.46))
 

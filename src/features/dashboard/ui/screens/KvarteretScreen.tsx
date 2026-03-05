@@ -143,15 +143,15 @@ const NowPlayingWidget = ({
 export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
-    const { user, isAnonymous, isLoading } = useSession()
+    const { user, isAnonymous, hasStoredCredentials, isLoading } = useSession()
     const isFocused = useIsFocused()
     const { textPrimary } = useThemeRuntimeColors()
 
     useEffect(() => {
-        if (!user && !isAnonymous) {
+        if (!user && !isAnonymous && !hasStoredCredentials) {
             router.replace("/login")
         }
-    }, [isAnonymous, router, user])
+    }, [hasStoredCredentials, isAnonymous, router, user])
 
     const {
         data: events,

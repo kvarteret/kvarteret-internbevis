@@ -5,6 +5,7 @@ import {
     SESSION_STORAGE_KEYS,
     setSessionValue,
 } from "@/core/storage/sessionStorage"
+import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import { createAuthServiceError, toAuthServiceError } from "@/features/auth/domain/authError"
 import {
     digitalInternKortRequestSchema,
@@ -13,6 +14,7 @@ import {
 import { User } from "@/shared/types/user"
 
 const DEFAULT_INTERNKORT_BASE_URL = "https://api.kvarteret.no/api/DigitalInternkort"
+const SESSION_CACHE_USER_KEY = "session_cached_user"
 
 export interface AuthResult {
     success: boolean
@@ -32,6 +34,61 @@ const postAuthJson = async (path: string, body: Record<string, unknown>): Promis
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
     })
+}
+
+const mapCachedUser = (payload: unknown): User | null => {
+    if (!payload || typeof payload !== "object") {
+        return null
+    }
+
+    const candidate = payload as Partial<User> & Record<string, unknown>
+    if (typeof candidate.id !== "number") {
+        return null
+    }
+
+    const gyldigTilRaw = candidate.gyldigTil
+    const gyldigTil = new Date(
+        gyldigTilRaw instanceof Date ? gyldigTilRaw.getTime() : String(gyldigTilRaw ?? ""),
+    )
+    if (Number.isNaN(gyldigTil.getTime())) {
+        return null
+    }
+
+    const toOptionalDate = (raw: unknown): Date | null => {
+        if (!raw) {
+            return null
+        }
+
+        const parsed = new Date(raw instanceof Date ? raw.getTime() : String(raw))
+        return Number.isNaN(parsed.getTime()) ? null : parsed
+    }
+
+    return {
+        id: candidate.id,
+        fornavn: typeof candidate.fornavn === "string" ? candidate.fornavn : "",
+        etternavn: typeof candidate.etternavn === "string" ? candidate.etternavn : "",
+        fodselsdato: toOptionalDate(candidate.fodselsdato),
+        opprettet: toOptionalDate(candidate.opprettet),
+        gyldigTil,
+        bildeUrl: typeof candidate.bildeUrl === "string" ? candidate.bildeUrl : undefined,
+        pingvinPoengSum:
+            typeof candidate.pingvinPoengSum === "number" ? candidate.pingvinPoengSum : 0,
+        aktiveVerv: Array.isArray(candidate.aktiveVerv) ? (candidate.aktiveVerv as User["aktiveVerv"]) : [],
+        dagensOrd: typeof candidate.dagensOrd === "string" ? candidate.dagensOrd : "",
+    }
+}
+
+const isInvalidAccessTokenResponse = (status: number, bodyText: string): boolean => {
+    if (status === 401 || status === 404) {
+        return true
+    }
+
+    if (status !== 400) {
+        return false
+    }
+
+    const normalized = bodyText.toLowerCase()
+    return normalized.includes("access token") || normalized.includes("accesstoken")
 }
 
 export const requestAccessToken = async (email: string): Promise<boolean> => {
@@ -119,10 +176,20 @@ export const getInternkortInformation = async (
         }
     }
 
-    if (response.status === 401 || response.status === 404) {
+    let responseText = ""
+    try {
+        responseText = await response.text()
+    } catch {
+        responseText = ""
+    }
+
+    if (isInvalidAccessTokenResponse(response.status, responseText)) {
         throw createAuthServiceError({
             code: "INVALID_AUTH",
-            message: response.status === 401 ? "Invalid or expired access token" : "User not found",
+            message:
+                response.status === 404
+                    ? "User not found"
+                    : "Invalid or expired access token",
             status: response.status,
         })
     }
@@ -156,6 +223,19 @@ export const clearCredentials = async (): Promise<void> => {
         removeSessionValue(SESSION_STORAGE_KEYS.email),
         removeSessionValue(SESSION_STORAGE_KEYS.accessToken),
     ])
+}
+
+export const saveCachedUser = async (user: User): Promise<void> => {
+    await setStoredJson(SESSION_CACHE_USER_KEY, user)
+}
+
+export const getCachedUser = async (): Promise<User | null> => {
+    const cached = await getStoredJson<unknown>(SESSION_CACHE_USER_KEY)
+    return mapCachedUser(cached)
+}
+
+export const clearCachedUser = async (): Promise<void> => {
+    await removeStoredValue(SESSION_CACHE_USER_KEY)
 }
 
 export const saveDeepLinkToken = async (token: string): Promise<void> => {

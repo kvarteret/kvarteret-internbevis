@@ -39,7 +39,12 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
     const navigation = useNavigation()
     const router = useRouter()
     const { editorialValid } = useThemeRuntimeColors()
-    const { user, selectedFrontpageRoleSelection, setSelectedFrontpageRoleSelection } = useSession()
+    const {
+        user,
+        hasStoredCredentials,
+        selectedFrontpageRoleSelection,
+        setSelectedFrontpageRoleSelection,
+    } = useSession()
     const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
     const selectedRole = useMemo(
         () => resolveDisplayedRole(displayRoles, selectedFrontpageRoleSelection),
@@ -53,7 +58,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
     }, [navigation, t])
 
     useEffect(() => {
-        if (!user) {
+        if (!user && !hasStoredCredentials) {
             if (router.canGoBack()) {
                 router.back()
                 return
@@ -61,7 +66,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
 
             router.replace("/login")
         }
-    }, [router, user])
+    }, [hasStoredCredentials, router, user])
 
     if (!user) {
         return (
