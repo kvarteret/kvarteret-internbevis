@@ -109,11 +109,44 @@ export const requestAccessToken = async (email: string): Promise<boolean> => {
         return true
     }
 
+    let responseText = ""
+    try {
+        responseText = (await response.text()).trim()
+    } catch {
+        responseText = ""
+    }
+
     if (response.status === 404) {
         throw createAuthServiceError({
             code: "EMAIL_NOT_FOUND",
-            message: "Email not found in the database",
+            message: responseText || "Email not found in the database",
             status: 404,
+        })
+    }
+
+    if (response.status === 409) {
+        throw createAuthServiceError({
+            code: "EMAIL_CONFLICT",
+            message:
+                responseText ||
+                "More than one Kvarteret profile uses this email address. Contact your group leader to fix it.",
+            status: 409,
+        })
+    }
+
+    if (response.status >= 500) {
+        throw createAuthServiceError({
+            code: "SERVER_ERROR",
+            message: "The server could not send a code right now. Please try again later.",
+            status: response.status,
+        })
+    }
+
+    if (responseText) {
+        throw createAuthServiceError({
+            code: "REQUEST_FAILED",
+            message: responseText,
+            status: response.status,
         })
     }
 

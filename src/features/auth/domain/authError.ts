@@ -1,7 +1,9 @@
 export type AuthErrorCode =
     | "NETWORK_ERROR"
+    | "SERVER_ERROR"
     | "INVALID_AUTH"
     | "EMAIL_NOT_FOUND"
+    | "EMAIL_CONFLICT"
     | "REQUEST_FAILED"
     | "UNEXPECTED_RESPONSE"
     | "UNKNOWN_ERROR"
@@ -63,5 +65,9 @@ export function isInvalidAuthError(error: unknown): boolean {
 
 export function isTransientAuthError(error: unknown): boolean {
     const authError = toAuthServiceError(error)
-    return authError.code === "NETWORK_ERROR" || authError.code === "REQUEST_FAILED"
+    return (
+        authError.code === "NETWORK_ERROR" ||
+        authError.code === "REQUEST_FAILED" ||
+        authError.code === "SERVER_ERROR"
+    )
 }
