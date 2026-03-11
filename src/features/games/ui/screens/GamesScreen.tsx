@@ -45,6 +45,7 @@ interface ClockCardProps {
     accessibilityLabel: string
     backgroundColor: string
     borderColor: string
+    disabled?: boolean
     fontSize: number
     fill?: boolean
     inverted?: boolean
@@ -59,6 +60,7 @@ const ClockCard = ({
     accessibilityLabel,
     backgroundColor,
     borderColor,
+    disabled = false,
     fontSize,
     fill = false,
     inverted = false,
@@ -72,7 +74,9 @@ const ClockCard = ({
         <Pressable
             accessibilityLabel={accessibilityLabel}
             accessibilityRole="button"
+            accessibilityState={{ disabled }}
             className={fill ? "flex-1" : undefined}
+            disabled={disabled}
             onPress={onPress}
         >
             {({ pressed }) => (
@@ -87,7 +91,7 @@ const ClockCard = ({
                         borderWidth: 1.5,
                         boxShadow: "0 8px 22px rgba(0, 0, 0, 0.12)",
                         height,
-                        opacity: hasWinner ? 0.62 : pressed ? 0.92 : 1,
+                        opacity: hasWinner ? 0.62 : pressed && !disabled ? 0.92 : 1,
                     }}
                 >
                     <View style={inverted ? { transform: [{ rotate: "180deg" }] } : undefined}>
@@ -396,6 +400,7 @@ export const GamesScreen = (): React.JSX.Element => {
                                 accessibilityLabel={t("chessBlack")}
                                 backgroundColor={blackTimerBackgroundColor}
                                 borderColor={blackTimerBorderColor}
+                                disabled={!blackTimerActive || Boolean(timerState.winner)}
                                 fill
                                 fontSize={timerFontSize}
                                 hasWinner={Boolean(timerState.winner)}
@@ -477,6 +482,7 @@ export const GamesScreen = (): React.JSX.Element => {
                                 accessibilityLabel={t("chessWhite")}
                                 backgroundColor={whiteTimerBackgroundColor}
                                 borderColor={whiteTimerBorderColor}
+                                disabled={!whiteTimerActive || Boolean(timerState.winner)}
                                 fill
                                 fontSize={timerFontSize}
                                 hasWinner={Boolean(timerState.winner)}
