@@ -63,7 +63,9 @@ const resolvePressableStyle = (
     }
 }
 
-const resolveAndroidPaperMode = (variant: ButtonVariant): "text" | "contained" | "contained-tonal" => {
+const resolveAndroidPaperMode = (
+    variant: ButtonVariant,
+): "text" | "contained" | "contained-tonal" => {
     if (variant === "secondary") return "contained-tonal"
     if (variant === "ghost") return "text"
     return "contained"

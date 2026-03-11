@@ -23,10 +23,7 @@ const runtimeColorVariables = [
 
 type RuntimeThemeColorKey = (typeof runtimeColorVariables)[number][0]
 
-const requireColorVariable = (
-    variableName: string,
-    value: string | number | undefined,
-): string => {
+const requireColorVariable = (variableName: string, value: string | number | undefined): string => {
     if (typeof value === "string") {
         return value
     }
@@ -37,7 +34,9 @@ const requireColorVariable = (
 }
 
 export const useThemeRuntimeColors = () => {
-    const resolvedVariableValues = useCSSVariable(runtimeColorVariables.map(([, variable]) => variable))
+    const resolvedVariableValues = useCSSVariable(
+        runtimeColorVariables.map(([, variable]) => variable),
+    )
 
     return useMemo(
         () =>

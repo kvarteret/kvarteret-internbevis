@@ -60,10 +60,15 @@ const resolveVariantStyle = (variant: CardVariant, effect: CardEffect): ViewStyl
 }
 
 const resolveVariantClassName = (variant: CardVariant, effect: CardEffect): string => {
-    const shared = Platform.OS === "ios" ? "rounded-2xl overflow-hidden" : "rounded-card overflow-hidden"
+    const shared =
+        Platform.OS === "ios" ? "rounded-2xl overflow-hidden" : "rounded-card overflow-hidden"
 
     if (Platform.OS === "ios" && effect === "liquid") {
-        return cn(shared, "border-white/45 bg-white/35", variant === "elevated" ? "shadow-card" : null)
+        return cn(
+            shared,
+            "border-white/45 bg-white/35",
+            variant === "elevated" ? "shadow-card" : null,
+        )
     }
 
     if (Platform.OS === "android" && effect === "liquid") {
@@ -74,14 +79,18 @@ const resolveVariantClassName = (variant: CardVariant, effect: CardEffect): stri
         return cn(
             shared,
             "border-border bg-surface",
-            Platform.OS === "ios" ? "shadow-card" : "border-android-surface-outline bg-android-card-elevated-surface",
+            Platform.OS === "ios"
+                ? "shadow-card"
+                : "border-android-surface-outline bg-android-card-elevated-surface",
         )
     }
 
     return cn(
         shared,
         "border-border bg-surface",
-        Platform.OS === "android" ? "border-android-surface-outline bg-android-card-grouped-surface" : null,
+        Platform.OS === "android"
+            ? "border-android-surface-outline bg-android-card-grouped-surface"
+            : null,
     )
 }
 

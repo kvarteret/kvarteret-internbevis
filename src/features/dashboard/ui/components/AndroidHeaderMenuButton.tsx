@@ -61,7 +61,8 @@ const buildAndroidMenuGroups = (actions: AppHeaderMenuItem[]): AndroidMenuGroup[
         if (action.attributes?.hidden) return
 
         const actionId = action.id ?? action.title
-        const subactions = action.subactions?.filter(subaction => !subaction.attributes?.hidden) ?? []
+        const subactions =
+            action.subactions?.filter(subaction => !subaction.attributes?.hidden) ?? []
 
         if (subactions.length > 0) {
             groups.push({
@@ -173,7 +174,11 @@ export const AndroidHeaderMenuButton = ({
                     <Pressable
                         accessibilityLabel={openMenuLabel}
                         accessibilityRole="button"
-                        android_ripple={{ color: "rgba(0,0,0,0.14)", borderless: false, radius: 24 }}
+                        android_ripple={{
+                            color: "rgba(0,0,0,0.14)",
+                            borderless: false,
+                            radius: 24,
+                        }}
                         className="h-12 w-12 items-center justify-center rounded-full active:opacity-95"
                         hitSlop={triggerHitSlop}
                         onPress={openAndroidMenu}
@@ -204,7 +209,9 @@ export const AndroidHeaderMenuButton = ({
                                 leadingIcon={resolveAndroidMenuIcon(item.id)}
                                 onPress={() => pressAndroidMenuAction(item.id)}
                                 title={item.title}
-                                titleStyle={item.destructive ? destructiveItemTitleStyle : undefined}
+                                titleStyle={
+                                    item.destructive ? destructiveItemTitleStyle : undefined
+                                }
                             />
                         ))}
                     </View>

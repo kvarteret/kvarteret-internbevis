@@ -64,7 +64,11 @@ const formatEventWhen = (date: Date, language: "no" | "en", now: Date): string =
     return `${dateLabel} - ${timeLabel}`
 }
 
-const toDurationPart = (value: number, language: "no" | "en", unit: "week" | "day" | "hour" | "minute"): string | null => {
+const toDurationPart = (
+    value: number,
+    language: "no" | "en",
+    unit: "week" | "day" | "hour" | "minute",
+): string | null => {
     if (value <= 0) return null
 
     if (language === "en") {

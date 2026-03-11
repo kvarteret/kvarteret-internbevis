@@ -1,7 +1,4 @@
-import {
-    isWithinGrondahlsOpeningHours,
-    shouldShowGrondahlsStatusCard,
-} from "../grondahlsOpening"
+import { isWithinGrondahlsOpeningHours, shouldShowGrondahlsStatusCard } from "../grondahlsOpening"
 import type { NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
 
 const createNowPlayingState = (overrides?: Partial<NowPlayingState>): NowPlayingState => ({
@@ -53,10 +50,7 @@ describe("grondahlsOpening", () => {
 
         expect(shouldShowGrondahlsStatusCard(createNowPlayingState(), now)).toBe(true)
         expect(
-            shouldShowGrondahlsStatusCard(
-                createNowPlayingState({ isPlaybackActive: false }),
-                now,
-            ),
+            shouldShowGrondahlsStatusCard(createNowPlayingState({ isPlaybackActive: false }), now),
         ).toBe(false)
     })
 })

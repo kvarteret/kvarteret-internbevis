@@ -66,9 +66,7 @@ export const AboutScreen = (): React.JSX.Element => {
                 contentInsetAdjustmentBehavior="automatic"
             >
                 <Card className="mb-3 gap-3 px-4 py-4" effect="liquid" variant="grouped">
-                    <Text className="text-2xl font-black">
-                        {t("aboutKvarteretTitle")}
-                    </Text>
+                    <Text className="text-2xl font-black">{t("aboutKvarteretTitle")}</Text>
                     <Text className="text-base leading-6 text-text-secondary">
                         {t("aboutKvarteretText")}
                     </Text>
@@ -83,9 +81,7 @@ export const AboutScreen = (): React.JSX.Element => {
                 </Card>
 
                 <Card className="mb-3 gap-3 px-4 py-4" effect="liquid" variant="grouped">
-                    <Text className="text-2xl font-black">
-                        {t("aboutEtjenestenTitle")}
-                    </Text>
+                    <Text className="text-2xl font-black">{t("aboutEtjenestenTitle")}</Text>
                     <Text className="text-base leading-6 text-text-secondary">
                         {t("aboutEtjenestenText")}
                     </Text>
@@ -99,9 +95,7 @@ export const AboutScreen = (): React.JSX.Element => {
                         }}
                     >
                         <MaterialIcons color={textPrimary} name="email" size={18} />
-                        <Text className="text-base font-semibold">
-                            it.leder@kvarteret.no
-                        </Text>
+                        <Text className="text-base font-semibold">it.leder@kvarteret.no</Text>
                     </Pressable>
                 </Card>
 

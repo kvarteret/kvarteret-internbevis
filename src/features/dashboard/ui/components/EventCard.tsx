@@ -59,7 +59,11 @@ export const EventCard = ({
                 ]}
             >
                 {event.image?.url ? (
-                    <CachedImage className="h-44 w-full" contentFit="cover" source={event.image.url} />
+                    <CachedImage
+                        className="h-44 w-full"
+                        contentFit="cover"
+                        source={event.image.url}
+                    />
                 ) : (
                     <View className="h-44 w-full bg-surface-muted" />
                 )}

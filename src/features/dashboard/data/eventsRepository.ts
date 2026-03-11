@@ -108,18 +108,14 @@ export const fetchHomeEvents = async (_signal?: AbortSignal): Promise<FirestoreE
         )
         const pickedEvents = pickHomeEvents(events, { maxCount: HOME_EVENTS_QUERY_LIMIT })
 
-        await writeCachedValue(
-            EVENTS_CACHE_KEY,
-            pickedEvents.map(serializeEvent),
-        )
+        await writeCachedValue(EVENTS_CACHE_KEY, pickedEvents.map(serializeEvent))
 
         return pickedEvents
     } catch (error) {
-        const cachedEvents = await readCachedValue<CachedFirestoreEventDocument[], FirestoreEventDocument[]>(
-            EVENTS_CACHE_KEY,
-            FIRESTORE_TEXT_CACHE_TTL_MS,
-            value => value.map(deserializeEvent),
-        )
+        const cachedEvents = await readCachedValue<
+            CachedFirestoreEventDocument[],
+            FirestoreEventDocument[]
+        >(EVENTS_CACHE_KEY, FIRESTORE_TEXT_CACHE_TTL_MS, value => value.map(deserializeEvent))
 
         if (cachedEvents) {
             return cachedEvents
@@ -147,11 +143,10 @@ export const fetchEventById = async (
         await writeCachedValue(cacheKey, serializeEvent(event))
         return event
     } catch (error) {
-        const cachedEvent = await readCachedValue<CachedFirestoreEventDocument, FirestoreEventDocument>(
-            cacheKey,
-            FIRESTORE_TEXT_CACHE_TTL_MS,
-            deserializeEvent,
-        )
+        const cachedEvent = await readCachedValue<
+            CachedFirestoreEventDocument,
+            FirestoreEventDocument
+        >(cacheKey, FIRESTORE_TEXT_CACHE_TTL_MS, deserializeEvent)
 
         if (cachedEvent) {
             return cachedEvent

@@ -182,11 +182,10 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const isVenueOpen = showNowPlayingWidget
     const groupedEvents = useMemo(() => splitHomeEventsByType(events ?? []), [events])
     const renderedEventSections = useMemo(() => {
-        return EVENT_SECTION_CONFIG
-            .map(section => ({
-                ...section,
-                events: groupedEvents[section.key],
-            }))
+        return EVENT_SECTION_CONFIG.map(section => ({
+            ...section,
+            events: groupedEvents[section.key],
+        }))
             .filter(section => section.events.length > 0)
             .map(section => (
                 <EventSection
@@ -239,7 +238,9 @@ export const KvarteretScreen = (): React.JSX.Element => {
                             {renderedEventSections.length > 0 ? (
                                 renderedEventSections
                             ) : (
-                                <Text className="text-sm text-text-secondary">{t("homeEventsEmpty")}</Text>
+                                <Text className="text-sm text-text-secondary">
+                                    {t("homeEventsEmpty")}
+                                </Text>
                             )}
                         </View>
                     )}

@@ -1,7 +1,14 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { useTranslation } from "react-i18next"
-import { ActivityIndicator, Pressable, ScrollView, TouchableOpacity, View, ViewStyle } from "react-native"
+import {
+    ActivityIndicator,
+    Pressable,
+    ScrollView,
+    TouchableOpacity,
+    View,
+    ViewStyle,
+} from "react-native"
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
@@ -152,11 +159,7 @@ export const LoginForm = ({
                                 <Text className="flex-1 text-sm leading-5 text-link underline font-medium">
                                     {t("privacyPolicyConsent")}
                                 </Text>
-                                <MaterialIcons
-                                    color={colors.link}
-                                    name="open-in-new"
-                                    size={16}
-                                />
+                                <MaterialIcons color={colors.link} name="open-in-new" size={16} />
                             </Pressable>
                         </View>
                     </View>

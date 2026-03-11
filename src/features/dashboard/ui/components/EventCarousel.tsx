@@ -66,7 +66,11 @@ export const EventCarousel = ({
             )
         }
         if (!events || events.length === 0) {
-            return <Text className="text-sm text-text-secondary">{emptyText ?? t("homeEventsEmpty")}</Text>
+            return (
+                <Text className="text-sm text-text-secondary">
+                    {emptyText ?? t("homeEventsEmpty")}
+                </Text>
+            )
         }
         return (
             <FlatList
@@ -86,9 +90,7 @@ export const EventCarousel = ({
 
     return (
         <View className="w-full gap-2.5">
-            {showTitle ? (
-                <Text className="text-lg font-bold">{t("homeEventsTitle")}</Text>
-            ) : null}
+            {showTitle ? <Text className="text-lg font-bold">{t("homeEventsTitle")}</Text> : null}
             {content}
         </View>
     )

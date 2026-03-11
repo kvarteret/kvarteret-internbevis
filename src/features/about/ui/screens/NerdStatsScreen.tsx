@@ -186,12 +186,18 @@ export const NerdStatsScreen = (): React.JSX.Element => {
                     {
                         key: "android-version-code",
                         label: "Android versionCode",
-                        value: formatUnknown(Constants.expoConfig?.android?.versionCode, unavailableText),
+                        value: formatUnknown(
+                            Constants.expoConfig?.android?.versionCode,
+                            unavailableText,
+                        ),
                     },
                     {
                         key: "android-package",
                         label: "Android package",
-                        value: formatUnknown(Constants.expoConfig?.android?.package, unavailableText),
+                        value: formatUnknown(
+                            Constants.expoConfig?.android?.package,
+                            unavailableText,
+                        ),
                     },
                     {
                         key: "runtime-version",
@@ -345,7 +351,12 @@ export const NerdStatsScreen = (): React.JSX.Element => {
                 contentContainerClassName="gap-3 px-4 pb-8 pt-4"
             >
                 {sections.map(section => (
-                    <Card key={section.key} className="gap-1 px-4 py-4" effect="liquid" variant="grouped">
+                    <Card
+                        key={section.key}
+                        className="gap-1 px-4 py-4"
+                        effect="liquid"
+                        variant="grouped"
+                    >
                         <Text className="text-lg font-extrabold">{section.title}</Text>
                         {section.rows.map(row => (
                             <LabeledValueRow key={row.key} label={row.label} value={row.value} />

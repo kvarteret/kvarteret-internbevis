@@ -51,7 +51,7 @@ const ClockCard = ({
     })()
 
     return (
-                <View className={cardClass}>
+        <View className={cardClass}>
             <Text
                 className={cn(
                     "mb-1.5 text-sm font-semibold",
@@ -60,12 +60,7 @@ const ClockCard = ({
             >
                 {label}
             </Text>
-            <Text
-                className={cn(
-                    "text-5xl font-bold",
-                    isActive ? "text-surface" : null,
-                )}
-            >
+            <Text className={cn("text-5xl font-bold", isActive ? "text-surface" : null)}>
                 {formatClock(timeMs)}
             </Text>
         </View>
@@ -136,9 +131,7 @@ export const GamesScreen = (): React.JSX.Element => {
 
                 {mode === "d6" ? (
                     <Card className="gap-4 p-4" effect="liquid" variant="grouped">
-                        <Text className="text-2xl font-bold">
-                            {t("gamesDice")}
-                        </Text>
+                        <Text className="text-2xl font-bold">{t("gamesDice")}</Text>
                         <View className="gap-2">
                             <Text className="text-sm text-text-secondary font-semibold">
                                 {t("gamesSelectDie")}
@@ -177,9 +170,7 @@ export const GamesScreen = (): React.JSX.Element => {
                             effect="liquid"
                             variant="elevated"
                         >
-                            <Text className="text-center text-7xl font-bold">
-                                {diceValue}
-                            </Text>
+                            <Text className="text-center text-7xl font-bold">{diceValue}</Text>
                             <Text className="text-center text-sm text-text-secondary">
                                 {t("gamesDiceRolls", { count: diceRollCount })}
                             </Text>
@@ -193,9 +184,7 @@ export const GamesScreen = (): React.JSX.Element => {
                     </Card>
                 ) : (
                     <Card className="gap-4 p-4" effect="liquid" variant="grouped">
-                        <Text className="text-2xl font-bold">
-                            {t("gamesChessTimer")}
-                        </Text>
+                        <Text className="text-2xl font-bold">{t("gamesChessTimer")}</Text>
 
                         <Pressable className="gap-3" onPress={pressCurrentPlayer}>
                             <View className="flex-row items-center justify-between">

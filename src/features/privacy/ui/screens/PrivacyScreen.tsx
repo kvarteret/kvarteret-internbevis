@@ -60,9 +60,7 @@ export const PrivacyScreen = (): React.JSX.Element => {
                 contentInsetAdjustmentBehavior="automatic"
             >
                 <View className="w-full px-1 py-2">
-                    <Markdown style={markdownStyle}>
-                        {markdown}
-                    </Markdown>
+                    <Markdown style={markdownStyle}>{markdown}</Markdown>
                 </View>
 
                 <EtjenestenFooter />

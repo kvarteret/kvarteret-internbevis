@@ -7,7 +7,12 @@ interface TextPropsExtended extends TextProps {
     style?: StyleProp<TextStyle>
 }
 
-export const Text = ({ className, children, style, ...props }: TextPropsExtended): React.JSX.Element => (
+export const Text = ({
+    className,
+    children,
+    style,
+    ...props
+}: TextPropsExtended): React.JSX.Element => (
     <RNText className={cn("text-text-primary", className)} style={style} {...props}>
         {children}
     </RNText>
