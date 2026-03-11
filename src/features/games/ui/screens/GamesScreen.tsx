@@ -1,9 +1,24 @@
-import { useNavigation } from "expo-router"
-import React, { useLayoutEffect, useState } from "react"
+import { MaterialIcons } from "@expo/vector-icons"
+import { useFocusEffect, useNavigation, useRouter } from "expo-router"
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, View } from "react-native"
+import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
+import {
+    applyDraftChessTimeControl,
+    CHESS_TIME_CONTROL_STORAGE_KEY,
+    ChessTimeControl,
+    ChessTimeControlState,
+    formatChessTimeControl,
+    getDefaultChessTimeControl,
+    isChessTimeControlEqual,
+    isChessTimerPristine,
+    parseStoredChessTimeControl,
+    updateDraftChessTimeControlState,
+} from "@/features/games/domain/chessTimeControl"
 import { useChessTimer } from "@/features/games/vm/useChessTimer"
 import { COMMON_DICE_TYPES, useDiceRoll } from "@/features/games/vm/useDiceRoll"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
@@ -12,8 +27,7 @@ import { cn } from "@/shared/utils/cn"
 
 type GameMode = "d6" | "chess"
 
-const INITIAL_CHESS_MS = 15 * 60 * 1000
-const INCREMENT_MS = 2 * 1000
+const DEFAULT_CHESS_TIME_CONTROL = getDefaultChessTimeControl()
 
 const formatClock = (milliseconds: number): string => {
     const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000))
@@ -70,19 +84,82 @@ const ClockCard = ({
 export const GamesScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
+    const router = useRouter()
+    const { textSecondary } = useThemeRuntimeColors()
 
     const [mode, setMode] = useState<GameMode>("d6")
     const { selectedDiceType, diceValue, diceRollCount, isRolling, selectDiceType, rollDice } =
         useDiceRoll()
+    const [timeControlState, setTimeControlState] = useState<ChessTimeControlState>({
+        appliedTimeControl: DEFAULT_CHESS_TIME_CONTROL,
+        draftTimeControl: DEFAULT_CHESS_TIME_CONTROL,
+    })
+    const [hasHydratedTimeControl, setHasHydratedTimeControl] = useState(false)
 
     const { timerState, toggleTimer, resetChessTimer, pressCurrentPlayer } = useChessTimer(
-        INITIAL_CHESS_MS,
-        INCREMENT_MS,
+        timeControlState.appliedTimeControl,
     )
+    const timerStateRef = useRef(timerState)
 
     useLayoutEffect(() => {
         navigation.setOptions({ title: t("gamesTitle") })
     }, [navigation, t])
+
+    useEffect(() => {
+        timerStateRef.current = timerState
+    }, [timerState])
+
+    const syncStoredTimeControl = useCallback((storedTimeControl: ChessTimeControl): void => {
+        setTimeControlState(currentState => {
+            if (isChessTimeControlEqual(currentState.draftTimeControl, storedTimeControl)) {
+                return currentState
+            }
+
+            return updateDraftChessTimeControlState(
+                currentState,
+                timerStateRef.current,
+                storedTimeControl,
+            )
+        })
+    }, [])
+
+    useFocusEffect(
+        useCallback(() => {
+            let isMounted = true
+
+            const hydrateTimeControl = async (): Promise<void> => {
+                try {
+                    const storedTimeControl = parseStoredChessTimeControl(
+                        await getStoredJson<unknown>(CHESS_TIME_CONTROL_STORAGE_KEY),
+                    )
+
+                    if (storedTimeControl && isMounted) {
+                        syncStoredTimeControl(storedTimeControl)
+                    }
+                } catch {
+                    // Fall back to the current in-memory time control if local storage is unavailable.
+                } finally {
+                    if (isMounted) {
+                        setHasHydratedTimeControl(true)
+                    }
+                }
+            }
+
+            void hydrateTimeControl()
+
+            return () => {
+                isMounted = false
+            }
+        }, [syncStoredTimeControl]),
+    )
+
+    useEffect(() => {
+        if (!hasHydratedTimeControl) {
+            return
+        }
+
+        void setStoredJson(CHESS_TIME_CONTROL_STORAGE_KEY, timeControlState.draftTimeControl)
+    }, [hasHydratedTimeControl, timeControlState.draftTimeControl])
 
     const winnerLabel = timerState.winner
         ? t("chessWinner", { winner: t(getWinnerLabelKey(timerState.winner)) })
@@ -92,6 +169,21 @@ export const GamesScreen = (): React.JSX.Element => {
         { mode: "d6" as const, label: t("gamesDice") },
         { mode: "chess" as const, label: t("gamesChessTimer") },
     ]
+
+    const timerIsPristine = isChessTimerPristine(timerState, timeControlState.appliedTimeControl)
+    const hasPendingTimeControl = !isChessTimeControlEqual(
+        timeControlState.appliedTimeControl,
+        timeControlState.draftTimeControl,
+    )
+
+    const handleReset = useCallback((): void => {
+        if (hasPendingTimeControl) {
+            setTimeControlState(currentState => applyDraftChessTimeControl(currentState))
+            return
+        }
+
+        resetChessTimer()
+    }, [hasPendingTimeControl, resetChessTimer])
 
     return (
         <View className="flex-1 bg-background">
@@ -131,7 +223,6 @@ export const GamesScreen = (): React.JSX.Element => {
 
                 {mode === "d6" ? (
                     <Card className="gap-4 p-4" effect="liquid" variant="grouped">
-                        <Text className="text-2xl font-bold">{t("gamesDice")}</Text>
                         <View className="gap-2">
                             <Text className="text-sm text-text-secondary font-semibold">
                                 {t("gamesSelectDie")}
@@ -184,18 +275,46 @@ export const GamesScreen = (): React.JSX.Element => {
                     </Card>
                 ) : (
                     <Card className="gap-4 p-4" effect="liquid" variant="grouped">
-                        <Text className="text-2xl font-bold">{t("gamesChessTimer")}</Text>
+                        <View className="gap-3">
+                            <View className="flex-row items-start justify-between gap-3">
+                                <Pressable
+                                    accessibilityLabel={`${t("chessTimeControlPickerTitle")}: ${formatChessTimeControl(timeControlState.draftTimeControl)}`}
+                                    accessibilityRole="button"
+                                    className="self-start rounded-full bg-surface-muted px-4 py-2"
+                                    onPress={() => {
+                                        router.push("/chess-time-control")
+                                    }}
+                                >
+                                    <View className="flex-row items-center gap-1.5">
+                                        <Text
+                                            className="text-2xl font-bold"
+                                            style={{ fontVariant: ["tabular-nums"] }}
+                                        >
+                                            {formatChessTimeControl(
+                                                timeControlState.draftTimeControl,
+                                            )}
+                                        </Text>
+                                        <MaterialIcons
+                                            color={textSecondary}
+                                            name="expand-less"
+                                            size={22}
+                                        />
+                                    </View>
+                                </Pressable>
 
-                        <Pressable className="gap-3" onPress={pressCurrentPlayer}>
-                            <View className="flex-row items-center justify-between">
-                                <Text className="text-base text-text-secondary font-semibold">
-                                    {t("chessTimeControl")}
-                                </Text>
-                                <Text className="text-base text-text-secondary font-semibold">
+                                <Text className="pt-2 text-base font-semibold text-text-secondary">
                                     {t("chessMoves", { count: timerState.moveCount })}
                                 </Text>
                             </View>
 
+                            {hasPendingTimeControl && !timerIsPristine ? (
+                                <Text className="text-sm font-semibold text-text-secondary">
+                                    {t("chessPendingTimeControl")}
+                                </Text>
+                            ) : null}
+                        </View>
+
+                        <Pressable className="gap-3" onPress={pressCurrentPlayer}>
                             <ClockCard
                                 player="white"
                                 label={t("chessWhite")}
@@ -228,7 +347,7 @@ export const GamesScreen = (): React.JSX.Element => {
                                 </Text>
                             </Button>
 
-                            <Button variant="secondary" onPress={resetChessTimer}>
+                            <Button variant="secondary" onPress={handleReset}>
                                 {t("chessReset")}
                             </Button>
                         </View>
