@@ -1,5 +1,7 @@
 import { InternKortVerv, User } from "@/shared/types/user"
 
+export const MAX_FRONT_PAGE_ROLE_SELECTIONS = 3
+
 export type DisplayRoleSource = "active" | "virtual_pingvin"
 
 export interface DisplayRoleRow {
@@ -8,6 +10,7 @@ export interface DisplayRoleRow {
     navn: string
     gruppe: string
     rabattTrinn: number | null
+    pingvinPoeng: number
     signertKontrakt: boolean
 }
 
@@ -18,8 +21,14 @@ export interface PersistedRoleSelection {
     rabattTrinn: number | null
 }
 
+export type ToggleRoleSelectionResult =
+    | { action: "added"; nextSelections: PersistedRoleSelection[] }
+    | { action: "removed"; nextSelections: PersistedRoleSelection[] }
+    | { action: "blocked_max"; nextSelections: PersistedRoleSelection[] }
+
 const PINGVIN_NAME = "Pingvin"
 const PINGVIN_GROUP = "Pingvin Ordenen"
+const VIRTUAL_PINGVIN_PRIORITY = Number.MAX_SAFE_INTEGER
 
 const normalizeText = (value: string): string => {
     const trimmed = value.trim()
@@ -34,29 +43,48 @@ const normalizeRabattTrinn = (value: number | null): number | null => {
     return value
 }
 
+const normalizePingvinPoeng = (value: number | null | undefined): number => {
+    if (typeof value !== "number" || !Number.isInteger(value)) {
+        return 0
+    }
+
+    return value
+}
+
 const createSelectionKey = (
     source: DisplayRoleSource,
     gruppe: string,
     navn: string,
     rabattTrinn: number | null,
-): string => `${source}:${gruppe}:${navn}:${rabattTrinn ?? "null"}`
+    pingvinPoeng: number,
+): string => `${source}:${gruppe}:${navn}:${rabattTrinn ?? "null"}:${pingvinPoeng}`
 
 const normalizeActiveRole = (role: InternKortVerv): DisplayRoleRow => {
     const navn = normalizeText(role.navn)
     const gruppe = normalizeText(role.gruppe)
     const rabattTrinn = normalizeRabattTrinn(role.rabattTrinn)
+    const pingvinPoeng = normalizePingvinPoeng(role.pingvinPoeng)
 
     return {
         source: "active",
-        selectionKey: createSelectionKey("active", gruppe, navn, rabattTrinn),
+        selectionKey: createSelectionKey("active", gruppe, navn, rabattTrinn, pingvinPoeng),
         navn,
         gruppe,
         rabattTrinn,
+        pingvinPoeng,
         signertKontrakt: Boolean(role.signertKontrakt),
     }
 }
 
-const sortByRawTierGroupAndName = (a: DisplayRoleRow, b: DisplayRoleRow): number => {
+const sortByPriority = (a: DisplayRoleRow, b: DisplayRoleRow): number => {
+    if (a.source !== b.source) {
+        return a.source === "virtual_pingvin" ? -1 : 1
+    }
+
+    if (a.pingvinPoeng !== b.pingvinPoeng) {
+        return b.pingvinPoeng - a.pingvinPoeng
+    }
+
     const tierA = a.rabattTrinn ?? Number.NEGATIVE_INFINITY
     const tierB = b.rabattTrinn ?? Number.NEGATIVE_INFINITY
 
@@ -98,6 +126,16 @@ export const isPersistedRoleSelection = (value: unknown): value is PersistedRole
     return isValidSource && isValidName && isValidGroup && isValidTier
 }
 
+export const isPersistedRoleSelectionArray = (
+    value: unknown,
+): value is PersistedRoleSelection[] => {
+    if (!Array.isArray(value)) {
+        return false
+    }
+
+    return value.every(isPersistedRoleSelection)
+}
+
 export const serializeRoleSelection = (role: DisplayRoleRow): PersistedRoleSelection => ({
     source: role.source,
     navn: role.navn,
@@ -105,34 +143,104 @@ export const serializeRoleSelection = (role: DisplayRoleRow): PersistedRoleSelec
     rabattTrinn: role.rabattTrinn,
 })
 
-export const hasPersistedRoleSelectionMatch = (
+export const serializeRoleSelections = (roles: DisplayRoleRow[]): PersistedRoleSelection[] =>
+    roles.map(serializeRoleSelection)
+
+export const arePersistedRoleSelectionsEqual = (
+    left: PersistedRoleSelection[],
+    right: PersistedRoleSelection[],
+): boolean =>
+    left.length === right.length &&
+    left.every((selection, index) => {
+        const other = right[index]
+
+        return (
+            other?.source === selection.source &&
+            other?.navn === selection.navn &&
+            other?.gruppe === selection.gruppe &&
+            other?.rabattTrinn === selection.rabattTrinn
+        )
+    })
+
+export const resolvePersistedRoleSelections = (
     roles: DisplayRoleRow[],
-    selection: PersistedRoleSelection | null,
-): boolean => {
-    if (!selection) {
-        return false
+    selections: PersistedRoleSelection[],
+): DisplayRoleRow[] => {
+    const resolved: DisplayRoleRow[] = []
+    const seenSelectionKeys = new Set<string>()
+
+    for (const selection of selections.slice(0, MAX_FRONT_PAGE_ROLE_SELECTIONS)) {
+        const match = roles.find(role => roleMatchesSelection(role, selection))
+        if (!match || seenSelectionKeys.has(match.selectionKey)) {
+            continue
+        }
+
+        seenSelectionKeys.add(match.selectionKey)
+        resolved.push(match)
     }
 
-    return roles.some(role => roleMatchesSelection(role, selection))
+    return resolved
 }
 
-export const resolveDisplayedRole = (
+export const resolveDefaultRoleSelections = (
     roles: DisplayRoleRow[],
-    selection: PersistedRoleSelection | null,
-): DisplayRoleRow | null => {
-    if (roles.length === 0) {
-        return null
+    preferredSelections: PersistedRoleSelection[] = [],
+): DisplayRoleRow[] => {
+    const resolvedPreferredRoles = resolvePersistedRoleSelections(roles, preferredSelections)
+    const seenSelectionKeys = new Set(resolvedPreferredRoles.map(role => role.selectionKey))
+    const resolvedSelections = [...resolvedPreferredRoles]
+
+    for (const role of roles) {
+        if (resolvedSelections.length >= MAX_FRONT_PAGE_ROLE_SELECTIONS) {
+            break
+        }
+
+        if (seenSelectionKeys.has(role.selectionKey)) {
+            continue
+        }
+
+        seenSelectionKeys.add(role.selectionKey)
+        resolvedSelections.push(role)
     }
 
-    if (!selection) {
-        return roles[0]
+    return resolvedSelections
+}
+
+export const toggleFrontPageRoleSelection = (
+    roles: DisplayRoleRow[],
+    currentSelections: PersistedRoleSelection[],
+    role: DisplayRoleRow,
+): ToggleRoleSelectionResult => {
+    const resolvedCurrentRoles = resolvePersistedRoleSelections(roles, currentSelections)
+    const currentPersistedSelections = serializeRoleSelections(resolvedCurrentRoles)
+    const selectedRoleIndex = resolvedCurrentRoles.findIndex(
+        currentRole => currentRole.selectionKey === role.selectionKey,
+    )
+
+    if (selectedRoleIndex >= 0) {
+        return {
+            action: "removed",
+            nextSelections: currentPersistedSelections.filter(
+                (_, index) => index !== selectedRoleIndex,
+            ),
+        }
     }
 
-    return roles.find(role => roleMatchesSelection(role, selection)) ?? roles[0]
+    if (resolvedCurrentRoles.length >= MAX_FRONT_PAGE_ROLE_SELECTIONS) {
+        return {
+            action: "blocked_max",
+            nextSelections: currentPersistedSelections,
+        }
+    }
+
+    return {
+        action: "added",
+        nextSelections: [...currentPersistedSelections, serializeRoleSelection(role)],
+    }
 }
 
 export const buildDisplayRoles = (user: User): DisplayRoleRow[] => {
-    const activeRoles = user.aktiveVerv.map(normalizeActiveRole).sort(sortByRawTierGroupAndName)
+    const activeRoles = user.aktiveVerv.map(normalizeActiveRole).sort(sortByPriority)
 
     if (user.pingvinPoengSum < 14) {
         return activeRoles
@@ -140,10 +248,17 @@ export const buildDisplayRoles = (user: User): DisplayRoleRow[] => {
 
     const pingvinRole: DisplayRoleRow = {
         source: "virtual_pingvin",
-        selectionKey: createSelectionKey("virtual_pingvin", PINGVIN_GROUP, PINGVIN_NAME, 3),
+        selectionKey: createSelectionKey(
+            "virtual_pingvin",
+            PINGVIN_GROUP,
+            PINGVIN_NAME,
+            3,
+            VIRTUAL_PINGVIN_PRIORITY,
+        ),
         navn: PINGVIN_NAME,
         gruppe: PINGVIN_GROUP,
         rabattTrinn: 3,
+        pingvinPoeng: VIRTUAL_PINGVIN_PRIORITY,
         signertKontrakt: true,
     }
 

@@ -10,16 +10,21 @@ import Animated, {
     withSequence,
     withSpring,
 } from "react-native-reanimated"
-import { useSafeAreaFrame } from "@/shared/ui/interop"
 import { useSession } from "@/app/providers/SessionProvider"
 import { getIdVerificationStatus } from "@/features/dashboard/domain/idVerification"
-import { buildDisplayRoles, resolveDisplayedRole } from "@/features/dashboard/domain/profileRoles"
+import {
+    buildDisplayRoles,
+    DisplayRoleRow,
+    resolvePersistedRoleSelections,
+} from "@/features/dashboard/domain/profileRoles"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
+import { SelectedFrontpageRolesGrid } from "@/features/dashboard/ui/components/SelectedFrontpageRolesGrid"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
 import { CachedImage } from "@/shared/ui/CachedImage"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
+import { useSafeAreaFrame } from "@/shared/ui/interop"
 import { Text } from "@/shared/ui/Text"
 
 const localImageMap: Record<string, number> = {
@@ -30,8 +35,8 @@ interface IdentityHeroProps {
     fullName: string
     avatarSize: number
     animationTrigger: number
-    roleName: string
-    roleGroup: string
+    selectedRoles: DisplayRoleRow[]
+    getRoleTitle: (role: DisplayRoleRow) => string
     openProfileDetailsLabel: string
     openProfileDetailsHint: string
     onRolePress: () => void
@@ -43,8 +48,8 @@ const IdentityHero = ({
     fullName,
     avatarSize,
     animationTrigger,
-    roleName,
-    roleGroup,
+    selectedRoles,
+    getRoleTitle,
     openProfileDetailsLabel,
     openProfileDetailsHint,
     onRolePress,
@@ -89,7 +94,11 @@ const IdentityHero = ({
                     style={{ width: avatarSize, height: avatarSize }}
                 >
                     {localImageSource ? (
-                        <Image className="h-full w-full" resizeMode="cover" source={localImageSource} />
+                        <Image
+                            className="h-full w-full"
+                            resizeMode="cover"
+                            source={localImageSource}
+                        />
                     ) : null}
 
                     {!localImageSource && hasRemoteImage ? (
@@ -117,34 +126,14 @@ const IdentityHero = ({
                     {fullName}
                 </Text>
 
-                <Pressable
-                    accessibilityHint={openProfileDetailsHint}
-                    accessibilityLabel={openProfileDetailsLabel}
-                    accessibilityRole="button"
-                    className="w-full"
-                    onPress={onRolePress}
-                >
-                    <View className="w-full flex-row items-center justify-between rounded-2xl bg-text-primary/5 px-4 py-3.5">
-                        <View className="min-w-0 flex-1 gap-0.5">
-                            <Text
-                                className="text-xl font-extrabold text-editorial-ink"
-                                numberOfLines={1}
-                            >
-                                {roleName}
-                            </Text>
-                            <Text className="text-base text-text-secondary" numberOfLines={1}>
-                                {roleGroup}
-                            </Text>
-                        </View>
-                        <View className="h-9 w-9 items-center justify-center rounded-full bg-text-primary/10">
-                            <MaterialIcons
-                                color={textSecondary}
-                                name="chevron-right"
-                                size={24}
-                            />
-                        </View>
-                    </View>
-                </Pressable>
+                <SelectedFrontpageRolesGrid
+                    getRoleTitle={getRoleTitle}
+                    pressHint={openProfileDetailsHint}
+                    pressLabel={openProfileDetailsLabel}
+                    roles={selectedRoles}
+                    showChevron
+                    onRolePress={() => onRolePress()}
+                />
             </View>
         </Card>
     )
@@ -255,7 +244,7 @@ export const ProfileScreen = (): React.JSX.Element => {
         user,
         isAnonymous,
         hasStoredCredentials,
-        selectedFrontpageRoleSelection,
+        selectedFrontpageRoleSelections,
         isLoading,
         exitAnonymousMode,
     } = useSession()
@@ -272,9 +261,9 @@ export const ProfileScreen = (): React.JSX.Element => {
     const avatarSize = Math.min(340, Math.max(180, frame.width * 0.46))
 
     const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
-    const displayedRole = useMemo(
-        () => resolveDisplayedRole(displayRoles, selectedFrontpageRoleSelection),
-        [displayRoles, selectedFrontpageRoleSelection],
+    const selectedRoles = useMemo(
+        () => resolvePersistedRoleSelections(displayRoles, selectedFrontpageRoleSelections),
+        [displayRoles, selectedFrontpageRoleSelections],
     )
 
     const handleLoginPress = async (): Promise<void> => {
@@ -282,14 +271,9 @@ export const ProfileScreen = (): React.JSX.Element => {
         router.replace("/login")
     }
 
-    const roleName = (() => {
-        if (!displayedRole) return "-"
-        return displayedRole.source === "virtual_pingvin"
-            ? t("profileRoleVirtualPingvin")
-            : displayedRole.navn
-    })()
+    const getRoleTitle = (role: DisplayRoleRow): string =>
+        role.source === "virtual_pingvin" ? t("profileRoleVirtualPingvin") : role.navn
 
-    const roleGroup = displayedRole?.gruppe ?? "-"
     const userFullName = user ? `${user.fornavn} ${user.etternavn}`.trim() || "-" : "-"
     const wordOfDayValue = user?.dagensOrd.trim() || "-"
 
@@ -323,8 +307,8 @@ export const ProfileScreen = (): React.JSX.Element => {
                             fullName={userFullName}
                             avatarSize={avatarSize}
                             animationTrigger={avatarAnimationTrigger}
-                            roleName={roleName}
-                            roleGroup={roleGroup}
+                            selectedRoles={selectedRoles}
+                            getRoleTitle={getRoleTitle}
                             openProfileDetailsLabel={t("openProfileDetails")}
                             openProfileDetailsHint={t("openProfileDetailsHint")}
                             onRolePress={() => router.push("/profile-roles")}
@@ -335,9 +319,7 @@ export const ProfileScreen = (): React.JSX.Element => {
                         <VerificationStatusCard
                             tierLabel={tierLabel}
                             isValid={isValid}
-                            onTierPress={() =>
-                                setAvatarAnimationTrigger(previous => previous + 1)
-                            }
+                            onTierPress={() => setAvatarAnimationTrigger(previous => previous + 1)}
                         />
 
                         <SecondaryDetailCard label={t("wordOfTheDay")} value={wordOfDayValue} />

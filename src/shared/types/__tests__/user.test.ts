@@ -24,6 +24,7 @@ describe("user tier helpers", () => {
                     gruppe: "PR-Etaten",
                     signertKontrakt: true,
                     rabattTrinn: 2,
+                    pingvinPoeng: 7,
                 },
             ],
         })
@@ -41,6 +42,7 @@ describe("user tier helpers", () => {
                     gruppe: "Testgruppe",
                     signertKontrakt: true,
                     rabattTrinn: 1,
+                    pingvinPoeng: 2,
                 },
             ],
         })
@@ -58,6 +60,7 @@ describe("user tier helpers", () => {
                     gruppe: "E-Tjenesten",
                     signertKontrakt: true,
                     rabattTrinn: 2,
+                    pingvinPoeng: 12,
                 },
             ],
         })
