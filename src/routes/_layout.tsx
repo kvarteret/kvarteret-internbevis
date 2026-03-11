@@ -121,6 +121,13 @@ const RootNavigator = (): React.JSX.Element => {
                     animation: Platform.OS === "ios" ? "default" : "slide_from_bottom",
                 }}
             />
+            <Stack.Screen
+                name="chess-time-control"
+                options={{
+                    presentation: Platform.OS === "ios" ? "pageSheet" : "fullScreenModal",
+                    animation: Platform.OS === "ios" ? "default" : "slide_from_bottom",
+                }}
+            />
             <Stack.Screen name="privacy" />
             <Stack.Screen name="about" />
             <Stack.Screen name="games" />

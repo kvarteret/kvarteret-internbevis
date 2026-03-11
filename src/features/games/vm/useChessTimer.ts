@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { AppState } from "react-native"
+import { ChessTimeControl } from "@/features/games/domain/chessTimeControl"
 import {
     ChessPlayer,
     ChessTimerState,
@@ -20,9 +21,9 @@ interface UseChessTimerResult {
     pressCurrentPlayer: () => void
 }
 
-export const useChessTimer = (initialMs: number, incrementMs: number): UseChessTimerResult => {
+export const useChessTimer = (timeControl: ChessTimeControl): UseChessTimerResult => {
     const [timerState, setTimerState] = useState<ChessTimerState>(() =>
-        resetTimer(initialMs, incrementMs),
+        resetTimer(timeControl.initialMs, timeControl.incrementMs),
     )
 
     const timerStateRef = useRef(timerState)
@@ -31,6 +32,11 @@ export const useChessTimer = (initialMs: number, incrementMs: number): UseChessT
     useEffect(() => {
         timerStateRef.current = timerState
     }, [timerState])
+
+    useEffect(() => {
+        setTimerState(resetTimer(timeControl.initialMs, timeControl.incrementMs))
+        lastTickAtRef.current = null
+    }, [timeControl.preset, timeControl.initialMs, timeControl.incrementMs])
 
     const applyElapsed = useCallback((now: number): void => {
         setTimerState(previous => {
@@ -126,7 +132,7 @@ export const useChessTimer = (initialMs: number, incrementMs: number): UseChessT
 
     const toggleTimer = useCallback((): void => {
         if (timerState.winner) {
-            setTimerState(resetTimer(initialMs, incrementMs))
+            setTimerState(resetTimer(timeControl.initialMs, timeControl.incrementMs))
             lastTickAtRef.current = null
             return
         }
@@ -138,12 +144,18 @@ export const useChessTimer = (initialMs: number, incrementMs: number): UseChessT
 
         lastTickAtRef.current = Date.now()
         setTimerState(previous => toggleStartPause(previous))
-    }, [timerState.winner, timerState.isRunning, pauseWithElapsed, initialMs, incrementMs])
+    }, [
+        timerState.winner,
+        timerState.isRunning,
+        pauseWithElapsed,
+        timeControl.initialMs,
+        timeControl.incrementMs,
+    ])
 
     const resetChessTimer = useCallback((): void => {
-        setTimerState(resetTimer(initialMs, incrementMs))
+        setTimerState(resetTimer(timeControl.initialMs, timeControl.incrementMs))
         lastTickAtRef.current = null
-    }, [initialMs, incrementMs])
+    }, [timeControl.initialMs, timeControl.incrementMs])
 
     const pressCurrentPlayer = useCallback((): void => {
         handlePressPlayer(timerStateRef.current.activePlayer)
