@@ -7,13 +7,10 @@ import {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated"
+import { DiceType } from "@/features/games/domain/dice"
 
-export type DiceType = 4 | 6 | 8 | 10 | 12 | 20
-
-export const COMMON_DICE_TYPES: readonly DiceType[] = [4, 6, 8, 10, 12, 20]
-
-const DICE_SPIN_DURATION_MS = 250
-const DICE_SPIN_FRAMES = 8
+const DICE_SPIN_DURATION_MS = 900
+const DICE_SPIN_FRAMES = 18
 
 const rollDie = (sides: DiceType): number => Math.floor(Math.random() * sides) + 1
 
@@ -22,6 +19,7 @@ interface UseDiceRollResult {
     diceValue: number
     diceRollCount: number
     isRolling: boolean
+    rollToken: number
     selectDiceType: (diceType: DiceType) => void
     rollDice: () => void
 }
@@ -31,6 +29,7 @@ export const useDiceRoll = (): UseDiceRollResult => {
     const [diceValue, setDiceValue] = useState(1)
     const [diceRollCount, setDiceRollCount] = useState(0)
     const [isRolling, setIsRolling] = useState(false)
+    const [rollToken, setRollToken] = useState(0)
 
     const currentRollTokenRef = useRef(0)
     const currentRollSidesRef = useRef<DiceType>(6)
@@ -69,10 +68,21 @@ export const useDiceRoll = (): UseDiceRollResult => {
         },
     )
 
-    const selectDiceType = useCallback((diceType: DiceType): void => {
-        setSelectedDiceType(diceType)
-        setDiceValue(previous => Math.min(previous, diceType))
-    }, [])
+    const selectDiceType = useCallback(
+        (diceType: DiceType): void => {
+            currentRollTokenRef.current += 1
+            currentRollSidesRef.current = diceType
+            currentFinalValueRef.current = 1
+            setRollToken(previous => previous + 1)
+            setIsRolling(false)
+            cancelAnimation(spinProgress)
+            spinToken.value = 0
+            frameIndex.value = 0
+            setSelectedDiceType(diceType)
+            setDiceValue(1)
+        },
+        [frameIndex, spinProgress, spinToken],
+    )
 
     const rollDice = useCallback((): void => {
         const nextToken = currentRollTokenRef.current + 1
@@ -82,6 +92,7 @@ export const useDiceRoll = (): UseDiceRollResult => {
         currentFinalValueRef.current = finalValue
 
         setIsRolling(true)
+        setRollToken(nextToken)
         setDiceValue(rollDie(selectedDiceType))
 
         cancelAnimation(spinProgress)
@@ -107,6 +118,7 @@ export const useDiceRoll = (): UseDiceRollResult => {
         diceValue,
         diceRollCount,
         isRolling,
+        rollToken,
         selectDiceType,
         rollDice,
     }

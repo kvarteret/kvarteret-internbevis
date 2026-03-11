@@ -17,8 +17,10 @@ import {
     parseStoredChessTimeControl,
     updateDraftChessTimeControlState,
 } from "@/features/games/domain/chessTimeControl"
+import { COMMON_DICE_TYPES } from "@/features/games/domain/dice"
+import { DiceModelSurface } from "@/features/games/ui/components/dice-model-surface"
 import { useChessTimer } from "@/features/games/vm/useChessTimer"
-import { COMMON_DICE_TYPES, useDiceRoll } from "@/features/games/vm/useDiceRoll"
+import { useDiceRoll } from "@/features/games/vm/useDiceRoll"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
@@ -198,8 +200,15 @@ export const GamesScreen = (): React.JSX.Element => {
         useThemeRuntimeColors()
 
     const [mode, setMode] = useState<GameMode>("d6")
-    const { selectedDiceType, diceValue, diceRollCount, isRolling, selectDiceType, rollDice } =
-        useDiceRoll()
+    const {
+        selectedDiceType,
+        diceValue,
+        diceRollCount,
+        isRolling,
+        rollToken,
+        selectDiceType,
+        rollDice,
+    } = useDiceRoll()
     const [timeControlState, setTimeControlState] = useState<ChessTimeControlState>({
         appliedTimeControl: DEFAULT_CHESS_TIME_CONTROL,
         draftTimeControl: DEFAULT_CHESS_TIME_CONTROL,
@@ -353,9 +362,7 @@ export const GamesScreen = (): React.JSX.Element => {
                                             className={cn(
                                                 "rounded-full px-3 py-2",
                                                 selected ? "bg-text-primary" : "bg-surface/80",
-                                                isRolling && "opacity-70",
                                             )}
-                                            disabled={isRolling}
                                             onPress={() => {
                                                 selectDiceType(diceType)
                                             }}
@@ -373,16 +380,29 @@ export const GamesScreen = (): React.JSX.Element => {
                                 })}
                             </View>
                         </View>
-                        <Card
-                            className="items-center gap-1 py-6"
-                            effect="liquid"
-                            variant="elevated"
-                        >
-                            <Text className="text-center text-7xl font-bold">{diceValue}</Text>
-                            <Text className="text-center text-sm text-text-secondary">
-                                {t("gamesDiceRolls", { count: diceRollCount })}
-                            </Text>
-                        </Card>
+                        <View className="gap-3">
+                            <DiceModelSurface
+                                key={`dice-${selectedDiceType}`}
+                                diceType={selectedDiceType}
+                                isRolling={isRolling}
+                                rollToken={rollToken}
+                                value={diceValue}
+                            />
+                            <View className="items-center gap-1">
+                                <Text className="text-xs font-semibold tracking-[1.8px] text-text-secondary uppercase">
+                                    {`d${selectedDiceType}`}
+                                </Text>
+                                <Text
+                                    className="text-center text-6xl font-bold"
+                                    style={{ fontVariant: ["tabular-nums"] }}
+                                >
+                                    {isRolling ? "…" : diceValue}
+                                </Text>
+                                <Text className="text-center text-sm text-text-secondary">
+                                    {t("gamesDiceRolls", { count: diceRollCount })}
+                                </Text>
+                            </View>
+                        </View>
 
                         <Button onPress={rollDice}>
                             <Text className="text-base leading-5 font-semibold text-surface">
