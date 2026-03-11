@@ -201,6 +201,51 @@ export const ChessTimeControlScreen = (): React.JSX.Element => {
                 contentContainerClassName="gap-4 p-4 pb-8"
                 contentInsetAdjustmentBehavior="automatic"
             >
+                <View className="flex-row flex-wrap gap-3">
+                    {CHESS_TIME_CONTROL_OPTIONS.map(option => {
+                        const selected = selectedPresetOption?.key === option.key
+
+                        return (
+                            <Pressable
+                                key={option.key}
+                                accessibilityLabel={`${formatChessTimeControl(option.timeControl)} ${t(
+                                    getPresetLabelKey(option.timeControl.preset),
+                                )}`}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected }}
+                                onPress={() => {
+                                    void handleSelectTimeControl(option.timeControl)
+                                }}
+                                style={{ flexBasis: "31%", flexGrow: 1 }}
+                            >
+                                <Card
+                                    className={cn(
+                                        "min-h-28 items-center justify-center gap-2 px-3 py-4",
+                                        selected ? "border-2 border-link bg-surface/80" : null,
+                                    )}
+                                    effect="liquid"
+                                    variant="grouped"
+                                >
+                                    <Text
+                                        className="text-3xl font-bold"
+                                        style={{ fontVariant: ["tabular-nums"] }}
+                                    >
+                                        {formatChessTimeControl(option.timeControl)}
+                                    </Text>
+                                    <Text
+                                        className={cn(
+                                            "text-lg",
+                                            selected ? null : "text-text-secondary",
+                                        )}
+                                    >
+                                        {t(getPresetLabelKey(option.timeControl.preset))}
+                                    </Text>
+                                </Card>
+                            </Pressable>
+                        )
+                    })}
+                </View>
+
                 <Card
                     className={cn(
                         "gap-3 px-4 py-4",
@@ -248,51 +293,6 @@ export const ChessTimeControlScreen = (): React.JSX.Element => {
                         />
                     </View>
                 </Card>
-
-                <View className="flex-row flex-wrap gap-3">
-                    {CHESS_TIME_CONTROL_OPTIONS.map(option => {
-                        const selected = selectedPresetOption?.key === option.key
-
-                        return (
-                            <Pressable
-                                key={option.key}
-                                accessibilityLabel={`${formatChessTimeControl(option.timeControl)} ${t(
-                                    getPresetLabelKey(option.timeControl.preset),
-                                )}`}
-                                accessibilityRole="button"
-                                accessibilityState={{ selected }}
-                                onPress={() => {
-                                    void handleSelectTimeControl(option.timeControl)
-                                }}
-                                style={{ flexBasis: "31%", flexGrow: 1 }}
-                            >
-                                <Card
-                                    className={cn(
-                                        "min-h-28 items-center justify-center gap-2 px-3 py-4",
-                                        selected ? "border-2 border-link bg-surface/80" : null,
-                                    )}
-                                    effect="liquid"
-                                    variant="grouped"
-                                >
-                                    <Text
-                                        className="text-3xl font-bold"
-                                        style={{ fontVariant: ["tabular-nums"] }}
-                                    >
-                                        {formatChessTimeControl(option.timeControl)}
-                                    </Text>
-                                    <Text
-                                        className={cn(
-                                            "text-lg",
-                                            selected ? null : "text-text-secondary",
-                                        )}
-                                    >
-                                        {t(getPresetLabelKey(option.timeControl.preset))}
-                                    </Text>
-                                </Card>
-                            </Pressable>
-                        )
-                    })}
-                </View>
             </ScrollView>
         </View>
     )
