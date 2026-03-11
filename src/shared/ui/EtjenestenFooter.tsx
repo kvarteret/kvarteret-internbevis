@@ -1,11 +1,14 @@
 import React from "react"
 import { useTranslation } from "react-i18next"
 import { TouchableOpacity, View } from "react-native"
+import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { Text } from "@/shared/ui/Text"
 
 export const EtjenestenFooter = (): React.JSX.Element => {
     const { t } = useTranslation()
+    const { isAnonymous, user } = useSession()
+    const showVolunteerLink = !user || isAnonymous
 
     return (
         <View className="w-full items-center justify-center pt-1 pb-2">
@@ -19,24 +22,31 @@ export const EtjenestenFooter = (): React.JSX.Element => {
                 >
                     {t("homeFooterPrefix")}
                 </Text>
-                <Text className="px-1.5 text-2xl leading-8 text-editorial-ink" numberOfLines={1}>
-                    |
-                </Text>
-                <TouchableOpacity
-                    accessibilityRole="link"
-                    onPress={() => void openExternalUrl("https://blifrivillig.no")}
-                    className="flex-shrink"
-                >
-                    <Text
-                        adjustsFontSizeToFit
-                        className="text-lg leading-6 text-editorial-ink underline font-extrabold"
-                        ellipsizeMode="tail"
-                        minimumFontScale={0.72}
-                        numberOfLines={1}
-                    >
-                        {t("homeFooterVolunteer")}
-                    </Text>
-                </TouchableOpacity>
+                {showVolunteerLink ? (
+                    <>
+                        <Text
+                            className="px-1.5 text-2xl leading-8 text-editorial-ink"
+                            numberOfLines={1}
+                        >
+                            |
+                        </Text>
+                        <TouchableOpacity
+                            accessibilityRole="link"
+                            onPress={() => void openExternalUrl("https://blifrivillig.no")}
+                            className="flex-shrink"
+                        >
+                            <Text
+                                adjustsFontSizeToFit
+                                className="text-lg leading-6 text-editorial-ink underline font-extrabold"
+                                ellipsizeMode="tail"
+                                minimumFontScale={0.72}
+                                numberOfLines={1}
+                            >
+                                {t("homeFooterVolunteer")}
+                            </Text>
+                        </TouchableOpacity>
+                    </>
+                ) : null}
             </View>
         </View>
     )
