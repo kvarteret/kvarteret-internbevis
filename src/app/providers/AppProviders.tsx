@@ -1,14 +1,21 @@
 import { QueryClientProvider } from "@tanstack/react-query"
 import React, { PropsWithChildren, useMemo } from "react"
-import { DeepLinkProvider } from "@/app/providers/DeepLinkProvider"
+import { LogBox } from "react-native"
 import { MD3LightTheme, PaperProvider } from "react-native-paper"
 import { Uniwind } from "uniwind"
+import { DeepLinkProvider } from "@/app/providers/DeepLinkProvider"
 import { LanguageProvider } from "@/app/providers/LanguageProvider"
 import { queryClient } from "@/app/providers/queryClient"
 import { SessionProvider } from "@/app/providers/SessionProvider"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { BlurTargetProvider } from "@/shared/ui/blur/BlurTargetProvider"
 import { SafeAreaListener, SafeAreaProvider } from "@/shared/ui/interop"
+
+if (__DEV__) {
+    // React Native 0.83 currently emits this native Animated warning during some iOS
+    // header/sheet transitions even when no app-owned animated listener is missing.
+    LogBox.ignoreLogs(["Sending `onAnimatedValueUpdate` with no listeners registered."])
+}
 
 export const AppProviders = ({ children }: PropsWithChildren): React.JSX.Element => {
     const colors = useThemeRuntimeColors()
