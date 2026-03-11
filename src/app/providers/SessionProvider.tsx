@@ -10,8 +10,8 @@ import { getStoredValue, removeStoredValue, setStoredValue } from "@/core/storag
 import {
     AuthResult,
     authResultFromError,
-    clearCredentials,
     clearCachedUser,
+    clearCredentials,
     clearDeepLinkToken,
     getCachedUser,
     getInternkortInformation,
@@ -20,18 +20,21 @@ import {
     saveCredentials,
     saveDeepLinkToken,
 } from "@/features/auth/data/authRepository"
+import { isTransientAuthError } from "@/features/auth/domain/authError"
 import {
     getHydrationErrorMessage,
     shouldClearCredentialsOnHydrationError,
 } from "@/features/auth/domain/authHydration"
-import { isTransientAuthError } from "@/features/auth/domain/authError"
 import {
+    arePersistedRoleSelectionsEqual,
     buildDisplayRoles,
-    hasPersistedRoleSelectionMatch,
     isPersistedRoleSelection,
+    isPersistedRoleSelectionArray,
     PersistedRoleSelection,
-    resolveDisplayedRole,
+    resolveDefaultRoleSelections,
+    resolvePersistedRoleSelections,
     serializeRoleSelection,
+    serializeRoleSelections,
 } from "@/features/dashboard/domain/profileRoles"
 import { User } from "@/shared/types/user"
 
@@ -39,16 +42,21 @@ interface SessionContextValue {
     user: User | null
     isAnonymous: boolean
     hasStoredCredentials: boolean
-    selectedFrontpageRoleSelection: PersistedRoleSelection | null
+    selectedFrontpageRoleSelections: PersistedRoleSelection[]
     isHydrating: boolean
     isLoading: boolean
     error: string | null
     setUser: (nextUser: User | null) => void
     continueAnonymously: () => Promise<void>
     exitAnonymousMode: () => Promise<void>
-    setSelectedFrontpageRoleSelection: (selection: PersistedRoleSelection | null) => Promise<void>
+    setSelectedFrontpageRoleSelections: (selections: PersistedRoleSelection[]) => Promise<void>
     loginWithToken: (email: string, accessToken: string) => Promise<AuthResult>
     logout: () => Promise<void>
+}
+
+type ParsedPersistedRoleSelections = {
+    format: "array" | "invalid" | "legacy" | "missing"
+    selections: PersistedRoleSelection[]
 }
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined)
@@ -58,16 +66,40 @@ const ANONYMOUS_MODE_STORAGE_KEY = "anonymous_mode"
 const getFrontPageRoleStorageKey = (userId: number): string =>
     `${FRONT_PAGE_ROLE_STORAGE_KEY_PREFIX}:${userId}`
 
-const parsePersistedRoleSelection = (rawValue: string | null): PersistedRoleSelection | null => {
+const parsePersistedRoleSelections = (rawValue: string | null): ParsedPersistedRoleSelections => {
     if (!rawValue) {
-        return null
+        return {
+            format: "missing",
+            selections: [],
+        }
     }
 
     try {
         const parsed = JSON.parse(rawValue) as unknown
-        return isPersistedRoleSelection(parsed) ? parsed : null
+
+        if (isPersistedRoleSelection(parsed)) {
+            return {
+                format: "legacy",
+                selections: [parsed],
+            }
+        }
+
+        if (isPersistedRoleSelectionArray(parsed)) {
+            return {
+                format: "array",
+                selections: parsed,
+            }
+        }
+
+        return {
+            format: "invalid",
+            selections: [],
+        }
     } catch {
-        return null
+        return {
+            format: "invalid",
+            selections: [],
+        }
     }
 }
 
@@ -75,8 +107,9 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
     const [user, setUser] = useState<User | null>(null)
     const [isAnonymous, setIsAnonymous] = useState(false)
     const [hasStoredCredentials, setHasStoredCredentials] = useState(false)
-    const [selectedFrontpageRoleSelection, setSelectedFrontpageRoleSelectionState] =
-        useState<PersistedRoleSelection | null>(null)
+    const [selectedFrontpageRoleSelections, setSelectedFrontpageRoleSelectionsState] = useState<
+        PersistedRoleSelection[]
+    >([])
     const [isHydrating, setIsHydrating] = useState(true)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -144,50 +177,76 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
     }, [])
 
     useEffect(() => {
-        const hydrateFrontpageRoleSelection = async (): Promise<void> => {
+        const hydrateFrontpageRoleSelections = async (): Promise<void> => {
             try {
                 if (!user) {
-                    setSelectedFrontpageRoleSelectionState(null)
+                    setSelectedFrontpageRoleSelectionsState([])
                     return
                 }
 
                 const storageKey = getFrontPageRoleStorageKey(user.id)
-                const rawSelection = await getStoredValue(storageKey)
-                const parsedSelection = parsePersistedRoleSelection(rawSelection)
+                const parsedSelections = parsePersistedRoleSelections(
+                    await getStoredValue(storageKey),
+                )
                 const roles = buildDisplayRoles(user)
-                const resolvedRole = resolveDisplayedRole(roles, parsedSelection)
 
-                if (!parsedSelection) {
-                    setSelectedFrontpageRoleSelectionState(null)
-                    return
-                }
-
-                if (!resolvedRole) {
-                    setSelectedFrontpageRoleSelectionState(null)
+                if (roles.length === 0) {
+                    setSelectedFrontpageRoleSelectionsState([])
                     await removeStoredValue(storageKey)
                     return
                 }
 
-                if (!hasPersistedRoleSelectionMatch(roles, parsedSelection)) {
-                    const fallbackSelection = serializeRoleSelection(resolvedRole)
-                    setSelectedFrontpageRoleSelectionState(fallbackSelection)
-                    await setStoredValue(storageKey, JSON.stringify(fallbackSelection))
-                    return
-                }
+                const resolvedPersistedSelections = resolvePersistedRoleSelections(
+                    roles,
+                    parsedSelections.selections,
+                )
 
-                setSelectedFrontpageRoleSelectionState(parsedSelection)
+                const nextSelections = (() => {
+                    switch (parsedSelections.format) {
+                        case "array":
+                            if (parsedSelections.selections.length === 0) {
+                                return []
+                            }
+
+                            return resolvedPersistedSelections.length > 0
+                                ? resolvedPersistedSelections
+                                : resolveDefaultRoleSelections(roles)
+                        case "legacy":
+                            return resolveDefaultRoleSelections(
+                                roles,
+                                resolvedPersistedSelections.map(serializeRoleSelection),
+                            )
+                        case "invalid":
+                        case "missing":
+                        default:
+                            return resolveDefaultRoleSelections(roles)
+                    }
+                })()
+
+                const nextPersistedSelections = serializeRoleSelections(nextSelections)
+                setSelectedFrontpageRoleSelectionsState(nextPersistedSelections)
+
+                if (
+                    parsedSelections.format !== "array" ||
+                    !arePersistedRoleSelectionsEqual(
+                        nextPersistedSelections,
+                        parsedSelections.selections,
+                    )
+                ) {
+                    await setStoredValue(storageKey, JSON.stringify(nextPersistedSelections))
+                }
             } catch {
-                setSelectedFrontpageRoleSelectionState(null)
+                setSelectedFrontpageRoleSelectionsState([])
             }
         }
 
-        void hydrateFrontpageRoleSelection()
+        void hydrateFrontpageRoleSelections()
     }, [user])
 
-    const setSelectedFrontpageRoleSelection = async (
-        selection: PersistedRoleSelection | null,
+    const setSelectedFrontpageRoleSelections = async (
+        selections: PersistedRoleSelection[],
     ): Promise<void> => {
-        setSelectedFrontpageRoleSelectionState(selection)
+        setSelectedFrontpageRoleSelectionsState(selections)
 
         try {
             if (!user) {
@@ -195,12 +254,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
             }
 
             const storageKey = getFrontPageRoleStorageKey(user.id)
-            if (!selection) {
-                await removeStoredValue(storageKey)
-                return
-            }
-
-            await setStoredValue(storageKey, JSON.stringify(selection))
+            await setStoredValue(storageKey, JSON.stringify(selections))
         } catch {
             // Keep in-memory selection even if persistence temporarily fails.
         }
@@ -260,7 +314,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
         setIsAnonymous(false)
         setHasStoredCredentials(false)
-        setSelectedFrontpageRoleSelectionState(null)
+        setSelectedFrontpageRoleSelectionsState([])
         setUser(null)
     }
 
@@ -269,14 +323,14 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
             user,
             isAnonymous,
             hasStoredCredentials,
-            selectedFrontpageRoleSelection,
+            selectedFrontpageRoleSelections,
             isHydrating,
             isLoading,
             error,
             setUser,
             continueAnonymously,
             exitAnonymousMode,
-            setSelectedFrontpageRoleSelection,
+            setSelectedFrontpageRoleSelections,
             loginWithToken,
             logout,
         }),
@@ -284,11 +338,13 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
             continueAnonymously,
             error,
             exitAnonymousMode,
-            isAnonymous,
             hasStoredCredentials,
+            isAnonymous,
             isHydrating,
             isLoading,
-            selectedFrontpageRoleSelection,
+            loginWithToken,
+            logout,
+            selectedFrontpageRoleSelections,
             user,
         ],
     )

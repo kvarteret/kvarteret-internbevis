@@ -1,11 +1,11 @@
 import { ZodError } from "zod"
+import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import {
     getSessionValue,
     removeSessionValue,
     SESSION_STORAGE_KEYS,
     setSessionValue,
 } from "@/core/storage/sessionStorage"
-import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import { createAuthServiceError, toAuthServiceError } from "@/features/auth/domain/authError"
 import {
     digitalInternKortRequestSchema,
@@ -73,7 +73,28 @@ const mapCachedUser = (payload: unknown): User | null => {
         bildeUrl: typeof candidate.bildeUrl === "string" ? candidate.bildeUrl : undefined,
         pingvinPoengSum:
             typeof candidate.pingvinPoengSum === "number" ? candidate.pingvinPoengSum : 0,
-        aktiveVerv: Array.isArray(candidate.aktiveVerv) ? (candidate.aktiveVerv as User["aktiveVerv"]) : [],
+        aktiveVerv: Array.isArray(candidate.aktiveVerv)
+            ? candidate.aktiveVerv
+                  .filter(
+                      (entry): entry is User["aktiveVerv"][number] =>
+                          Boolean(entry) && typeof entry === "object",
+                  )
+                  .map(entry => ({
+                      navn: typeof entry.navn === "string" ? entry.navn : "",
+                      gruppe: typeof entry.gruppe === "string" ? entry.gruppe : "",
+                      signertKontrakt: Boolean(entry.signertKontrakt),
+                      rabattTrinn:
+                          typeof entry.rabattTrinn === "number" &&
+                          Number.isInteger(entry.rabattTrinn)
+                              ? entry.rabattTrinn
+                              : null,
+                      pingvinPoeng:
+                          typeof entry.pingvinPoeng === "number" &&
+                          Number.isInteger(entry.pingvinPoeng)
+                              ? entry.pingvinPoeng
+                              : 0,
+                  }))
+            : [],
         dagensOrd: typeof candidate.dagensOrd === "string" ? candidate.dagensOrd : "",
     }
 }
@@ -219,10 +240,7 @@ export const getInternkortInformation = async (
     if (isInvalidAccessTokenResponse(response.status, responseText)) {
         throw createAuthServiceError({
             code: "INVALID_AUTH",
-            message:
-                response.status === 404
-                    ? "User not found"
-                    : "Invalid or expired access token",
+            message: response.status === 404 ? "User not found" : "Invalid or expired access token",
             status: response.status,
         })
     }

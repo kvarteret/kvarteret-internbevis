@@ -1,10 +1,14 @@
 import { User } from "@/shared/types/user"
 import {
+    arePersistedRoleSelectionsEqual,
     buildDisplayRoles,
-    hasPersistedRoleSelectionMatch,
     isPersistedRoleSelection,
-    resolveDisplayedRole,
+    isPersistedRoleSelectionArray,
+    resolveDefaultRoleSelections,
+    resolvePersistedRoleSelections,
     serializeRoleSelection,
+    serializeRoleSelections,
+    toggleFrontPageRoleSelection,
 } from "../profileRoles"
 
 const createUser = (overrides: Partial<User> = {}): User => ({
@@ -22,13 +26,37 @@ const createUser = (overrides: Partial<User> = {}): User => ({
 })
 
 describe("buildDisplayRoles", () => {
-    it("sorts active roles by raw rabattTrinn desc and then by group/name", () => {
+    it("sorts active roles by pingvinPoeng desc, then tier, group, and name", () => {
         const user = createUser({
             aktiveVerv: [
-                { navn: "Vakt", gruppe: "PR-Etaten", rabattTrinn: 1, signertKontrakt: true },
-                { navn: "Nestleder", gruppe: "Styret", rabattTrinn: 3, signertKontrakt: true },
-                { navn: "Leder", gruppe: "Styret", rabattTrinn: 3, signertKontrakt: true },
-                { navn: "Barvakt", gruppe: "Bodega", rabattTrinn: null, signertKontrakt: true },
+                {
+                    navn: "Vakt",
+                    gruppe: "PR-Etaten",
+                    rabattTrinn: 1,
+                    pingvinPoeng: 8,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "Nestleder",
+                    gruppe: "Styret",
+                    rabattTrinn: 2,
+                    pingvinPoeng: 10,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "Leder",
+                    gruppe: "Styret",
+                    rabattTrinn: 3,
+                    pingvinPoeng: 10,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "Barvakt",
+                    gruppe: "Bodega",
+                    rabattTrinn: null,
+                    pingvinPoeng: 3,
+                    signertKontrakt: true,
+                },
             ],
         })
 
@@ -42,11 +70,17 @@ describe("buildDisplayRoles", () => {
         ])
     })
 
-    it("prepends a virtual Pingvin row when pingvinPoengSum is 14 or more", () => {
+    it("keeps the virtual Pingvin role first when eligible", () => {
         const user = createUser({
             pingvinPoengSum: 14,
             aktiveVerv: [
-                { navn: "Vakt", gruppe: "PR-Etaten", rabattTrinn: 1, signertKontrakt: true },
+                {
+                    navn: "Vakt",
+                    gruppe: "PR-Etaten",
+                    rabattTrinn: 3,
+                    pingvinPoeng: 99,
+                    signertKontrakt: true,
+                },
             ],
         })
 
@@ -61,46 +95,14 @@ describe("buildDisplayRoles", () => {
         })
     })
 
-    it("creates only the virtual Pingvin row when pingvin threshold is met without active roles", () => {
-        const user = createUser({
-            pingvinPoengSum: 14,
-            aktiveVerv: [],
-        })
-
-        const roles = buildDisplayRoles(user)
-
-        expect(roles).toHaveLength(1)
-        expect(roles[0]).toMatchObject({
-            source: "virtual_pingvin",
-            navn: "Pingvin",
-            gruppe: "Pingvin Ordenen",
-            rabattTrinn: 3,
-            signertKontrakt: true,
-        })
-    })
-
-    it("keeps active role count and prepends only one virtual Pingvin row", () => {
-        const user = createUser({
-            pingvinPoengSum: 30,
-            aktiveVerv: [
-                { navn: "A", gruppe: "G1", rabattTrinn: 2, signertKontrakt: true },
-                { navn: "B", gruppe: "G2", rabattTrinn: 1, signertKontrakt: false },
-            ],
-        })
-
-        const roles = buildDisplayRoles(user)
-
-        expect(roles).toHaveLength(3)
-        expect(roles.filter(role => role.source === "virtual_pingvin")).toHaveLength(1)
-    })
-
-    it("normalizes missing role strings and invalid tier values", () => {
+    it("normalizes missing role strings and invalid numeric fields", () => {
         const user = createUser({
             aktiveVerv: [
                 {
                     navn: "   ",
                     gruppe: "",
                     rabattTrinn: Number.NaN as unknown as number,
+                    pingvinPoeng: Number.NaN as unknown as number,
                     signertKontrakt: false,
                 },
             ],
@@ -112,52 +114,215 @@ describe("buildDisplayRoles", () => {
             navn: "-",
             gruppe: "-",
             rabattTrinn: null,
+            pingvinPoeng: 0,
             signertKontrakt: false,
             source: "active",
         })
     })
 })
 
-describe("selection helpers", () => {
-    it("serializes and resolves selected role when it exists", () => {
+describe("ordered role selection helpers", () => {
+    it("resolves persisted selections in their saved order", () => {
         const user = createUser({
             aktiveVerv: [
-                { navn: "A", gruppe: "G1", rabattTrinn: 1, signertKontrakt: true },
-                { navn: "B", gruppe: "G2", rabattTrinn: 2, signertKontrakt: true },
+                {
+                    navn: "A",
+                    gruppe: "G1",
+                    rabattTrinn: 1,
+                    pingvinPoeng: 1,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "B",
+                    gruppe: "G2",
+                    rabattTrinn: 2,
+                    pingvinPoeng: 5,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "C",
+                    gruppe: "G3",
+                    rabattTrinn: 3,
+                    pingvinPoeng: 9,
+                    signertKontrakt: true,
+                },
             ],
         })
         const roles = buildDisplayRoles(user)
-        const wanted = roles[1]
-        const selection = serializeRoleSelection(wanted)
+        const selections = [serializeRoleSelection(roles[2]), serializeRoleSelection(roles[0])]
 
-        const resolved = resolveDisplayedRole(roles, selection)
+        const resolved = resolvePersistedRoleSelections(roles, selections)
 
-        expect(resolved?.selectionKey).toBe(wanted.selectionKey)
-        expect(hasPersistedRoleSelectionMatch(roles, selection)).toBe(true)
+        expect(resolved.map(role => role.selectionKey)).toEqual([
+            roles[2]?.selectionKey,
+            roles[0]?.selectionKey,
+        ])
     })
 
-    it("falls back to first role when persisted selection is missing", () => {
+    it("fills defaults up to three selections while preserving a preferred legacy role first", () => {
         const user = createUser({
-            aktiveVerv: [{ navn: "A", gruppe: "G1", rabattTrinn: 1, signertKontrakt: true }],
+            aktiveVerv: [
+                {
+                    navn: "A",
+                    gruppe: "G1",
+                    rabattTrinn: 1,
+                    pingvinPoeng: 1,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "B",
+                    gruppe: "G2",
+                    rabattTrinn: 2,
+                    pingvinPoeng: 5,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "C",
+                    gruppe: "G3",
+                    rabattTrinn: 3,
+                    pingvinPoeng: 9,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "D",
+                    gruppe: "G4",
+                    rabattTrinn: 0,
+                    pingvinPoeng: 12,
+                    signertKontrakt: true,
+                },
+            ],
         })
         const roles = buildDisplayRoles(user)
 
-        const resolved = resolveDisplayedRole(roles, {
-            source: "active",
-            navn: "Missing",
-            gruppe: "Missing",
-            rabattTrinn: 9,
+        const defaults = resolveDefaultRoleSelections(roles, [serializeRoleSelection(roles[2])])
+
+        expect(defaults.map(role => role.selectionKey)).toEqual([
+            roles[2]?.selectionKey,
+            roles[0]?.selectionKey,
+            roles[1]?.selectionKey,
+        ])
+    })
+
+    it("adds roles until max three and blocks additional roles", () => {
+        const user = createUser({
+            aktiveVerv: [
+                {
+                    navn: "A",
+                    gruppe: "G1",
+                    rabattTrinn: 1,
+                    pingvinPoeng: 1,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "B",
+                    gruppe: "G2",
+                    rabattTrinn: 2,
+                    pingvinPoeng: 2,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "C",
+                    gruppe: "G3",
+                    rabattTrinn: 3,
+                    pingvinPoeng: 3,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "D",
+                    gruppe: "G4",
+                    rabattTrinn: 0,
+                    pingvinPoeng: 4,
+                    signertKontrakt: true,
+                },
+            ],
         })
+        const roles = buildDisplayRoles(user)
+        const currentSelections = serializeRoleSelections(roles.slice(0, 3))
 
-        expect(resolved?.selectionKey).toBe(roles[0].selectionKey)
+        const result = toggleFrontPageRoleSelection(roles, currentSelections, roles[3]!)
+
+        expect(result.action).toBe("blocked_max")
+        expect(result.nextSelections).toEqual(currentSelections)
     })
 
-    it("handles empty roles safely", () => {
-        expect(resolveDisplayedRole([], null)).toBeNull()
-        expect(hasPersistedRoleSelectionMatch([], null)).toBe(false)
+    it("removes selected roles and compacts the remaining order", () => {
+        const user = createUser({
+            aktiveVerv: [
+                {
+                    navn: "A",
+                    gruppe: "G1",
+                    rabattTrinn: 1,
+                    pingvinPoeng: 1,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "B",
+                    gruppe: "G2",
+                    rabattTrinn: 2,
+                    pingvinPoeng: 2,
+                    signertKontrakt: true,
+                },
+                {
+                    navn: "C",
+                    gruppe: "G3",
+                    rabattTrinn: 3,
+                    pingvinPoeng: 3,
+                    signertKontrakt: true,
+                },
+            ],
+        })
+        const roles = buildDisplayRoles(user)
+        const currentSelections = serializeRoleSelections(roles.slice(0, 3))
+
+        const result = toggleFrontPageRoleSelection(roles, currentSelections, roles[1]!)
+
+        expect(result.action).toBe("removed")
+        expect(result.nextSelections).toEqual([
+            serializeRoleSelection(roles[0]!),
+            serializeRoleSelection(roles[2]!),
+        ])
     })
 
-    it("validates persisted role selection shape", () => {
+    it("allows removing the final selected role", () => {
+        const user = createUser({
+            aktiveVerv: [
+                {
+                    navn: "A",
+                    gruppe: "G1",
+                    rabattTrinn: 1,
+                    pingvinPoeng: 1,
+                    signertKontrakt: true,
+                },
+            ],
+        })
+        const roles = buildDisplayRoles(user)
+        const currentSelections = [serializeRoleSelection(roles[0]!)]
+
+        const result = toggleFrontPageRoleSelection(roles, currentSelections, roles[0]!)
+
+        expect(result.action).toBe("removed")
+        expect(result.nextSelections).toEqual([])
+    })
+
+    it("compares persisted selection arrays by value and order", () => {
+        const left = [
+            { source: "active", navn: "A", gruppe: "G1", rabattTrinn: 1 } as const,
+            { source: "active", navn: "B", gruppe: "G2", rabattTrinn: 2 } as const,
+        ]
+        const same = [
+            { source: "active", navn: "A", gruppe: "G1", rabattTrinn: 1 } as const,
+            { source: "active", navn: "B", gruppe: "G2", rabattTrinn: 2 } as const,
+        ]
+        const reordered = [
+            { source: "active", navn: "B", gruppe: "G2", rabattTrinn: 2 } as const,
+            { source: "active", navn: "A", gruppe: "G1", rabattTrinn: 1 } as const,
+        ]
+
+        expect(arePersistedRoleSelectionsEqual(left, same)).toBe(true)
+        expect(arePersistedRoleSelectionsEqual(left, reordered)).toBe(false)
+    })
+
+    it("validates persisted single selections and selection arrays", () => {
         expect(
             isPersistedRoleSelection({
                 source: "virtual_pingvin",
@@ -166,6 +331,17 @@ describe("selection helpers", () => {
                 rabattTrinn: 3,
             }),
         ).toBe(true)
+        expect(
+            isPersistedRoleSelectionArray([
+                {
+                    source: "active",
+                    navn: "Leder",
+                    gruppe: "Styret",
+                    rabattTrinn: 3,
+                },
+            ]),
+        ).toBe(true)
         expect(isPersistedRoleSelection({ source: "active", navn: 1 })).toBe(false)
+        expect(isPersistedRoleSelectionArray([{ source: "active", navn: 1 }])).toBe(false)
     })
 })

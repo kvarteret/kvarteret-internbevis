@@ -16,6 +16,7 @@ describe("parseInternkortInformation", () => {
                     navn: "Medlem",
                     gruppe: "PR-Etaten",
                     rabattTrinn: 2,
+                    pingvinPoeng: 8,
                     signertKontrakt: true,
                 },
             ],
@@ -26,6 +27,7 @@ describe("parseInternkortInformation", () => {
         expect(user.fornavn).toBe("Ada")
         expect(user.gyldigTil).toBeInstanceOf(Date)
         expect(user.aktiveVerv).toHaveLength(1)
+        expect(user.aktiveVerv[0]?.pingvinPoeng).toBe(8)
     })
 
     it("throws when required strict fields are missing", () => {
@@ -56,6 +58,26 @@ describe("parseInternkortInformation", () => {
         expect(user.fodselsdato).toBeNull()
         expect(user.aktiveVerv).toEqual([])
         expect(user.dagensOrd).toBe("")
+    })
+
+    it("defaults missing pingvinPoeng on roles to zero for rollout compatibility", () => {
+        const user = parseInternkortInformation({
+            id: 9,
+            fornavn: "Ada",
+            etternavn: "Lovelace",
+            gyldigTil: "2026-01-01T00:00:00Z",
+            pingvinPoengSum: 3,
+            aktiveVerv: [
+                {
+                    navn: "Medlem",
+                    gruppe: "PR-Etaten",
+                    rabattTrinn: 1,
+                    signertKontrakt: true,
+                },
+            ],
+        })
+
+        expect(user.aktiveVerv[0]?.pingvinPoeng).toBe(0)
     })
 
     it("falls back to null for invalid optional date fields", () => {

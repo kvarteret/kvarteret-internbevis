@@ -5,6 +5,7 @@ export interface InternKortVerv {
     gruppe: string
     signertKontrakt: boolean
     rabattTrinn: RabattTrinn
+    pingvinPoeng: number
 }
 
 export interface User {
@@ -38,6 +39,7 @@ const cloneVerv = (verv: InternKortVerv): InternKortVerv => ({
     gruppe: verv.gruppe,
     signertKontrakt: verv.signertKontrakt,
     rabattTrinn: verv.rabattTrinn,
+    pingvinPoeng: verv.pingvinPoeng,
 })
 
 const createPingvinRole = (): InternKortVerv => ({
@@ -45,6 +47,7 @@ const createPingvinRole = (): InternKortVerv => ({
     gruppe: "Pingvin Ordenen",
     signertKontrakt: true,
     rabattTrinn: 3,
+    pingvinPoeng: Number.MAX_SAFE_INTEGER,
 })
 
 const getHighestTierVervInternal = (user: User): InternKortVerv | null => {
@@ -100,12 +103,14 @@ export const createDemoUser = (): User => ({
             gruppe: "E-Tjenesten",
             signertKontrakt: true,
             rabattTrinn: 3,
+            pingvinPoeng: 12,
         },
         {
             navn: "Medlem",
             gruppe: "PR-Etaten",
             signertKontrakt: false,
             rabattTrinn: 2,
+            pingvinPoeng: 6,
         },
     ],
     dagensOrd: "eplepingvin",

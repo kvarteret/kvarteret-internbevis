@@ -35,6 +35,7 @@ export const internKortVervApiSchema = z
         navn: nullableStringSchema,
         gruppe: nullableStringSchema,
         rabattTrinn: nullableIntSchema,
+        pingvinPoeng: z.number().int().optional(),
         signertKontrakt: z.boolean().optional(),
     })
     .strict()
@@ -64,6 +65,7 @@ function mapInternKortVerv(value: z.infer<typeof internKortVervApiSchema>): Inte
         navn: value.navn ?? "",
         gruppe: value.gruppe ?? "",
         rabattTrinn: value.rabattTrinn ?? null,
+        pingvinPoeng: value.pingvinPoeng ?? 0,
         signertKontrakt: value.signertKontrakt ?? false,
     }
 }

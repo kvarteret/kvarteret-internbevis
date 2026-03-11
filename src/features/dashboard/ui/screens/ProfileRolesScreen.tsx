@@ -1,4 +1,3 @@
-import { MaterialIcons } from "@expo/vector-icons"
 import { useNavigation, useRouter } from "expo-router"
 import React, { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -7,15 +6,18 @@ import { useSession } from "@/app/providers/SessionProvider"
 import {
     buildDisplayRoles,
     DisplayRoleRow,
-    resolveDisplayedRole,
-    serializeRoleSelection,
+    resolvePersistedRoleSelections,
+    serializeRoleSelections,
+    toggleFrontPageRoleSelection,
 } from "@/features/dashboard/domain/profileRoles"
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
+import { SelectedFrontpageRolesGrid } from "@/features/dashboard/ui/components/SelectedFrontpageRolesGrid"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
 import { cn } from "@/shared/utils/cn"
+import { triggerSelectionHaptic, triggerSoftImpactHaptic } from "@/shared/utils/haptics"
 
 const getTierBadgeClass = (tier: number | null): string => {
     if (tier === null) {
@@ -42,13 +44,18 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
     const {
         user,
         hasStoredCredentials,
-        selectedFrontpageRoleSelection,
-        setSelectedFrontpageRoleSelection,
+        selectedFrontpageRoleSelections,
+        setSelectedFrontpageRoleSelections,
     } = useSession()
+
     const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
-    const selectedRole = useMemo(
-        () => resolveDisplayedRole(displayRoles, selectedFrontpageRoleSelection),
-        [displayRoles, selectedFrontpageRoleSelection],
+    const selectedRoles = useMemo(
+        () => resolvePersistedRoleSelections(displayRoles, selectedFrontpageRoleSelections),
+        [displayRoles, selectedFrontpageRoleSelections],
+    )
+    const selectedOrderByKey = useMemo(
+        () => new Map(selectedRoles.map((role, index) => [role.selectionKey, index + 1] as const)),
+        [selectedRoles],
     )
 
     useEffect(() => {
@@ -68,6 +75,28 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
         }
     }, [hasStoredCredentials, router, user])
 
+    const getRoleTitle = (role: DisplayRoleRow): string =>
+        role.source === "virtual_pingvin" ? t("profileRoleVirtualPingvin") : role.navn
+
+    const handleRolePress = async (role: DisplayRoleRow): Promise<void> => {
+        const result = toggleFrontPageRoleSelection(
+            displayRoles,
+            serializeRoleSelections(selectedRoles),
+            role,
+        )
+
+        switch (result.action) {
+            case "added":
+            case "removed":
+                await triggerSelectionHaptic()
+                await setSelectedFrontpageRoleSelections(result.nextSelections)
+                return
+            case "blocked_max":
+                await triggerSoftImpactHaptic()
+                return
+        }
+    }
+
     if (!user) {
         return (
             <View className="flex-1 items-center justify-center bg-background px-4">
@@ -79,13 +108,13 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
         )
     }
 
-    const selectedRoleKey = selectedRole?.selectionKey ?? null
+    const primarySelectedRole = selectedRoles[0] ?? null
 
     const renderRole: ListRenderItem<DisplayRoleRow> = ({ item }) => {
-        const isSelected = selectedRoleKey === item.selectionKey
+        const selectionOrder = selectedOrderByKey.get(item.selectionKey) ?? null
+        const isSelected = selectionOrder !== null
         const hasTier = item.rabattTrinn !== null
-        const displayName =
-            item.source === "virtual_pingvin" ? t("profileRoleVirtualPingvin") : item.navn
+        const displayName = getRoleTitle(item)
 
         return (
             <Pressable
@@ -93,7 +122,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
                 className="mb-2"
-                onPress={() => void setSelectedFrontpageRoleSelection(serializeRoleSelection(item))}
+                onPress={() => void handleRolePress(item)}
             >
                 <Card
                     className={cn(
@@ -129,13 +158,15 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                             </Text>
                         </View>
 
-                        {isSelected ? (
-                            <MaterialIcons
-                                accessibilityLabel={t("profileRoleSelected")}
-                                color={editorialValid}
-                                name="check-circle"
-                                size={20}
-                            />
+                        {selectionOrder ? (
+                            <View
+                                className="h-7 w-7 items-center justify-center rounded-full"
+                                style={{ backgroundColor: editorialValid }}
+                            >
+                                <Text className="text-xs font-black text-surface">
+                                    {selectionOrder}
+                                </Text>
+                            </View>
                         ) : null}
                     </View>
                 </Card>
@@ -154,9 +185,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                 renderItem={renderRole}
                 ListHeaderComponent={
                     <View className="mb-3 gap-3">
-                        <Text className="px-1 text-lg font-bold">
-                            {t("profileMemberInfo")}
-                        </Text>
+                        <Text className="px-1 text-lg font-bold">{t("profileMemberInfo")}</Text>
 
                         <Card className="p-2" effect="liquid" variant="grouped">
                             <MemberHeader
@@ -164,11 +193,9 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                                 firstName={user.fornavn}
                                 imageUrl={user.bildeUrl}
                                 lastName={user.etternavn}
-                                roleGroup={selectedRole?.gruppe ?? ""}
+                                roleGroup={primarySelectedRole?.gruppe ?? ""}
                                 roleTitle={
-                                    selectedRole?.source === "virtual_pingvin"
-                                        ? t("profileRoleVirtualPingvin")
-                                        : (selectedRole?.navn ?? "")
+                                    primarySelectedRole ? getRoleTitle(primarySelectedRole) : ""
                                 }
                             />
                         </Card>
@@ -178,10 +205,20 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                             effect="liquid"
                             variant="grouped"
                         >
-                            <Text className="text-base text-text-secondary font-medium">
+                            <Text className="text-base font-medium text-text-secondary">
                                 {t("profileTotalPingvinPoeng")}
                             </Text>
                             <Text className="text-2xl font-extrabold">{user.pingvinPoengSum}</Text>
+                        </Card>
+
+                        <Card className="gap-3 px-4 py-4" effect="liquid" variant="grouped">
+                            <SelectedFrontpageRolesGrid
+                                compact
+                                getRoleTitle={getRoleTitle}
+                                reserveMaxHeight
+                                roles={selectedRoles}
+                                showOrderBadge
+                            />
                         </Card>
 
                         <Text className="px-1 pt-1 text-lg font-bold">
