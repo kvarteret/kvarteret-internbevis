@@ -2,7 +2,7 @@ import * as THREE from "three"
 import { DiceType } from "@/features/games/domain/dice"
 
 const D10_RING_OFFSET_RATIO = 0.10557280900008414
-const DISPLAY_NORMAL = new THREE.Vector3(0.48, 0.82, 1).normalize()
+const DISPLAY_NORMAL = new THREE.Vector3(0, 0, 1)
 const FACE_NORMAL_GROUP_EPSILON = 0.9994
 const FACE_VERTEX_PRECISION = 10000
 
