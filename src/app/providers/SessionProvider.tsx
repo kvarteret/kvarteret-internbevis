@@ -13,12 +13,12 @@ import {
     clearCachedUser,
     clearCredentials,
     clearDeepLinkToken,
+    createMobileCardSession,
     getCachedUser,
     getInternkortInformation,
     getSavedCredentials,
     saveCachedUser,
     saveCredentials,
-    saveDeepLinkToken,
 } from "@/features/auth/data/authRepository"
 import { isTransientAuthError } from "@/features/auth/domain/authError"
 import {
@@ -118,15 +118,12 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         const hydrateUser = async (): Promise<void> => {
             try {
                 const credentials = await getSavedCredentials()
-                const hasCredentials = Boolean(credentials.email && credentials.accessToken)
+                const hasCredentials = Boolean(credentials.accessToken)
                 setHasStoredCredentials(hasCredentials)
                 let hydratedUser: User | null = null
 
-                if (credentials.email && credentials.accessToken) {
-                    hydratedUser = await getInternkortInformation(
-                        credentials.email,
-                        credentials.accessToken,
-                    )
+                if (credentials.accessToken) {
+                    hydratedUser = await getInternkortInformation(credentials.accessToken)
                 }
 
                 if (hydratedUser) {
@@ -265,11 +262,10 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         setError(null)
 
         try {
-            const nextUser = await getInternkortInformation(email, accessToken)
-            await saveCredentials(email, accessToken)
-            await saveDeepLinkToken(accessToken)
-            await saveCachedUser(nextUser)
-            setUser(nextUser)
+            const session = await createMobileCardSession(email, accessToken)
+            await saveCredentials(email, session.sessionToken)
+            await saveCachedUser(session.user)
+            setUser(session.user)
             setHasStoredCredentials(true)
             setIsAnonymous(false)
             await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
