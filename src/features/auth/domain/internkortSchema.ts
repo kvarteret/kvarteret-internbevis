@@ -23,66 +23,89 @@ function parseOptionalDate(value: string | null | undefined): Date | null {
     return parsedDate
 }
 
-export const digitalInternKortRequestSchema = z
+export const mobileCardSessionRequestSchema = z
     .object({
         email: nullableStringSchema,
-        accessToken: nullableStringSchema,
+        accessCode: nullableStringSchema,
     })
     .strict()
 
-export const internKortVervApiSchema = z
+export const mobileCardRoleApiSchema = z
     .object({
-        navn: nullableStringSchema,
-        gruppe: nullableStringSchema,
-        rabattTrinn: nullableIntSchema,
-        pingvinPoeng: z.number().int().optional(),
-        signertKontrakt: z.boolean().optional(),
+        name: nullableStringSchema,
+        group: nullableStringSchema,
+        discount_level: nullableIntSchema,
+        pingvin_points: z.number().int().optional(),
+        signed_contract: z.boolean().optional(),
     })
     .strict()
 
-export const internKortInformationApiSchema = z
+export const mobileCardResponseApiSchema = z
     .object({
-        id: z.number().int(),
-        fornavn: nullableStringSchema,
-        etternavn: nullableStringSchema,
-        fodselsdato: nullableDateTimeSchema,
-        opprettet: nullableDateTimeSchema,
-        gyldigTil: z
+        person_id: z.number().int(),
+        first_name: nullableStringSchema,
+        last_name: nullableStringSchema,
+        birth_date: nullableDateTimeSchema,
+        created_at: z
             .string()
             .min(1)
             .refine(value => isValidDateTime(value), {
-                message: "gyldigTil must be a valid date-time string",
+                message: "created_at must be a valid date-time string",
             }),
-        bildeUrl: nullableStringSchema,
-        pingvinPoengSum: z.number().int(),
-        aktiveVerv: z.array(internKortVervApiSchema).nullable().optional(),
-        dagensOrd: nullableStringSchema,
+        valid_until: z
+            .string()
+            .min(1)
+            .refine(value => isValidDateTime(value), {
+                message: "valid_until must be a valid date-time string",
+            }),
+        photo_url: nullableStringSchema,
+        pingvin_points: z.number().int(),
+        active_roles: z.array(mobileCardRoleApiSchema).nullable().optional(),
+        word_of_the_day: nullableStringSchema,
     })
     .strict()
 
-function mapInternKortVerv(value: z.infer<typeof internKortVervApiSchema>): InternKortVerv {
+export const mobileCardSessionApiSchema = z
+    .object({
+        session_token: z.string().min(1),
+        card: mobileCardResponseApiSchema,
+    })
+    .strict()
+
+function mapMobileCardRole(value: z.infer<typeof mobileCardRoleApiSchema>): InternKortVerv {
     return {
-        navn: value.navn ?? "",
-        gruppe: value.gruppe ?? "",
-        rabattTrinn: value.rabattTrinn ?? null,
-        pingvinPoeng: value.pingvinPoeng ?? 0,
-        signertKontrakt: value.signertKontrakt ?? false,
+        navn: value.name ?? "",
+        gruppe: value.group ?? "",
+        rabattTrinn: value.discount_level ?? null,
+        pingvinPoeng: value.pingvin_points ?? 0,
+        signertKontrakt: value.signed_contract ?? false,
     }
 }
 
 export function parseInternkortInformation(payload: unknown): User {
-    const parsed = internKortInformationApiSchema.parse(payload)
+    const parsed = mobileCardResponseApiSchema.parse(payload)
 
     return {
-        id: parsed.id,
-        fornavn: parsed.fornavn ?? "",
-        etternavn: parsed.etternavn ?? "",
-        fodselsdato: parseOptionalDate(parsed.fodselsdato),
-        opprettet: parseOptionalDate(parsed.opprettet),
-        gyldigTil: new Date(parsed.gyldigTil),
-        bildeUrl: parsed.bildeUrl ?? undefined,
-        pingvinPoengSum: parsed.pingvinPoengSum,
-        aktiveVerv: (parsed.aktiveVerv ?? []).map(mapInternKortVerv),
-        dagensOrd: parsed.dagensOrd ?? "",
+        id: parsed.person_id,
+        fornavn: parsed.first_name ?? "",
+        etternavn: parsed.last_name ?? "",
+        fodselsdato: parseOptionalDate(parsed.birth_date),
+        opprettet: parseOptionalDate(parsed.created_at),
+        gyldigTil: new Date(parsed.valid_until),
+        bildeUrl: parsed.photo_url ?? undefined,
+        pingvinPoengSum: parsed.pingvin_points,
+        aktiveVerv: (parsed.active_roles ?? []).map(mapMobileCardRole),
+        dagensOrd: parsed.word_of_the_day ?? "",
+    }
+}
+
+export function parseMobileCardSession(payload: unknown): {
+    sessionToken: string
+    user: User
+} {
+    const parsed = mobileCardSessionApiSchema.parse(payload)
+    return {
+        sessionToken: parsed.session_token,
+        user: parseInternkortInformation(parsed.card),
     }
 }

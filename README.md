@@ -187,9 +187,9 @@ For local development against the `infra` backend stack, the API root is:
 
 - `http://localhost:5001/api`
 
-The Internkort endpoints used by this app are under:
+The mobile-card endpoints used by this app are under:
 
-- `http://localhost:5001/api/DigitalInternkort`
+- `http://localhost:5001/api/v1/mobile-card`
 
 When running Expo Go on a physical device, `localhost` points to the phone, not your computer.
 Use your computer LAN IP instead.
@@ -197,7 +197,7 @@ Use your computer LAN IP instead.
 Create `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/.env.local`:
 
 ```bash
-EXPO_PUBLIC_INTERNKORT_BASE_URL=http://<LAN-IP>:5001/api/DigitalInternkort
+EXPO_PUBLIC_INTERNKORT_BASE_URL=http://<LAN-IP>:5001/api/v1/mobile-card
 # Optional (defaults to production if not set)
 EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL=http://<LAN-IP>:<PORT>
 
