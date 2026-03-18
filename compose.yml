@@ -13,7 +13,6 @@ services:
       NODE_ENV: development
       EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
       EXPO_PUBLIC_INTERNKORT_BASE_URL: ${EXPO_PUBLIC_INTERNKORT_BASE_URL:-http://backend/api/v1/mobile-card}
-      EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL: ${EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL:-http://kvarteret-skjerm-web:8080}
     ports:
       - "19006:19006"
       - "8081:8081"

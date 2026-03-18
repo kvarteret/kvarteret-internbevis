@@ -198,8 +198,6 @@ Create `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/.env.local`:
 
 ```bash
 EXPO_PUBLIC_INTERNKORT_BASE_URL=http://<LAN-IP>:5001/api/v1/mobile-card
-# Optional (defaults to production if not set)
-EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL=http://<LAN-IP>:<PORT>
 
 # Optional overrides for Firestore-backed event feed
 # (defaults use the shared frontend-eventside Firebase project)
