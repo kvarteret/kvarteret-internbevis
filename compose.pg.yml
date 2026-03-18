@@ -11,7 +11,7 @@ services:
              npm run web -- --host 0.0.0.0 --port 19006 --non-interactive"
     environment:
       - NODE_ENV=development
-      - EXPO_PUBLIC_INTERNKORT_BASE_URL=${EXPO_PUBLIC_INTERNKORT_BASE_URL:-http://localhost:5001/api/v1/mobile-card}
+      - EXPO_PUBLIC_INTERNKORT_BASE_URL=${EXPO_PUBLIC_INTERNKORT_BASE_URL:-http://localhost:5001/api/DigitalInternkort}
       - EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL=${EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL:-http://localhost:8080}
       - CHOKIDAR_USEPOLLING=true
     ports:

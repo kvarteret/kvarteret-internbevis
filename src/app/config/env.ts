@@ -1,7 +1,7 @@
 export const appEnv = {
     internkortBaseUrl:
         process.env.EXPO_PUBLIC_INTERNKORT_BASE_URL?.trim() ||
-        "https://personal.kvarteret.no/api/v1/mobile-card",
+        "https://api.kvarteret.no/api/DigitalInternkort",
     kvarteretSkjermBaseUrl:
         process.env.EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL?.trim() ||
         "https://kvarteret-skjerm.fly.dev",

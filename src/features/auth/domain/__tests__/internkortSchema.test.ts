@@ -1,26 +1,26 @@
-import { parseInternkortInformation, parseMobileCardSession } from "../internkortSchema"
+import { parseInternkortInformation } from "../internkortSchema"
 
 describe("parseInternkortInformation", () => {
     it("parses a valid response payload", () => {
         const user = parseInternkortInformation({
-            person_id: 123,
-            first_name: "Ada",
-            last_name: "Lovelace",
-            birth_date: "1990-01-02",
-            created_at: "2025-01-01T00:00:00Z",
-            valid_until: "2026-01-01T00:00:00Z",
-            photo_url: "https://example.com/image.jpg",
-            pingvin_points: 10,
-            active_roles: [
+            id: 123,
+            fornavn: "Ada",
+            etternavn: "Lovelace",
+            fodselsdato: "1990-01-02T00:00:00Z",
+            opprettet: "2025-01-01T00:00:00Z",
+            gyldigTil: "2026-01-01T00:00:00Z",
+            bildeUrl: "https://example.com/image.jpg",
+            pingvinPoengSum: 10,
+            aktiveVerv: [
                 {
-                    name: "Medlem",
-                    group: "PR-Etaten",
-                    discount_level: 2,
-                    pingvin_points: 8,
-                    signed_contract: true,
+                    navn: "Medlem",
+                    gruppe: "PR-Etaten",
+                    rabattTrinn: 2,
+                    pingvinPoeng: 8,
+                    signertKontrakt: true,
                 },
             ],
-            word_of_the_day: "eplepingvin",
+            dagensOrd: "eplepingvin",
         })
 
         expect(user.id).toBe(123)
@@ -33,24 +33,24 @@ describe("parseInternkortInformation", () => {
     it("throws when required strict fields are missing", () => {
         expect(() =>
             parseInternkortInformation({
-                first_name: "Ada",
-                valid_until: "2026-01-01T00:00:00Z",
+                fornavn: "Ada",
+                gyldigTil: "2026-01-01T00:00:00Z",
             }),
         ).toThrow()
     })
 
     it("defaults optional nullable fields safely", () => {
         const user = parseInternkortInformation({
-            person_id: 1,
-            first_name: null,
-            last_name: null,
-            birth_date: null,
-            created_at: "2025-01-01T00:00:00Z",
-            valid_until: "2026-01-01T00:00:00Z",
-            photo_url: null,
-            pingvin_points: 0,
-            active_roles: null,
-            word_of_the_day: null,
+            id: 1,
+            fornavn: null,
+            etternavn: null,
+            fodselsdato: null,
+            opprettet: null,
+            gyldigTil: "2026-01-01T00:00:00Z",
+            bildeUrl: null,
+            pingvinPoengSum: 0,
+            aktiveVerv: null,
+            dagensOrd: null,
         })
 
         expect(user.fornavn).toBe("")
@@ -62,18 +62,17 @@ describe("parseInternkortInformation", () => {
 
     it("defaults missing pingvinPoeng on roles to zero for rollout compatibility", () => {
         const user = parseInternkortInformation({
-            person_id: 9,
-            first_name: "Ada",
-            last_name: "Lovelace",
-            created_at: "2025-01-01T00:00:00Z",
-            valid_until: "2026-01-01T00:00:00Z",
-            pingvin_points: 3,
-            active_roles: [
+            id: 9,
+            fornavn: "Ada",
+            etternavn: "Lovelace",
+            gyldigTil: "2026-01-01T00:00:00Z",
+            pingvinPoengSum: 3,
+            aktiveVerv: [
                 {
-                    name: "Medlem",
-                    group: "PR-Etaten",
-                    discount_level: 1,
-                    signed_contract: true,
+                    navn: "Medlem",
+                    gruppe: "PR-Etaten",
+                    rabattTrinn: 1,
+                    signertKontrakt: true,
                 },
             ],
         })
@@ -83,35 +82,15 @@ describe("parseInternkortInformation", () => {
 
     it("falls back to null for invalid optional date fields", () => {
         const user = parseInternkortInformation({
-            person_id: 2,
-            created_at: "2025-01-01T00:00:00Z",
-            valid_until: "2026-01-01T00:00:00Z",
-            pingvin_points: 4,
-            birth_date: "not-a-date",
-            active_roles: [],
+            id: 2,
+            gyldigTil: "2026-01-01T00:00:00Z",
+            pingvinPoengSum: 4,
+            fodselsdato: "not-a-date",
+            opprettet: "also-not-a-date",
+            aktiveVerv: [],
         })
 
         expect(user.fodselsdato).toBeNull()
-    })
-
-    it("parses a session response and extracts the bearer token", () => {
-        const session = parseMobileCardSession({
-            session_token: "session-123",
-            card: {
-                person_id: 2,
-                first_name: "Ada",
-                last_name: "Lovelace",
-                birth_date: "1990-01-02",
-                created_at: "2025-01-01T00:00:00Z",
-                valid_until: "2026-01-01T00:00:00Z",
-                photo_url: "https://example.com/image.jpg",
-                pingvin_points: 4,
-                active_roles: [],
-                word_of_the_day: "pingvin",
-            },
-        })
-
-        expect(session.sessionToken).toBe("session-123")
-        expect(session.user.id).toBe(2)
+        expect(user.opprettet).toBeNull()
     })
 })

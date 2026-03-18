@@ -8,13 +8,12 @@ import {
 } from "@/core/storage/sessionStorage"
 import { createAuthServiceError, toAuthServiceError } from "@/features/auth/domain/authError"
 import {
-    mobileCardSessionRequestSchema,
-    parseMobileCardSession,
+    digitalInternKortRequestSchema,
     parseInternkortInformation,
 } from "@/features/auth/domain/internkortSchema"
 import { User } from "@/shared/types/user"
 
-const DEFAULT_INTERNKORT_BASE_URL = "https://personal.kvarteret.no/api/v1/mobile-card"
+const DEFAULT_INTERNKORT_BASE_URL = "https://api.kvarteret.no/api/DigitalInternkort"
 const SESSION_CACHE_USER_KEY = "session_cached_user"
 
 export interface AuthResult {
@@ -34,13 +33,6 @@ const postAuthJson = async (path: string, body: Record<string, unknown>): Promis
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-    })
-}
-
-const getAuthJson = async (path: string, sessionToken: string): Promise<Response> => {
-    return fetch(`${getInternkortBaseUrl()}/${path}`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${sessionToken}` },
     })
 }
 
@@ -107,37 +99,25 @@ const mapCachedUser = (payload: unknown): User | null => {
     }
 }
 
-const readResponseMessage = async (response: Response): Promise<string> => {
-    try {
-        const contentType = response.headers.get("content-type")?.toLowerCase() ?? ""
-        if (contentType.includes("application/json")) {
-            const payload = (await response.json()) as unknown
-            if (payload && typeof payload === "object") {
-                const detail = (payload as { detail?: unknown }).detail
-                if (typeof detail === "string" && detail.trim().length > 0) {
-                    return detail.trim()
-                }
-
-                const message = (payload as { message?: unknown }).message
-                if (typeof message === "string" && message.trim().length > 0) {
-                    return message.trim()
-                }
-            }
-            return ""
-        }
-
-        return (await response.text()).trim()
-    } catch {
-        return ""
+const isInvalidAccessTokenResponse = (status: number, bodyText: string): boolean => {
+    if (status === 401 || status === 404) {
+        return true
     }
+
+    if (status !== 400) {
+        return false
+    }
+
+    const normalized = bodyText.toLowerCase()
+    return normalized.includes("access token") || normalized.includes("accesstoken")
 }
 
 export const requestAccessToken = async (email: string): Promise<boolean> => {
-    const requestBody = { email: mobileCardSessionRequestSchema.parse({ email }).email }
+    const requestBody = digitalInternKortRequestSchema.parse({ email })
 
     let response: Response
     try {
-        response = await postAuthJson("access-codes", requestBody)
+        response = await postAuthJson("RequestAccessTokenOnEmail", requestBody)
     } catch (error) {
         throw createAuthServiceError({
             code: "NETWORK_ERROR",
@@ -146,11 +126,34 @@ export const requestAccessToken = async (email: string): Promise<boolean> => {
         })
     }
 
-    if (response.status === 200 || response.status === 202) {
+    if (response.status === 200) {
         return true
     }
 
-    const responseText = await readResponseMessage(response)
+    let responseText = ""
+    try {
+        responseText = (await response.text()).trim()
+    } catch {
+        responseText = ""
+    }
+
+    if (response.status === 404) {
+        throw createAuthServiceError({
+            code: "EMAIL_NOT_FOUND",
+            message: responseText || "Email not found in the database",
+            status: 404,
+        })
+    }
+
+    if (response.status === 409) {
+        throw createAuthServiceError({
+            code: "EMAIL_CONFLICT",
+            message:
+                responseText ||
+                "More than one Kvarteret profile uses this email address. Contact your group leader to fix it.",
+            status: 409,
+        })
+    }
 
     if (response.status >= 500) {
         throw createAuthServiceError({
@@ -175,93 +178,15 @@ export const requestAccessToken = async (email: string): Promise<boolean> => {
     })
 }
 
-export const createMobileCardSession = async (
+export const getInternkortInformation = async (
     email: string,
     accessToken: string,
-): Promise<{
-    sessionToken: string
-    user: User
-}> => {
-    const requestBody = mobileCardSessionRequestSchema.parse({ email, accessCode: accessToken })
+): Promise<User> => {
+    const requestBody = digitalInternKortRequestSchema.parse({ email, accessToken })
 
     let response: Response
     try {
-        response = await postAuthJson("sessions", {
-            email: requestBody.email,
-            access_code: requestBody.accessCode,
-        })
-    } catch (error) {
-        throw createAuthServiceError({
-            code: "NETWORK_ERROR",
-            message: "Network error. Please check your connection and try again.",
-            cause: error,
-        })
-    }
-
-    if (response.status === 200) {
-        let payload: unknown
-
-        try {
-            payload = await response.json()
-        } catch (error) {
-            throw createAuthServiceError({
-                code: "UNEXPECTED_RESPONSE",
-                message: "Server returned an unreadable response.",
-                status: response.status,
-                cause: error,
-            })
-        }
-
-        try {
-            return parseMobileCardSession(payload)
-        } catch (error) {
-            if (error instanceof ZodError) {
-                throw createAuthServiceError({
-                    code: "UNEXPECTED_RESPONSE",
-                    message: "Server response format was invalid.",
-                    status: response.status,
-                    cause: error,
-                })
-            }
-
-            throw createAuthServiceError({
-                code: "UNEXPECTED_RESPONSE",
-                message: "Could not parse server response.",
-                status: response.status,
-                cause: error,
-            })
-        }
-    }
-
-    if (response.status === 401) {
-        throw createAuthServiceError({
-            code: "INVALID_AUTH",
-            message: "Invalid email or access code.",
-            status: response.status,
-        })
-    }
-
-    const responseText = await readResponseMessage(response)
-
-    if (response.status === 429 && responseText) {
-        throw createAuthServiceError({
-            code: "REQUEST_FAILED",
-            message: responseText,
-            status: response.status,
-        })
-    }
-
-    throw createAuthServiceError({
-        code: response.status >= 500 ? "SERVER_ERROR" : "REQUEST_FAILED",
-        message: responseText || `Failed to create session: ${response.status}`,
-        status: response.status,
-    })
-}
-
-export const getInternkortInformation = async (sessionToken: string): Promise<User> => {
-    let response: Response
-    try {
-        response = await getAuthJson("me", sessionToken)
+        response = await postAuthJson("GetInternkortInformation", requestBody)
     } catch (error) {
         throw createAuthServiceError({
             code: "NETWORK_ERROR",
@@ -305,18 +230,24 @@ export const getInternkortInformation = async (sessionToken: string): Promise<Us
         }
     }
 
-    if (response.status === 401) {
+    let responseText = ""
+    try {
+        responseText = await response.text()
+    } catch {
+        responseText = ""
+    }
+
+    if (isInvalidAccessTokenResponse(response.status, responseText)) {
         throw createAuthServiceError({
             code: "INVALID_AUTH",
-            message: "Session expired. Please sign in again.",
+            message: response.status === 404 ? "User not found" : "Invalid or expired access token",
             status: response.status,
         })
     }
 
-    const responseText = await readResponseMessage(response)
     throw createAuthServiceError({
-        code: response.status >= 500 ? "SERVER_ERROR" : "REQUEST_FAILED",
-        message: responseText || `Failed to fetch user information: ${response.status}`,
+        code: "REQUEST_FAILED",
+        message: `Failed to fetch user information: ${response.status}`,
         status: response.status,
     })
 }
