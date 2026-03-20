@@ -5,11 +5,13 @@ import { useTranslation } from "react-i18next"
 import { ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { useLanguage } from "@/app/providers/LanguageProvider"
+import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchEventById, selectEventTranslation } from "@/features/dashboard/data/eventsRepository"
 import {
     formatEventStartStopWithDuration,
-    getEventCategoriesText,
+    getEventTaxonomyText,
+    getRecurringBadgeText,
     selectPrimaryDetailsHtml,
     toRenderableHtml,
 } from "@/features/dashboard/domain/eventFormatting"
@@ -25,6 +27,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
     const { language } = useLanguage()
+    const { user } = useSession()
     const { width } = useWindowDimensions()
     const { eventId } = useLocalSearchParams<{ eventId?: string | string[] }>()
     const resolvedEventId = Array.isArray(eventId) ? eventId[0] : eventId
@@ -35,13 +38,19 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         isError,
         refetch,
     } = useQuery({
-        queryKey: ["event", resolvedEventId],
+        queryKey: ["event", resolvedEventId, Boolean(user)],
         queryFn: ({ signal }) => {
             if (!resolvedEventId) {
                 throw new Error("Missing event ID.")
             }
 
-            return fetchEventById(resolvedEventId, signal)
+            return fetchEventById(
+                resolvedEventId,
+                {
+                    includeInternal: Boolean(user),
+                },
+                signal,
+            )
         },
         enabled: Boolean(resolvedEventId),
         retry: 1,
@@ -58,8 +67,11 @@ export const EventDetailsScreen = (): React.JSX.Element => {
             event.event_end.toDate(),
             language,
         )
-        const categories = getEventCategoriesText(event)
-        return { event, detailsHtml, whenValue, categories }
+        const taxonomy = getEventTaxonomyText(event)
+        const recurring = event.recurring_interval_days
+            ? getRecurringBadgeText(event.recurring_interval_days, language)
+            : ""
+        return { event, detailsHtml, whenValue, taxonomy, recurring }
     }, [event, language, translationSelection])
 
     const openLink = useCallback(async (url: string): Promise<void> => {
@@ -155,16 +167,22 @@ export const EventDetailsScreen = (): React.JSX.Element => {
 
                 <Card className="p-4" effect="liquid" variant="grouped">
                     <LabeledValueRow label={t("eventDetailsWhen")} value={details.whenValue} />
-                    {event.organizer?.name ? (
+                    {details.taxonomy ? (
                         <LabeledValueRow
-                            label={t("eventDetailsOrganizer")}
-                            value={event.organizer.name}
+                            label={t("eventDetailsTaxonomy")}
+                            value={details.taxonomy}
                         />
                     ) : null}
-                    {details.categories.length > 0 ? (
+                    {details.recurring ? (
                         <LabeledValueRow
-                            label={t("eventDetailsCategories")}
-                            value={details.categories}
+                            label={t("eventDetailsRecurring")}
+                            value={details.recurring}
+                        />
+                    ) : null}
+                    {event.is_featured ? (
+                        <LabeledValueRow
+                            label={t("eventDetailsFeatured")}
+                            value={t("eventFeaturedBadge")}
                         />
                     ) : null}
                     {event.price ? (

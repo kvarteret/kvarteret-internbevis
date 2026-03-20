@@ -5,9 +5,9 @@ import {
     selectProjectedDescriptionPreview,
     toRenderableHtml,
 } from "../eventFormatting"
-import type { FirestoreEventTranslation } from "../types"
+import type { EventTranslation } from "../types"
 
-const buildTranslation = (description: string | null): FirestoreEventTranslation => ({
+const buildTranslation = (description: string | null): EventTranslation => ({
     available: true,
     title: "Test event",
     description,
