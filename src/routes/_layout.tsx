@@ -15,13 +15,13 @@ import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 
 const RootNavigator = (): React.JSX.Element => {
     const { t } = useTranslation()
-    const { isHydrating: sessionHydrating } = useSession()
+    const { user, isAnonymous, isHydrating: sessionHydrating } = useSession()
     const { isHydrating: languageHydrating } = useLanguage()
     const { menuActions, nativeMenuItems, onMenuAction } = useHeaderMenuActions()
     const colors = useThemeRuntimeColors()
     const { rootContentStyle, androidHeaderStyle } = useNavigationStyles()
 
-    if (sessionHydrating || languageHydrating) {
+    if (languageHydrating || (sessionHydrating && !user && !isAnonymous)) {
         return (
             <View className="flex-1 items-center justify-center bg-background">
                 <ActivityIndicator color={colors.textPrimary} size="large" />
