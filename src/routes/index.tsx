@@ -6,7 +6,7 @@ export default function IndexRoute(): React.JSX.Element {
     const { user, isAnonymous, hasStoredCredentials } = useSession()
 
     if (user || isAnonymous || hasStoredCredentials) {
-        return <Redirect href="/(tabs)/kontroll" />
+        return <Redirect href="/(tabs)/kvarteret" />
     }
 
     return <Redirect href="/login" />
