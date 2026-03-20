@@ -1,11 +1,12 @@
-import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
+import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 import { pickHomeEvents, selectEventTranslation, splitHomeEventsByType } from "../eventSelection"
 
-function createTimestamp(date: Date): FirestoreEventDocument["event_start"] {
+function createTimestamp(date: Date): KvarteretEventDocument["event_start"] {
     return {
         toDate: () => date,
         toMillis: () => date.getTime(),
-    } as FirestoreEventDocument["event_start"]
+        toISOString: () => date.toISOString(),
+    } as KvarteretEventDocument["event_start"]
 }
 
 function createEvent(
@@ -15,14 +16,16 @@ function createEvent(
         end?: Date
         norwegianTitle?: string | null
         englishTitle?: string | null
-        categories?: { id: number; name: string }[]
+        eventTypeSlug?: string
+        eventTypeName?: string
     },
-): FirestoreEventDocument {
+): KvarteretEventDocument {
     const start = options?.start ?? new Date("2026-02-20T12:00:00.000Z")
     const end = options?.end ?? new Date("2026-02-20T14:00:00.000Z")
     const norwegianTitle = options?.norwegianTitle
     const englishTitle = options?.englishTitle
-    const categories = options?.categories ?? []
+    const eventTypeSlug = options?.eventTypeSlug
+    const eventTypeName = options?.eventTypeName
 
     return {
         id,
@@ -35,8 +38,21 @@ function createEvent(
         ticket_url: null,
         facebook_url: null,
         image: null,
-        organizer: null,
-        categories,
+        event_type_id: eventTypeSlug ?? "sosialt",
+        event_type: eventTypeSlug
+            ? {
+                  id: eventTypeSlug,
+                  slug: eventTypeSlug,
+                  name: eventTypeName ?? eventTypeSlug,
+                  description: null,
+                  sort_order: 0,
+                  is_active: true,
+              }
+            : null,
+        organizer_groups: [],
+        is_internal: false,
+        is_featured: false,
+        recurring_interval_days: null,
         price: null,
         translations: {
             no:
@@ -115,13 +131,16 @@ describe("eventsService", () => {
 
     test("splitHomeEventsByType groups by schema category IDs", () => {
         const debate = createEvent("debate", {
-            categories: [{ id: 10011, name: "Debatter og foredrag" }],
+            eventTypeSlug: "debatt",
+            eventTypeName: "Debatt",
         })
         const concert = createEvent("concert", {
-            categories: [{ id: 10007, name: "Konsert og musikk" }],
+            eventTypeSlug: "konsert",
+            eventTypeName: "Konsert",
         })
         const other = createEvent("other", {
-            categories: [{ id: 10002, name: "Kunst og kultur" }],
+            eventTypeSlug: "sosialt",
+            eventTypeName: "Sosialt",
         })
 
         const result = splitHomeEventsByType([debate, concert, other])

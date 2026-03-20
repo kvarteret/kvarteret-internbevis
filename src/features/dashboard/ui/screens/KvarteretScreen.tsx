@@ -7,8 +7,8 @@ import { ActivityIndicator, ScrollView, View } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
 import { shouldShowGrondahlsStatusCard } from "@/features/dashboard/domain/grondahlsOpening"
-import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
 import { splitHomeEventsByType } from "@/features/dashboard/domain/eventSelection"
+import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
 import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
@@ -52,7 +52,7 @@ const OpeningStatusHero = ({
 
 interface EventSectionProps {
     title: string
-    events: FirestoreEventDocument[]
+    events: KvarteretEventDocument[]
     onRetry: () => Promise<unknown>
     onEventPress: (eventId: string) => void
 }
@@ -159,8 +159,14 @@ export const KvarteretScreen = (): React.JSX.Element => {
         isError: eventsError,
         refetch: refetchEvents,
     } = useQuery({
-        queryKey: ["home-events"],
-        queryFn: ({ signal }) => fetchHomeEvents(signal),
+        queryKey: ["home-events", Boolean(user)],
+        queryFn: ({ signal }) =>
+            fetchHomeEvents(
+                {
+                    includeInternal: Boolean(user),
+                },
+                signal,
+            ),
         staleTime: 30_000,
         retry: 1,
     })

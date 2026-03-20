@@ -1,6 +1,6 @@
 import { differenceInMinutes, format, formatDistanceToNowStrict, isSameWeek } from "date-fns"
 import { enUS, nb } from "date-fns/locale"
-import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
+import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 
 const DESCRIPTION_PREVIEW_MAX_CHARS = 200
 const HTML_TAG_PATTERN = /<\/?[a-z][\s\S]*>/i
@@ -139,13 +139,38 @@ export const formatEventStartStopWithDuration = (
     return `${whenLabel}\n${durationSentence}`
 }
 
-export const getEventCategoriesText = (event: FirestoreEventDocument): string =>
-    event.categories.map(category => category.name).join(", ")
+export const getEventTaxonomyText = (event: KvarteretEventDocument): string => {
+    const eventTypeName = event.event_type?.name ?? ""
+    const organizerGroups = event.organizer_groups.map(group => group.name).join(", ")
+
+    if (!eventTypeName) {
+        return organizerGroups
+    }
+
+    if (!organizerGroups) {
+        return eventTypeName
+    }
+
+    return `${eventTypeName} (${organizerGroups})`
+}
+
+export const getRecurringBadgeText = (
+    recurringIntervalDays: number,
+    language: "no" | "en",
+): string => {
+    if (language === "en") {
+        return `every ${recurringIntervalDays} days`
+    }
+
+    return recurringIntervalDays === 1
+        ? "hver dag"
+        : `hver ${recurringIntervalDays}. dag`
+}
 
 export const selectPrimaryDetailsHtml = (
     translation:
-        | FirestoreEventDocument["translations"]["no"]
-        | FirestoreEventDocument["translations"]["en"],
+        | KvarteretEventDocument["translations"]["no"]
+        | KvarteretEventDocument["translations"]["en"],
 ): string => {
     return normalizeDescriptionInput(translation?.description ?? "")
 }
@@ -183,8 +208,8 @@ export const toRenderableHtml = (value: string): string => {
 
 export const selectProjectedDescriptionPreview = (
     translation:
-        | FirestoreEventDocument["translations"]["no"]
-        | FirestoreEventDocument["translations"]["en"],
+        | KvarteretEventDocument["translations"]["no"]
+        | KvarteretEventDocument["translations"]["en"],
 ): string => {
     const descriptionSource = normalizeDescriptionInput(translation?.description ?? "")
     if (descriptionSource.length === 0) {

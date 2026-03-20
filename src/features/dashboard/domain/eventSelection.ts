@@ -1,21 +1,19 @@
 import {
     EventTranslationSelection,
-    FirestoreEventDocument,
-    FirestoreEventTranslations,
+    EventTranslations,
+    KvarteretEventDocument,
 } from "@/features/dashboard/domain/types"
 
 const DEFAULT_HOME_EVENTS_MAX_COUNT = 5
-const EVENT_CATEGORY_ID_DEBATE = 10011
-const EVENT_CATEGORY_ID_CONCERT = 10007
 
 export interface HomeEventSections {
-    debates: FirestoreEventDocument[]
-    concerts: FirestoreEventDocument[]
-    others: FirestoreEventDocument[]
+    debates: KvarteretEventDocument[]
+    concerts: KvarteretEventDocument[]
+    others: KvarteretEventDocument[]
 }
 
 export const selectEventTranslation = (
-    translations: FirestoreEventTranslations,
+    translations: EventTranslations,
 ): EventTranslationSelection | null => {
     const norwegian = translations.no
     if (norwegian && norwegian.title.trim().length > 0) {
@@ -36,46 +34,65 @@ export const selectEventTranslation = (
     return null
 }
 
-const isEventEnded = (event: FirestoreEventDocument, now: Date): boolean =>
+const isEventEnded = (event: KvarteretEventDocument, now: Date): boolean =>
     event.event_end.toDate().getTime() < now.getTime()
 
-const hasDisplayableTranslation = (event: FirestoreEventDocument): boolean =>
+const hasDisplayableTranslation = (event: KvarteretEventDocument): boolean =>
     selectEventTranslation(event.translations) !== null
 
+const resolveFeaturedEvents = (
+    events: KvarteretEventDocument[],
+): KvarteretEventDocument[] => {
+    const nearestFeaturedEventId = [...events]
+        .filter(event => event.is_featured)
+        .sort((left, right) => left.event_start.toMillis() - right.event_start.toMillis())[0]?.id
+
+    if (!nearestFeaturedEventId) {
+        return events
+    }
+
+    return events.map(event => ({
+        ...event,
+        is_featured: event.id === nearestFeaturedEventId,
+    }))
+}
+
 export const pickHomeEvents = (
-    events: FirestoreEventDocument[],
+    events: KvarteretEventDocument[],
     options?: {
         now?: Date
         maxCount?: number
     },
-): FirestoreEventDocument[] => {
+): KvarteretEventDocument[] => {
     const now = options?.now ?? new Date()
     const maxCount = options?.maxCount ?? DEFAULT_HOME_EVENTS_MAX_COUNT
 
-    return [...events]
+    return resolveFeaturedEvents(
+        [...events]
         .filter(event => !isEventEnded(event, now))
         .filter(hasDisplayableTranslation)
-        .sort((left, right) => left.event_start.toMillis() - right.event_start.toMillis())
+        .sort((left, right) => left.event_start.toMillis() - right.event_start.toMillis()),
+    )
         .slice(0, maxCount)
 }
 
-const hasCategoryId = (event: FirestoreEventDocument, categoryId: number): boolean =>
-    event.categories.some(category => category.id === categoryId)
+const hasEventTypeSlug = (event: KvarteretEventDocument, slug: string): boolean =>
+    event.event_type?.slug === slug
 
-export const splitHomeEventsByType = (events: FirestoreEventDocument[]): HomeEventSections => {
+export const splitHomeEventsByType = (events: KvarteretEventDocument[]): HomeEventSections => {
     const sections: HomeEventSections = {
         debates: [],
         concerts: [],
         others: [],
     }
 
-    for (const event of events) {
-        if (hasCategoryId(event, EVENT_CATEGORY_ID_DEBATE)) {
+    for (const event of resolveFeaturedEvents(events)) {
+        if (hasEventTypeSlug(event, "debatt")) {
             sections.debates.push(event)
             continue
         }
 
-        if (hasCategoryId(event, EVENT_CATEGORY_ID_CONCERT)) {
+        if (hasEventTypeSlug(event, "konsert")) {
             sections.concerts.push(event)
             continue
         }
