@@ -7,6 +7,7 @@ import {
 const DEFAULT_HOME_EVENTS_MAX_COUNT = 5
 
 export interface HomeEventSections {
+    lectures: KvarteretEventDocument[]
     debates: KvarteretEventDocument[]
     concerts: KvarteretEventDocument[]
     others: KvarteretEventDocument[]
@@ -81,12 +82,18 @@ const hasEventTypeSlug = (event: KvarteretEventDocument, slug: string): boolean 
 
 export const splitHomeEventsByType = (events: KvarteretEventDocument[]): HomeEventSections => {
     const sections: HomeEventSections = {
+        lectures: [],
         debates: [],
         concerts: [],
         others: [],
     }
 
     for (const event of resolveFeaturedEvents(events)) {
+        if (hasEventTypeSlug(event, "foredrag")) {
+            sections.lectures.push(event)
+            continue
+        }
+
         if (hasEventTypeSlug(event, "debatt")) {
             sections.debates.push(event)
             continue

@@ -80,6 +80,10 @@ const EventSection = ({
 
 const EVENT_SECTION_CONFIG = [
     {
+        key: "lectures",
+        titleKey: "homeEventsLecturesTitle",
+    },
+    {
         key: "debates",
         titleKey: "homeEventsDebatesTitle",
     },

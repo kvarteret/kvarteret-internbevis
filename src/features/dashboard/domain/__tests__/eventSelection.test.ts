@@ -130,6 +130,10 @@ describe("eventsService", () => {
     })
 
     test("splitHomeEventsByType groups by schema category IDs", () => {
+        const lecture = createEvent("lecture", {
+            eventTypeSlug: "foredrag",
+            eventTypeName: "Foredrag",
+        })
         const debate = createEvent("debate", {
             eventTypeSlug: "debatt",
             eventTypeName: "Debatt",
@@ -143,8 +147,9 @@ describe("eventsService", () => {
             eventTypeName: "Sosialt",
         })
 
-        const result = splitHomeEventsByType([debate, concert, other])
+        const result = splitHomeEventsByType([lecture, debate, concert, other])
 
+        expect(result.lectures.map(event => event.id)).toEqual(["lecture"])
         expect(result.debates.map(event => event.id)).toEqual(["debate"])
         expect(result.concerts.map(event => event.id)).toEqual(["concert"])
         expect(result.others.map(event => event.id)).toEqual(["other"])
