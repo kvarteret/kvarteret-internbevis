@@ -117,19 +117,25 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
     useEffect(() => {
         const hydrateUser = async (): Promise<void> => {
             try {
-                const credentials = await getSavedCredentials()
+                const [credentials, cachedUser] = await Promise.all([
+                    getSavedCredentials(),
+                    getCachedUser(),
+                ])
                 const hasCredentials = Boolean(credentials.email && credentials.accessToken)
                 setHasStoredCredentials(hasCredentials)
-                let hydratedUser: User | null = null
+
+                if (hasCredentials && cachedUser) {
+                    setUser(cachedUser)
+                    setIsAnonymous(false)
+                    setError(null)
+                    await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+                }
 
                 if (credentials.email && credentials.accessToken) {
-                    hydratedUser = await getInternkortInformation(
+                    const hydratedUser = await getInternkortInformation(
                         credentials.email,
                         credentials.accessToken,
                     )
-                }
-
-                if (hydratedUser) {
                     setUser(hydratedUser)
                     await saveCachedUser(hydratedUser)
                     setIsAnonymous(false)
