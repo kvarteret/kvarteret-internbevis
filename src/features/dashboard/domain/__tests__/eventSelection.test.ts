@@ -130,6 +130,12 @@ describe("eventsService", () => {
     })
 
     test("splitHomeEventsByType groups by schema category IDs", () => {
+        const internal = createEvent("internal", {
+            eventTypeSlug: "internarrangement",
+            eventTypeName: "Internarrangement",
+        })
+        internal.is_internal = true
+
         const lecture = createEvent("lecture", {
             eventTypeSlug: "foredrag",
             eventTypeName: "Foredrag",
@@ -147,8 +153,9 @@ describe("eventsService", () => {
             eventTypeName: "Sosialt",
         })
 
-        const result = splitHomeEventsByType([lecture, debate, concert, other])
+        const result = splitHomeEventsByType([internal, lecture, debate, concert, other])
 
+        expect(result.internal.map(event => event.id)).toEqual(["internal"])
         expect(result.lectures.map(event => event.id)).toEqual(["lecture"])
         expect(result.debates.map(event => event.id)).toEqual(["debate"])
         expect(result.concerts.map(event => event.id)).toEqual(["concert"])
