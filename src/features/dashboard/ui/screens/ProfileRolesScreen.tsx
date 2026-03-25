@@ -1,8 +1,13 @@
 import { useNavigation, useRouter } from "expo-router"
-import React, { useEffect, useMemo } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { FlatList, ListRenderItem, Pressable, View } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
+import {
+    getMembershipBenefitTranslationKeys,
+    MembershipBenefitTier,
+    resolveInitialMembershipBenefitTier,
+} from "@/features/dashboard/domain/membershipBenefits"
 import {
     buildDisplayRoles,
     DisplayRoleRow,
@@ -10,6 +15,7 @@ import {
     serializeRoleSelections,
     toggleFrontPageRoleSelection,
 } from "@/features/dashboard/domain/profileRoles"
+import { MembershipBenefitsCard } from "@/features/dashboard/ui/components/MembershipBenefitsCard"
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
 import { SelectedFrontpageRolesGrid } from "@/features/dashboard/ui/components/SelectedFrontpageRolesGrid"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
@@ -53,10 +59,23 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
         () => resolvePersistedRoleSelections(displayRoles, selectedFrontpageRoleSelections),
         [displayRoles, selectedFrontpageRoleSelections],
     )
+    const defaultMembershipBenefitsTier = useMemo(
+        () => resolveInitialMembershipBenefitTier(user),
+        [user],
+    )
+    const [selectedMembershipBenefitsTier, setSelectedMembershipBenefitsTier] =
+        useState<MembershipBenefitTier | null>(defaultMembershipBenefitsTier)
     const selectedOrderByKey = useMemo(
         () => new Map(selectedRoles.map((role, index) => [role.selectionKey, index + 1] as const)),
         [selectedRoles],
     )
+    const selectedMembershipBenefitLabels = useMemo(() => {
+        if (selectedMembershipBenefitsTier === null) {
+            return []
+        }
+
+        return getMembershipBenefitTranslationKeys(selectedMembershipBenefitsTier).map(key => t(key))
+    }, [selectedMembershipBenefitsTier, t])
 
     useEffect(() => {
         navigation.setOptions({
@@ -74,6 +93,10 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
             router.replace("/login")
         }
     }, [hasStoredCredentials, router, user])
+
+    useEffect(() => {
+        setSelectedMembershipBenefitsTier(defaultMembershipBenefitsTier)
+    }, [defaultMembershipBenefitsTier])
 
     const getRoleTitle = (role: DisplayRoleRow): string =>
         role.source === "virtual_pingvin" ? t("profileRoleVirtualPingvin") : role.navn
@@ -220,6 +243,15 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                                 showOrderBadge
                             />
                         </Card>
+
+                        <MembershipBenefitsCard
+                            benefitLabels={selectedMembershipBenefitLabels}
+                            description={t("profileMembershipBenefitsDescription")}
+                            onSelectTier={setSelectedMembershipBenefitsTier}
+                            selectedTier={selectedMembershipBenefitsTier}
+                            tierLabel={tier => t("tierLabel", { tier })}
+                            title={t("profileMembershipBenefitsTitle")}
+                        />
 
                         <Text className="px-1 pt-1 text-lg font-bold">
                             {t("profileActiveRoles")}
