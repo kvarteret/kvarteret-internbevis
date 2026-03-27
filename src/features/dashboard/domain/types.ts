@@ -33,6 +33,14 @@ export interface OrganizerGroup {
     default_event_type_id: string | null
 }
 
+export interface EventRoom {
+    id: string
+    slug: string
+    name: string
+    sort_order: number
+    is_active: boolean
+}
+
 export interface EventInstant {
     toDate: () => Date
     toMillis: () => number
@@ -52,6 +60,9 @@ export interface KvarteretEventDocument {
     image: EventImage | null
     event_type_id: string
     event_type: EventType | null
+    room_id: string | null
+    room_text: string | null
+    room: EventRoom | null
     organizer_groups: OrganizerGroup[]
     is_internal: boolean
     is_featured: boolean

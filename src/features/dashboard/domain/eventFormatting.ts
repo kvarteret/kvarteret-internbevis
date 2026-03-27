@@ -154,6 +154,9 @@ export const getEventTaxonomyText = (event: KvarteretEventDocument): string => {
     return `${eventTypeName} (${organizerGroups})`
 }
 
+export const getEventRoomText = (event: KvarteretEventDocument): string =>
+    event.room?.name ?? event.room_text ?? ""
+
 export const getRecurringBadgeText = (
     recurringIntervalDays: number,
     language: "no" | "en",

@@ -49,6 +49,9 @@ function createEvent(
                   is_active: true,
               }
             : null,
+        room_id: null,
+        room_text: null,
+        room: null,
         organizer_groups: [],
         is_internal: false,
         is_featured: false,

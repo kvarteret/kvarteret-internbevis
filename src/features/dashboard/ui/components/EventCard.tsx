@@ -4,6 +4,7 @@ import { Image, Pressable, View } from "react-native"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import {
     formatEventStart,
+    getEventRoomText,
     getEventTaxonomyText,
     getRecurringBadgeText,
     selectProjectedDescriptionPreview,
@@ -38,6 +39,7 @@ export const EventCard = ({
     const descriptionPreview = selectProjectedDescriptionPreview(translation.value)
     const formattedDate = formatEventStart(event.event_start.toDate(), language)
     const taxonomyText = getEventTaxonomyText(event)
+    const roomText = getEventRoomText(event)
     const accessibilityLabel = `${translation.value.title}. ${formattedDate}.`
 
     return (
@@ -86,6 +88,14 @@ export const EventCard = ({
                             numberOfLines={1}
                         >
                             {taxonomyText}
+                        </Text>
+                    ) : null}
+                    {roomText ? (
+                        <Text
+                            className="text-xs uppercase tracking-wide text-text-secondary font-semibold"
+                            numberOfLines={1}
+                        >
+                            {roomText}
                         </Text>
                     ) : null}
                     <Text

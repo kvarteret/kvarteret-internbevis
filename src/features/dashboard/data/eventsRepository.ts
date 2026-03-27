@@ -21,11 +21,14 @@ type EventRow = {
     image_url: string | null
     price: string | null
     event_type_id: string
+    room_id: string | null
+    room_text: string | null
     is_internal: boolean
     is_featured: boolean
     recurring_interval_days: number | null
     translations: KvarteretEventDocument["translations"]
     event_type: KvarteretEventDocument["event_type"]
+    room: KvarteretEventDocument["room"]
     event_organizer_group_memberships:
         | {
               display_order: number
@@ -52,11 +55,14 @@ const EVENT_SELECT = [
     "image_url",
     "price",
     "event_type_id",
+    "room_id",
+    "room_text",
     "is_internal",
     "is_featured",
     "recurring_interval_days",
     "translations",
     "event_type:event_types(id,slug,name,description,sort_order,is_active)",
+    "room:rooms(id,slug,name,sort_order,is_active)",
     "event_organizer_group_memberships(display_order,organizer_group:event_organizer_groups(id,slug,name,sort_order,is_active,default_event_type_id))",
 ].join(",")
 
@@ -82,11 +88,14 @@ const serializeEvent = (event: KvarteretEventDocument): EventRow => ({
     image_url: event.image?.url ?? null,
     price: event.price,
     event_type_id: event.event_type_id,
+    room_id: event.room_id,
+    room_text: event.room_text,
     is_internal: event.is_internal,
     is_featured: event.is_featured,
     recurring_interval_days: event.recurring_interval_days,
     translations: event.translations,
     event_type: event.event_type,
+    room: event.room,
     event_organizer_group_memberships: event.organizer_groups.map((organizer_group, index) => ({
         display_order: index,
         organizer_group,
@@ -111,6 +120,9 @@ const mapEventRow = (row: EventRow): KvarteretEventDocument => ({
         : null,
     event_type_id: row.event_type_id,
     event_type: row.event_type,
+    room_id: row.room_id,
+    room_text: row.room_text,
+    room: row.room,
     organizer_groups: [...(row.event_organizer_group_memberships ?? [])]
         .sort((left, right) => left.display_order - right.display_order)
         .map(membership => membership.organizer_group)

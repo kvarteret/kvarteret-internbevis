@@ -10,6 +10,7 @@ import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchEventById, selectEventTranslation } from "@/features/dashboard/data/eventsRepository"
 import {
     formatEventStartStopWithDuration,
+    getEventRoomText,
     getEventTaxonomyText,
     getRecurringBadgeText,
     selectPrimaryDetailsHtml,
@@ -68,10 +69,11 @@ export const EventDetailsScreen = (): React.JSX.Element => {
             language,
         )
         const taxonomy = getEventTaxonomyText(event)
+        const roomText = getEventRoomText(event)
         const recurring = event.recurring_interval_days
             ? getRecurringBadgeText(event.recurring_interval_days, language)
             : ""
-        return { event, detailsHtml, whenValue, taxonomy, recurring }
+        return { event, detailsHtml, whenValue, taxonomy, roomText, recurring }
     }, [event, language, translationSelection])
 
     const openLink = useCallback(async (url: string): Promise<void> => {
@@ -172,6 +174,9 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                             label={t("eventDetailsTaxonomy")}
                             value={details.taxonomy}
                         />
+                    ) : null}
+                    {details.roomText ? (
+                        <LabeledValueRow label={t("eventDetailsRoom")} value={details.roomText} />
                     ) : null}
                     {details.recurring ? (
                         <LabeledValueRow
