@@ -7,20 +7,24 @@ import React, {
     useState,
 } from "react"
 import { getStoredValue, removeStoredValue, setStoredValue } from "@/core/storage/asyncStorage"
+import { reportSessionLogoutDiagnostic } from "@/features/auth/data/authDiagnosticsRepository"
 import {
     AuthResult,
     authResultFromError,
     clearCachedUser,
     clearCredentials,
     clearDeepLinkToken,
+    clearLoginMarker,
     createMobileCardSession,
     getCachedUser,
     getInternkortInformation,
     getSavedCredentials,
+    getSavedLoginMarker,
     saveCachedUser,
     saveCredentials,
+    saveLoginMarker,
 } from "@/features/auth/data/authRepository"
-import { isTransientAuthError } from "@/features/auth/domain/authError"
+import { isTransientAuthError, toAuthServiceError } from "@/features/auth/domain/authError"
 import {
     getHydrationErrorMessage,
     shouldClearCredentialsOnHydrationError,
@@ -116,15 +120,41 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
 
     useEffect(() => {
         const hydrateUser = async (): Promise<void> => {
+            let cachedUser: User | null = null
+            let hadStoredCredentials = false
+            let loginMarker: { userId: number } | null = null
+
             try {
-                const [credentials, cachedUser] = await Promise.all([
+                const [credentials, nextCachedUser, nextLoginMarker] = await Promise.all([
                     getSavedCredentials(),
                     getCachedUser(),
+                    getSavedLoginMarker(),
                 ])
-                const hasCredentials = Boolean(credentials.accessToken)
-                setHasStoredCredentials(hasCredentials)
+                cachedUser = nextCachedUser
+                loginMarker = nextLoginMarker
+                hadStoredCredentials = Boolean(credentials.accessToken)
+                setHasStoredCredentials(hadStoredCredentials)
 
-                if (hasCredentials && cachedUser) {
+                if (!hadStoredCredentials && loginMarker) {
+                    await reportSessionLogoutDiagnostic({
+                        authErrorCode: null,
+                        authErrorMessage: null,
+                        authErrorStatus: null,
+                        cachedUserId: cachedUser?.id ?? loginMarker.userId,
+                        eventName: "credentials_missing_after_login",
+                        hadCachedUser: Boolean(cachedUser),
+                        hadLoginMarker: true,
+                        hadStoredCredentials: false,
+                        occurredAt: new Date().toISOString(),
+                    })
+                    await clearCredentials()
+                    await clearCachedUser()
+                    await clearLoginMarker()
+                    cachedUser = null
+                    loginMarker = null
+                }
+
+                if (hadStoredCredentials && cachedUser) {
                     setUser(cachedUser)
                     setIsAnonymous(false)
                     setError(null)
@@ -134,7 +164,10 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
                 if (credentials.accessToken) {
                     const hydratedUser = await getInternkortInformation(credentials.accessToken)
                     setUser(hydratedUser)
-                    await saveCachedUser(hydratedUser)
+                    await Promise.all([
+                        saveCachedUser(hydratedUser),
+                        saveLoginMarker(hydratedUser.id),
+                    ])
                     setIsAnonymous(false)
                     setError(null)
                     await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
@@ -148,9 +181,22 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
                 setError(null)
             } catch (nextError) {
                 if (shouldClearCredentialsOnHydrationError(nextError)) {
+                    const authError = toAuthServiceError(nextError)
+                    await reportSessionLogoutDiagnostic({
+                        authErrorCode: authError.code,
+                        authErrorMessage: authError.message,
+                        authErrorStatus: authError.status ?? null,
+                        cachedUserId: cachedUser?.id ?? loginMarker?.userId ?? null,
+                        eventName: "session_invalidated",
+                        hadCachedUser: Boolean(cachedUser),
+                        hadLoginMarker: Boolean(loginMarker),
+                        hadStoredCredentials,
+                        occurredAt: new Date().toISOString(),
+                    })
                     await clearCredentials()
                     await clearDeepLinkToken()
                     await clearCachedUser()
+                    await clearLoginMarker()
                     setHasStoredCredentials(false)
                 } else if (isTransientAuthError(nextError)) {
                     const cachedUser = await getCachedUser()
@@ -270,7 +316,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         try {
             const session = await createMobileCardSession(email, accessToken)
             await saveCredentials(email, session.sessionToken)
-            await saveCachedUser(session.user)
+            await Promise.all([saveCachedUser(session.user), saveLoginMarker(session.user.id)])
             setUser(session.user)
             setHasStoredCredentials(true)
             setIsAnonymous(false)
@@ -313,6 +359,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         await clearCredentials()
         await clearDeepLinkToken()
         await clearCachedUser()
+        await clearLoginMarker()
         await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
         setIsAnonymous(false)
         setHasStoredCredentials(false)

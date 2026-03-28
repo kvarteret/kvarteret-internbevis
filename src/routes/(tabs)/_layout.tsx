@@ -1,11 +1,13 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs"
 import React from "react"
+import { useTranslation } from "react-i18next"
 import { Platform } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
 import { getIOSCapabilities } from "@/shared/platform/ios-version"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 
 export default function TabsLayout(): React.JSX.Element {
+    const { t } = useTranslation()
     const { user } = useSession()
     const isAndroid = Platform.OS === "android"
     const { isLegacyIOS } = getIOSCapabilities()
@@ -36,13 +38,18 @@ export default function TabsLayout(): React.JSX.Element {
             {user ? (
                 <NativeTabs.Trigger name="kontroll">
                     <NativeTabs.Trigger.Icon md="person" sf="person" />
-                    <NativeTabs.Trigger.Label>Profil</NativeTabs.Trigger.Label>
+                    <NativeTabs.Trigger.Label>{t("tabKontroll")}</NativeTabs.Trigger.Label>
                 </NativeTabs.Trigger>
             ) : null}
 
             <NativeTabs.Trigger name="kvarteret">
                 <NativeTabs.Trigger.Icon md="home" sf="house.fill" />
-                <NativeTabs.Trigger.Label>Kvarteret</NativeTabs.Trigger.Label>
+                <NativeTabs.Trigger.Label>{t("tabSamfunnet")}</NativeTabs.Trigger.Label>
+            </NativeTabs.Trigger>
+
+            <NativeTabs.Trigger name="feedback">
+                <NativeTabs.Trigger.Icon md="feedback" sf="bubble.left.fill" />
+                <NativeTabs.Trigger.Label>{t("feedbackTab")}</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>
         </NativeTabs>
     )

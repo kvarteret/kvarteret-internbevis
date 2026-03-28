@@ -9,18 +9,24 @@ import {
 import { createAuthServiceError, toAuthServiceError } from "@/features/auth/domain/authError"
 import {
     mobileCardSessionRequestSchema,
-    parseMobileCardSession,
     parseInternkortInformation,
+    parseMobileCardSession,
 } from "@/features/auth/domain/internkortSchema"
 import { User } from "@/shared/types/user"
 
 const DEFAULT_INTERNKORT_BASE_URL = "https://personal.kvarteret.no/api/v1/mobile-card"
 const SESSION_CACHE_USER_KEY = "session_cached_user"
+const SESSION_LOGIN_MARKER_KEY = "session_login_marker"
 
 export interface AuthResult {
     success: boolean
     message?: string
     status?: number
+}
+
+export interface SavedLoginMarker {
+    loggedInAt: string
+    userId: number
 }
 
 const getInternkortBaseUrl = (): string => {
@@ -285,7 +291,19 @@ export const getInternkortInformation = async (sessionToken: string): Promise<Us
         }
 
         try {
-            return parseInternkortInformation(payload)
+            const user = parseInternkortInformation(payload)
+            const renewedSessionToken =
+                response.headers.get("x-mobile-card-session-token")?.trim() ?? ""
+
+            if (renewedSessionToken.length > 0 && renewedSessionToken !== sessionToken) {
+                try {
+                    await saveSessionToken(renewedSessionToken)
+                } catch {
+                    // Keep the current session usable even if renewal persistence fails.
+                }
+            }
+
+            return user
         } catch (error) {
             if (error instanceof ZodError) {
                 throw createAuthServiceError({
@@ -326,6 +344,10 @@ export const saveCredentials = async (email: string, accessToken: string): Promi
     await setSessionValue(SESSION_STORAGE_KEYS.accessToken, accessToken)
 }
 
+export const saveSessionToken = async (accessToken: string): Promise<void> => {
+    await setSessionValue(SESSION_STORAGE_KEYS.accessToken, accessToken)
+}
+
 export const getSavedCredentials = async (): Promise<{
     email: string | null
     accessToken: string | null
@@ -356,6 +378,36 @@ export const getCachedUser = async (): Promise<User | null> => {
 
 export const clearCachedUser = async (): Promise<void> => {
     await removeStoredValue(SESSION_CACHE_USER_KEY)
+}
+
+export const saveLoginMarker = async (userId: number): Promise<void> => {
+    await setStoredJson(SESSION_LOGIN_MARKER_KEY, {
+        loggedInAt: new Date().toISOString(),
+        userId,
+    })
+}
+
+export const getSavedLoginMarker = async (): Promise<SavedLoginMarker | null> => {
+    const marker = await getStoredJson<unknown>(SESSION_LOGIN_MARKER_KEY)
+
+    if (!marker || typeof marker !== "object") {
+        return null
+    }
+
+    const candidate = marker as Partial<SavedLoginMarker>
+
+    if (typeof candidate.userId !== "number" || typeof candidate.loggedInAt !== "string") {
+        return null
+    }
+
+    return {
+        loggedInAt: candidate.loggedInAt,
+        userId: candidate.userId,
+    }
+}
+
+export const clearLoginMarker = async (): Promise<void> => {
+    await removeStoredValue(SESSION_LOGIN_MARKER_KEY)
 }
 
 export const saveDeepLinkToken = async (token: string): Promise<void> => {
