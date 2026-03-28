@@ -1,9 +1,13 @@
+import { isEmailValid, normalizeEmail } from "@/features/auth/domain/authValidation"
 import { User } from "@/shared/types/user"
 
 export const FEEDBACK_PAGE = "/(tabs)/feedback"
 export const MAX_FEEDBACK_MESSAGE_LENGTH = 2_000
 
-export type FeedbackValidationErrorCode = "MESSAGE_REQUIRED" | "MESSAGE_TOO_LONG"
+export type FeedbackValidationErrorCode =
+    | "CONTACT_EMAIL_INVALID"
+    | "MESSAGE_REQUIRED"
+    | "MESSAGE_TOO_LONG"
 
 export class FeedbackValidationError extends Error {
     code: FeedbackValidationErrorCode
@@ -21,6 +25,8 @@ export interface FeedbackUserContext {
 }
 
 export interface FeedbackSubmissionInput {
+    contactAllowed: boolean
+    contactEmail?: string | null
     message: string
     page: string
     platform: string
@@ -96,10 +102,28 @@ export const normalizeFeedbackMessage = (value: string): string => {
     return normalizedMessage
 }
 
+export const normalizeFeedbackContactEmail = (value: string | null | undefined): string | null => {
+    if (!value) {
+        return null
+    }
+
+    const normalizedEmail = normalizeEmail(value)
+    if (!normalizedEmail) {
+        return null
+    }
+
+    if (!isEmailValid(normalizedEmail)) {
+        throw new FeedbackValidationError("CONTACT_EMAIL_INVALID")
+    }
+
+    return normalizedEmail
+}
+
 export const escapeSlackText = (value: string): string =>
     value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
 
 const buildMetadataFields = (submission: FeedbackSubmissionInput): SlackPayloadField[] => {
+    const normalizedContactEmail = normalizeFeedbackContactEmail(submission.contactEmail)
     const fields: SlackPayloadField[] = [
         {
             type: "mrkdwn",
@@ -117,6 +141,10 @@ const buildMetadataFields = (submission: FeedbackSubmissionInput): SlackPayloadF
             type: "mrkdwn",
             text: `*Sendt*\n${escapeSlackText(submission.submittedAt.trim())}`,
         },
+        {
+            type: "mrkdwn",
+            text: `*Kan kontaktes*\n${escapeSlackText(submission.contactAllowed ? "Ja" : "Nei")}`,
+        },
     ]
 
     if (submission.user) {
@@ -127,6 +155,13 @@ const buildMetadataFields = (submission: FeedbackSubmissionInput): SlackPayloadF
         fields.push({
             type: "mrkdwn",
             text: `*Bruker-ID*\n${escapeSlackText(String(submission.user.id))}`,
+        })
+    }
+
+    if (normalizedContactEmail) {
+        fields.push({
+            type: "mrkdwn",
+            text: `*E-post*\n${escapeSlackText(normalizedContactEmail)}`,
         })
     }
 

@@ -1,8 +1,9 @@
 import { useMutation } from "@tanstack/react-query"
 import React, { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Platform, ScrollView, View } from "react-native"
+import { Platform, Pressable, ScrollView, View } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
+import { getSavedCredentials } from "@/features/auth/data/authRepository"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { submitFeedback } from "@/features/feedback/data/feedbackRepository"
 import {
@@ -27,6 +28,10 @@ const getFeedbackErrorMessage = (
     t: (key: string, options?: Record<string, unknown>) => string,
 ): string => {
     if (error instanceof FeedbackValidationError) {
+        if (error.code === "CONTACT_EMAIL_INVALID") {
+            return t("feedbackContactEmailInvalid")
+        }
+
         if (error.code === "MESSAGE_TOO_LONG") {
             return t("feedbackMessageTooLong", {
                 max: MAX_FEEDBACK_MESSAGE_LENGTH,
@@ -42,18 +47,35 @@ const getFeedbackErrorMessage = (
 export const FeedbackScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const { user } = useSession()
+    const isLoggedIn = Boolean(user)
+    const [allowContact, setAllowContact] = useState(false)
+    const [contactEmail, setContactEmail] = useState("")
     const [message, setMessage] = useState("")
     const [status, setStatus] = useState<FeedbackStatus>(null)
 
     const mutation = useMutation({
-        mutationFn: async (rawMessage: string) =>
-            submitFeedback({
+        mutationFn: async (rawMessage: string) => {
+            const savedCredentials = isLoggedIn && allowContact ? await getSavedCredentials() : null
+
+            return submitFeedback({
+                contactAllowed: isLoggedIn ? allowContact : contactEmail.trim().length > 0,
+                contactEmail: isLoggedIn
+                    ? allowContact
+                        ? (savedCredentials?.email ?? null)
+                        : null
+                    : contactEmail,
                 message: rawMessage,
                 page: FEEDBACK_PAGE,
                 platform: Platform.OS,
                 user: buildFeedbackUserContext(user),
-            }),
+            })
+        },
         onSuccess: () => {
+            if (!isLoggedIn) {
+                setContactEmail("")
+            }
+
+            setAllowContact(false)
             setMessage("")
             setStatus({
                 kind: "success",
@@ -68,12 +90,25 @@ export const FeedbackScreen = (): React.JSX.Element => {
         },
     })
 
-    const handleChangeText = (nextValue: string): void => {
-        setMessage(nextValue)
-
+    const resetStatus = (): void => {
         if (status) {
             setStatus(null)
         }
+    }
+
+    const handleChangeText = (nextValue: string): void => {
+        setMessage(nextValue)
+        resetStatus()
+    }
+
+    const handleChangeContactEmail = (nextValue: string): void => {
+        setContactEmail(nextValue)
+        resetStatus()
+    }
+
+    const handleToggleContact = (): void => {
+        setAllowContact(previous => !previous)
+        resetStatus()
     }
 
     const handleSubmit = (): void => {
@@ -121,6 +156,49 @@ export const FeedbackScreen = (): React.JSX.Element => {
                             })}
                         </Text>
                     </View>
+
+                    {isLoggedIn ? (
+                        <View className="flex-row items-start gap-3 rounded-xl border border-surface bg-surface-muted px-3 py-3">
+                            <Pressable
+                                accessibilityRole="checkbox"
+                                accessibilityState={{ checked: allowContact }}
+                                className="mt-0.5 h-5 w-5 items-center justify-center rounded border border-border"
+                                testID="feedback-contact-checkbox"
+                                onPress={handleToggleContact}
+                            >
+                                {allowContact ? (
+                                    <Text className="text-sm leading-3 text-text-primary font-bold">
+                                        ✓
+                                    </Text>
+                                ) : null}
+                            </Pressable>
+
+                            <Pressable
+                                accessibilityRole="button"
+                                className="flex-1"
+                                onPress={handleToggleContact}
+                            >
+                                <Text className="text-sm leading-5 text-text-secondary">
+                                    {t("feedbackContactConsentLabel")}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    ) : (
+                        <View className="gap-2">
+                            <Text className="text-sm leading-5 text-text-secondary">
+                                {t("feedbackContactEmailLabel")}
+                            </Text>
+                            <TextField
+                                autoCapitalize="none"
+                                autoComplete="email"
+                                keyboardType="email-address"
+                                testID="feedback-contact-email-input"
+                                textContentType="emailAddress"
+                                value={contactEmail}
+                                onChangeText={handleChangeContactEmail}
+                            />
+                        </View>
+                    )}
 
                     {mutation.isPending ? (
                         <Text className="text-sm text-text-secondary">{t("feedbackSending")}</Text>

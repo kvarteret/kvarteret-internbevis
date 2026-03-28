@@ -16,6 +16,12 @@ export const translations = {
             feedbackIntroOutro: "Send oss en kort melding her, så ser vi på det.",
             feedbackMessageLabel: "Hva har du på hjertet?",
             feedbackMessagePlaceholder: "Skriv tilbakemeldingen din her",
+            feedbackContactConsentLabel:
+                "Det er helt greit at vi tar kontakt på e-post hvis vi trenger litt mer info.",
+            feedbackContactEmailLabel:
+                "Vil du at vi skal kunne svare deg? Sleng inn e-posten din her (helt valgfritt).",
+            feedbackContactEmailInvalid:
+                "Skriv inn en gyldig e-postadresse, eller la feltet stå tomt.",
             feedbackCharacterCount: "{{count}} / {{max}} tegn",
             feedbackMessageRequired: "Du må skrive noe først.",
             feedbackMessageTooLong: "Meldingen må være {{max}} tegn eller kortere.",
@@ -247,6 +253,12 @@ export const translations = {
             feedbackIntroOutro: "Send us a short message here and we will take a look.",
             feedbackMessageLabel: "What's on your mind?",
             feedbackMessagePlaceholder: "Write your feedback here",
+            feedbackContactConsentLabel:
+                "Totally fine if we reach out by email if we need a little more info.",
+            feedbackContactEmailLabel:
+                "If you'd like us to be able to reply, drop your email here (totally optional).",
+            feedbackContactEmailInvalid:
+                "Enter a valid email address, or just leave the field empty.",
             feedbackCharacterCount: "{{count}} / {{max}} characters",
             feedbackMessageRequired: "Please write something first.",
             feedbackMessageTooLong: "The message must be {{max}} characters or shorter.",

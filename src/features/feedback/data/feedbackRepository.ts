@@ -7,6 +7,8 @@ import {
 } from "@/features/feedback/domain/feedback"
 
 export interface SubmitFeedbackInput {
+    contactAllowed: boolean
+    contactEmail?: string | null
     message: string
     page: string
     platform: string
@@ -24,6 +26,8 @@ const getFeedbackWebhookUrl = (): string => {
 }
 
 const buildSubmission = (input: SubmitFeedbackInput): FeedbackSubmissionInput => ({
+    contactAllowed: input.contactAllowed,
+    contactEmail: input.contactEmail ?? null,
     message: input.message,
     page: input.page,
     platform: input.platform,

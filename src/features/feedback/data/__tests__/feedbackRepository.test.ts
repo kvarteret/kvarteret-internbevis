@@ -24,6 +24,8 @@ describe("submitFeedback", () => {
         })
 
         await submitFeedback({
+            contactAllowed: true,
+            contactEmail: "test@example.com",
             message: "Hei fra test",
             page: "/(tabs)/feedback",
             platform: "ios",
@@ -58,6 +60,7 @@ describe("submitFeedback", () => {
 
         await expect(
             submitFeedback({
+                contactAllowed: false,
                 message: "Hei fra test",
                 page: "/(tabs)/feedback",
                 platform: "android",
@@ -70,6 +73,7 @@ describe("submitFeedback", () => {
 
         await expect(
             submitFeedback({
+                contactAllowed: false,
                 message: "Hei fra test",
                 page: "/(tabs)/feedback",
                 platform: "ios",
