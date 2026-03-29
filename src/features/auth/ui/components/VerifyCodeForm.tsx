@@ -1,6 +1,6 @@
 import React from "react"
 import { useTranslation } from "react-i18next"
-import { ScrollView, View, ViewStyle } from "react-native"
+import { View, ViewStyle } from "react-native"
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
 import { Button } from "@/shared/ui/Button"
 import { Text } from "@/shared/ui/Text"
@@ -41,14 +41,9 @@ export const VerifyCodeForm = ({
     const { t } = useTranslation()
 
     return (
-        <ScrollView
-            className="w-full"
-            contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4"
-            keyboardShouldPersistTaps="handled"
-            scrollEnabled={false}
-        >
+        <View className="w-full items-center">
             <View
-                className="w-11/12 max-w-xl border-2 border-editorial-ink bg-surface px-5 py-7"
+                className="w-full max-w-xl border-2 border-editorial-ink bg-surface px-5 py-7"
                 style={BRUTAL_PANEL_STYLE}
             >
                 <Text className="text-center text-2xl leading-8 font-black uppercase tracking-tight">
@@ -132,6 +127,6 @@ export const VerifyCodeForm = ({
                     </View>
                 </View>
             </View>
-        </ScrollView>
+        </View>
     )
 }

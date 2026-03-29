@@ -1,14 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { useTranslation } from "react-i18next"
-import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    TouchableOpacity,
-    View,
-    ViewStyle,
-} from "react-native"
+import { ActivityIndicator, Pressable, TouchableOpacity, View, ViewStyle } from "react-native"
 import { IconTextField } from "@/features/auth/ui/components/IconTextField"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
@@ -56,21 +49,31 @@ export const LoginForm = ({
     const colors = useThemeRuntimeColors()
 
     return (
-        <ScrollView
-            className="w-full"
-            contentContainerClassName="w-full flex-grow items-center justify-center px-4 py-4"
-            keyboardShouldPersistTaps="handled"
-            scrollEnabled={false}
-        >
+        <View className="w-full items-center">
             <View
-                className="w-11/12 max-w-xl border-2 border-editorial-ink bg-surface px-6 py-6"
+                className="w-full max-w-xl border-2 border-editorial-ink bg-surface px-5 py-6"
                 style={BRUTAL_PANEL_STYLE}
             >
-                <Text className="text-center text-3xl leading-9 font-black uppercase tracking-tight">
-                    {t("login")}
-                </Text>
+                <View className="gap-5">
+                    <Button
+                        accessibilityHint={t("continueAnonymouslyHint")}
+                        className="bg-editorial-ink"
+                        style={BRUTAL_BUTTON_STYLE}
+                        onPress={onContinueAnonymous}
+                    >
+                        <Text className="text-base leading-5 text-surface font-semibold">
+                            {t("continueAnonymously")}
+                        </Text>
+                    </Button>
 
-                <View className="mt-6 gap-6">
+                    <View className="flex-row items-center gap-3 py-1">
+                        <View className="h-0.5 flex-1 bg-editorial-ink" />
+                        <Text className="text-center text-sm uppercase tracking-wide text-editorial-ink font-black">
+                            {t("guestLoginDivider")}
+                        </Text>
+                        <View className="h-0.5 flex-1 bg-editorial-ink" />
+                    </View>
+
                     <IconTextField
                         autoCapitalize="none"
                         containerClassName="border-2 border-editorial-ink bg-surface px-4"
@@ -83,62 +86,22 @@ export const LoginForm = ({
                         onChangeText={onChangeEmail}
                     />
 
-                    {sendingOtp ? (
-                        <View className="my-2">
-                            <ActivityIndicator color={colors.editorialInk} size="small" />
-                        </View>
-                    ) : (
-                        <View className="gap-3">
-                            <Button
-                                className="bg-editorial-ink"
-                                style={BRUTAL_BUTTON_STYLE}
-                                onPress={() => void onSubmitEmail()}
-                            >
-                                <Text className="text-base leading-5 text-surface font-semibold">
-                                    {t("login")}
-                                </Text>
-                            </Button>
-                            {showDemoButton ? (
-                                <Button
-                                    variant="secondary"
-                                    className="bg-background"
-                                    style={BRUTAL_BUTTON_STYLE}
-                                    onPress={onDemoLogin}
-                                >
-                                    <Text className="text-base leading-5 text-editorial-ink font-semibold">
-                                        {t("tryDemo")}
-                                    </Text>
-                                </Button>
-                            ) : null}
-                        </View>
-                    )}
-                    <Button
-                        accessibilityHint={t("continueAnonymouslyHint")}
-                        className="bg-brand-primary"
-                        style={BRUTAL_BUTTON_STYLE}
-                        variant="secondary"
-                        onPress={onContinueAnonymous}
-                    >
-                        <Text className="text-base leading-5 text-editorial-ink font-semibold">
-                            {t("continueAnonymously")}
-                        </Text>
-                    </Button>
-
                     <View className="border-2 border-editorial-ink bg-surface px-3 py-3">
                         <Text className="mb-2 text-xs uppercase tracking-wide text-text-secondary font-semibold">
                             {t("privacy")}
                         </Text>
 
-                        <View className="flex-row items-start">
+                        <View className="min-h-11 flex-row items-center gap-3">
                             <TouchableOpacity
                                 accessibilityRole="checkbox"
                                 accessibilityState={{ checked: privacyPolicyChecked }}
-                                className="mt-0.5"
+                                className="-m-2 shrink-0 p-2"
+                                hitSlop={10}
                                 onPress={onTogglePrivacy}
                             >
                                 <View
                                     className={cn(
-                                        "h-5 w-5 items-center justify-center rounded border border-border bg-transparent",
+                                        "h-7 w-7 items-center justify-center rounded border-2 border-border bg-transparent",
                                         privacyPolicyChecked &&
                                             "border-text-primary bg-text-primary",
                                     )}
@@ -153,18 +116,47 @@ export const LoginForm = ({
 
                             <Pressable
                                 accessibilityRole="button"
-                                className="ml-3 flex-1 flex-row items-start gap-1"
+                                className="min-w-0 flex-1 flex-row items-center gap-2"
                                 onPress={onPrivacyPress}
                             >
                                 <Text className="flex-1 text-sm leading-5 text-link underline font-medium">
                                     {t("privacyPolicyConsent")}
                                 </Text>
-                                <MaterialIcons color={colors.link} name="open-in-new" size={16} />
+                                <MaterialIcons color={colors.link} name="open-in-new" size={18} />
                             </Pressable>
                         </View>
                     </View>
+
+                    {sendingOtp ? (
+                        <View className="my-1">
+                            <ActivityIndicator color={colors.editorialInk} size="small" />
+                        </View>
+                    ) : (
+                        <Button
+                            className="bg-editorial-ink"
+                            style={BRUTAL_BUTTON_STYLE}
+                            onPress={() => void onSubmitEmail()}
+                        >
+                            <Text className="text-base leading-5 text-surface font-semibold">
+                                {t("login")}
+                            </Text>
+                        </Button>
+                    )}
+
+                    {showDemoButton ? (
+                        <Button
+                            variant="secondary"
+                            className="bg-background"
+                            style={BRUTAL_BUTTON_STYLE}
+                            onPress={onDemoLogin}
+                        >
+                            <Text className="text-base leading-5 text-editorial-ink font-semibold">
+                                {t("tryDemo")}
+                            </Text>
+                        </Button>
+                    ) : null}
                 </View>
             </View>
-        </ScrollView>
+        </View>
     )
 }
