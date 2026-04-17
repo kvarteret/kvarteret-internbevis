@@ -2,6 +2,7 @@ import { AppHeaderMenuItem } from "@/features/dashboard/ui/menu/headerMenu.types
 
 export const NATIVE_MENU_ACTION_ID = {
     privacy: "privacy",
+    settings: "settings",
     about: "about",
     games: "games",
     nerdStats: "nerd_stats",
@@ -63,6 +64,14 @@ export const buildNativeMenuActions = ({
             title: t("privacy"),
             image: menuImage({
                 ios: "lock.fill",
+            }),
+            imageColor: "#111827",
+        },
+        {
+            id: NATIVE_MENU_ACTION_ID.settings,
+            title: t("settings"),
+            image: menuImage({
+                ios: "gearshape.fill",
             }),
             imageColor: "#111827",
         },

@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react"
 import { Linking } from "react-native"
 import { extractAccessTokenFromUrl } from "@/core/linking/deepLinkParser"
+import { LoginMethod } from "@/features/analytics/domain/analytics"
 
 type LoginMode = "email" | "verify"
 
 export const useDeepLinkLogin = (
     mode: LoginMode,
-    performTokenLogin: (token: string) => Promise<boolean>,
+    performTokenLogin: (token: string, method?: LoginMethod) => Promise<boolean>,
 ): void => {
     const handlingDeepLinkRef = useRef(false)
 
@@ -29,7 +30,7 @@ export const useDeepLinkLogin = (
 
             handlingDeepLinkRef.current = true
             try {
-                await performTokenLogin(accessToken)
+                await performTokenLogin(accessToken, "deeplink")
             } finally {
                 handlingDeepLinkRef.current = false
             }

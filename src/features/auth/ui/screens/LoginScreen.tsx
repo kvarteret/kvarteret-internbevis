@@ -119,11 +119,8 @@ export const LoginScreen = (): React.JSX.Element => {
                         <LoginForm
                             email={form.email}
                             emailErrorText={form.emailErrorText}
-                            privacyPolicyChecked={form.privacyPolicyChecked}
                             sendingOtp={form.sendingOtp}
                             onChangeEmail={form.setEmail}
-                            onTogglePrivacy={form.togglePrivacy}
-                            onPrivacyPress={() => router.push("/privacy")}
                             onSubmitEmail={form.submitEmail}
                             onDemoLogin={form.loginDemo}
                             onContinueAnonymous={form.continueAnonymous}

@@ -4,7 +4,9 @@ import { useFocusEffect, useNavigation, useRouter } from "expo-router"
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, useWindowDimensions, View } from "react-native"
+import { useAppAnalytics } from "@/app/providers/AppAnalyticsProvider"
 import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
+import { ANALYTICS_EVENT } from "@/features/analytics/domain/analytics"
 import {
     applyDraftChessTimeControl,
     CHESS_TIME_CONTROL_STORAGE_KEY,
@@ -192,6 +194,7 @@ export const GamesScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
     const router = useRouter()
+    const { track } = useAppAnalytics()
     const headerHeight = useHeaderHeight()
     const { width: windowWidth } = useWindowDimensions()
     const { stateDanger, surface, surfaceMuted, textPrimary, textSecondary } =
@@ -210,10 +213,58 @@ export const GamesScreen = (): React.JSX.Element => {
         timeControlState.appliedTimeControl,
     )
     const timerStateRef = useRef(timerState)
+    const previousDiceRollCountRef = useRef(0)
+    const previousTimerStateRef = useRef(timerState)
 
     useEffect(() => {
         timerStateRef.current = timerState
     }, [timerState])
+
+    useEffect(() => {
+        if (diceRollCount > previousDiceRollCountRef.current) {
+            track(ANALYTICS_EVENT.gamesDiceRolled, {
+                dice_roll_count: diceRollCount,
+                dice_type: selectedDiceType,
+                result: diceValue,
+            })
+        }
+
+        previousDiceRollCountRef.current = diceRollCount
+    }, [diceRollCount, diceValue, selectedDiceType, track])
+
+    useEffect(() => {
+        const previousTimerState = previousTimerStateRef.current
+
+        if (!previousTimerState.isRunning && timerState.isRunning) {
+            track(ANALYTICS_EVENT.gamesChessTimerStarted, {
+                active_player: timerState.activePlayer,
+                increment_seconds: Math.floor(
+                    timeControlState.appliedTimeControl.incrementMs / 1000,
+                ),
+                initial_minutes_per_side: Math.floor(
+                    timeControlState.appliedTimeControl.initialMs / 60000,
+                ),
+                preset: timeControlState.appliedTimeControl.preset,
+            })
+        }
+
+        if (!previousTimerState.winner && timerState.winner) {
+            track(ANALYTICS_EVENT.gamesChessTimerCompleted, {
+                active_player: timerState.activePlayer,
+                increment_seconds: Math.floor(
+                    timeControlState.appliedTimeControl.incrementMs / 1000,
+                ),
+                initial_minutes_per_side: Math.floor(
+                    timeControlState.appliedTimeControl.initialMs / 60000,
+                ),
+                move_count: timerState.moveCount,
+                preset: timeControlState.appliedTimeControl.preset,
+                winner: timerState.winner,
+            })
+        }
+
+        previousTimerStateRef.current = timerState
+    }, [timeControlState.appliedTimeControl, timerState, track])
 
     const syncStoredTimeControl = useCallback((storedTimeControl: ChessTimeControl): void => {
         setTimeControlState(currentState => {

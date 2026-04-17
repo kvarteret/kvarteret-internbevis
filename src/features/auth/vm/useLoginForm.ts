@@ -3,9 +3,11 @@ import Constants from "expo-constants"
 import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Alert } from "react-native"
+import { useAppAnalytics } from "@/app/providers/AppAnalyticsProvider"
 import { useSession } from "@/app/providers/SessionProvider"
 import { extractAccessTokenFromManualInput } from "@/core/linking/deepLinkParser"
 import { consumePendingDeepLinkToken } from "@/core/linking/pendingToken"
+import { ANALYTICS_EVENT, LoginMethod } from "@/features/analytics/domain/analytics"
 import {
     extractFriendlyErrorMessage,
     requestAccessToken,
@@ -23,17 +25,13 @@ export interface UseLoginFormResult {
     otpFieldErrorText: string | null
     globalErrorText: string | null
     sendingOtp: boolean
-    privacyPolicyChecked: boolean
     languageSelectorVisible: boolean
     isExpoGo: boolean
     showDemoButton: boolean
     normalizedEmail: string
-    canSubmitEmail: boolean
-    canSubmitOtp: boolean
-    performTokenLogin: (token: string) => Promise<boolean>
+    performTokenLogin: (token: string, method?: LoginMethod) => Promise<boolean>
     setEmail: (value: string) => void
     setOtpCode: (value: string) => void
-    togglePrivacy: () => void
     openLanguageSelector: () => void
     closeLanguageSelector: () => void
     backToEmail: () => void
@@ -48,6 +46,7 @@ export interface UseLoginFormResult {
 export const useLoginForm = (): UseLoginFormResult => {
     const { t } = useTranslation()
     const isExpoGo = Constants.executionEnvironment === "storeClient"
+    const { track } = useAppAnalytics()
     const { loginWithToken, setUser, continueAnonymously } = useSession()
 
     const [mode, setMode] = useState<LoginMode>("email")
@@ -57,7 +56,6 @@ export const useLoginForm = (): UseLoginFormResult => {
     const [otpFieldErrorText, setOtpFieldErrorText] = useState<string | null>(null)
     const [globalErrorText, setGlobalErrorText] = useState<string | null>(null)
     const [sendingOtp, setSendingOtp] = useState(false)
-    const [privacyPolicyChecked, setPrivacyPolicyChecked] = useState(false)
     const [languageSelectorVisible, setLanguageSelectorVisible] = useState(false)
 
     const normalizedEmail = useMemo(() => normalizeEmail(email), [email])
@@ -68,24 +66,44 @@ export const useLoginForm = (): UseLoginFormResult => {
     }, [])
 
     const performTokenLogin = useCallback(
-        async (token: string): Promise<boolean> => {
+        async (token: string, method: LoginMethod = "otp"): Promise<boolean> => {
             const result = await loginWithToken(normalizedEmail, token)
             if (!result.success) {
+                track(ANALYTICS_EVENT.authLoginFailed, {
+                    funnel_area: "account",
+                    login_method: method,
+                })
+
+                if (method === "deeplink") {
+                    track(ANALYTICS_EVENT.authDeeplinkLoginFailed, {
+                        funnel_area: "account",
+                        login_method: method,
+                    })
+                }
+
                 setGlobalErrorText(result.message ?? t("invalidAccessToken"))
                 return false
             }
+
+            track(ANALYTICS_EVENT.authLoginSucceeded, {
+                funnel_area: "account",
+                login_method: method,
+            })
+
+            if (method === "deeplink") {
+                track(ANALYTICS_EVENT.authDeeplinkLoginSucceeded, {
+                    funnel_area: "account",
+                    login_method: method,
+                })
+            }
+
             return true
         },
-        [loginWithToken, normalizedEmail, t],
+        [loginWithToken, normalizedEmail, t, track],
     )
 
     const submitEmail = useCallback(async (): Promise<void> => {
         setEmailErrorText(null)
-
-        if (!privacyPolicyChecked) {
-            Alert.alert(t("privacyPolicyConsentAlertHeader"), t("privacyPolicyConsentAlert"))
-            return
-        }
 
         if (!isEmailValid(normalizedEmail)) {
             setEmailErrorText(t("invalidEmail"))
@@ -97,20 +115,29 @@ export const useLoginForm = (): UseLoginFormResult => {
         try {
             const deepLinkToken = consumePendingDeepLinkToken()
             if (deepLinkToken) {
-                const deepLinkLoginResult = await loginWithToken(normalizedEmail, deepLinkToken)
-                if (deepLinkLoginResult.success) {
+                if (await performTokenLogin(deepLinkToken, "deeplink")) {
                     return
                 }
             }
 
             await requestAccessToken(normalizedEmail)
+            track(ANALYTICS_EVENT.authCodeRequested, {
+                funnel_area: "account",
+                login_method: "email",
+                request_source: "initial",
+            })
             setMode("verify")
         } catch (error) {
             setEmailErrorText(extractFriendlyErrorMessage(error))
+            track(ANALYTICS_EVENT.authCodeRequestFailed, {
+                funnel_area: "account",
+                login_method: "email",
+                request_source: "initial",
+            })
         } finally {
             setSendingOtp(false)
         }
-    }, [loginWithToken, normalizedEmail, privacyPolicyChecked, t])
+    }, [normalizedEmail, performTokenLogin, t, track])
 
     const submitOtp = useCallback(async (): Promise<void> => {
         resetVerifyErrors()
@@ -120,7 +147,7 @@ export const useLoginForm = (): UseLoginFormResult => {
             return
         }
 
-        await performTokenLogin(otpCode.trim())
+        await performTokenLogin(otpCode.trim(), "otp")
     }, [otpCode, performTokenLogin, resetVerifyErrors, t])
 
     const resendOtp = useCallback(async (): Promise<void> => {
@@ -129,12 +156,22 @@ export const useLoginForm = (): UseLoginFormResult => {
         try {
             const success = await requestAccessToken(normalizedEmail)
             if (success) {
+                track(ANALYTICS_EVENT.authCodeRequested, {
+                    funnel_area: "account",
+                    login_method: "email",
+                    request_source: "resend",
+                })
                 Alert.alert(t("status"), t("newCodeSent"))
             }
         } catch (error) {
             setGlobalErrorText(extractFriendlyErrorMessage(error) || t("couldNotSendCode"))
+            track(ANALYTICS_EVENT.authCodeRequestFailed, {
+                funnel_area: "account",
+                login_method: "email",
+                request_source: "resend",
+            })
         }
-    }, [normalizedEmail, resetVerifyErrors, t])
+    }, [normalizedEmail, resetVerifyErrors, t, track])
 
     const useClipboardLink = useCallback(async (): Promise<void> => {
         resetVerifyErrors()
@@ -142,13 +179,18 @@ export const useLoginForm = (): UseLoginFormResult => {
         const clipboardText = await Clipboard.getStringAsync()
         const accessToken = extractAccessTokenFromManualInput(clipboardText)
 
+        track(ANALYTICS_EVENT.authClipboardLinkUsed, {
+            funnel_area: "account",
+            has_token: Boolean(accessToken),
+        })
+
         if (!accessToken) {
             setGlobalErrorText(t("expoGoClipboardNoToken"))
             return
         }
 
-        await performTokenLogin(accessToken)
-    }, [performTokenLogin, resetVerifyErrors, t])
+        await performTokenLogin(accessToken, "clipboard")
+    }, [performTokenLogin, resetVerifyErrors, t, track])
 
     const backToEmail = useCallback((): void => {
         setMode("email")
@@ -163,8 +205,11 @@ export const useLoginForm = (): UseLoginFormResult => {
     }, [setUser])
 
     const continueAnonymous = useCallback((): void => {
+        track(ANALYTICS_EVENT.authContinueAnonymous, {
+            funnel_area: "account",
+        })
         void continueAnonymously()
-    }, [continueAnonymously])
+    }, [continueAnonymously, track])
 
     return {
         mode,
@@ -174,17 +219,13 @@ export const useLoginForm = (): UseLoginFormResult => {
         otpFieldErrorText,
         globalErrorText,
         sendingOtp,
-        privacyPolicyChecked,
         languageSelectorVisible,
         isExpoGo,
         showDemoButton: __DEV__,
         normalizedEmail,
-        canSubmitEmail: isEmailValid(normalizedEmail) && privacyPolicyChecked && !sendingOtp,
-        canSubmitOtp: otpCode.trim().length > 0,
         performTokenLogin,
         setEmail,
         setOtpCode,
-        togglePrivacy: () => setPrivacyPolicyChecked(previous => !previous),
         openLanguageSelector: () => setLanguageSelectorVisible(true),
         closeLanguageSelector: () => setLanguageSelectorVisible(false),
         backToEmail,

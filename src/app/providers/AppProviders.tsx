@@ -3,8 +3,12 @@ import React, { PropsWithChildren, useMemo } from "react"
 import { LogBox } from "react-native"
 import { MD3LightTheme, PaperProvider } from "react-native-paper"
 import { Uniwind } from "uniwind"
+import { AnalyticsConsentProvider } from "@/app/providers/AnalyticsConsentProvider"
+import { AppAnalyticsProvider } from "@/app/providers/AppAnalyticsProvider"
+import { AppPostHogProvider } from "@/app/providers/AppPostHogProvider"
 import { DeepLinkProvider } from "@/app/providers/DeepLinkProvider"
 import { LanguageProvider } from "@/app/providers/LanguageProvider"
+import { PrivacyConsentProvider } from "@/app/providers/PrivacyConsentProvider"
 import { queryClient } from "@/app/providers/queryClient"
 import { SessionProvider } from "@/app/providers/SessionProvider"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
@@ -47,7 +51,17 @@ export const AppProviders = ({ children }: PropsWithChildren): React.JSX.Element
                         <QueryClientProvider client={queryClient}>
                             <DeepLinkProvider>
                                 <LanguageProvider>
-                                    <SessionProvider>{children}</SessionProvider>
+                                    <PrivacyConsentProvider>
+                                        <AnalyticsConsentProvider>
+                                            <SessionProvider>
+                                                <AppPostHogProvider>
+                                                    <AppAnalyticsProvider>
+                                                        {children}
+                                                    </AppAnalyticsProvider>
+                                                </AppPostHogProvider>
+                                            </SessionProvider>
+                                        </AnalyticsConsentProvider>
+                                    </PrivacyConsentProvider>
                                 </LanguageProvider>
                             </DeepLinkProvider>
                         </QueryClientProvider>

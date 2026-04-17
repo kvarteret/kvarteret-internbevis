@@ -31,6 +31,42 @@ export const translations = {
             feedbackSending: "Sender...",
             feedbackSuccess: "Melding sendt.",
             feedbackError: "Kunne ikke sende tilbakemeldingen. Prøv igjen.",
+            privacyUpdateTitle: "Oppdatert personvern",
+            privacyUpdateIntro:
+                "Vi har oppdatert personvernerklæringen. Du må lese og godta den før du kan fortsette i appen.",
+            privacyUpdateAccept: "Godta og fortsett",
+            privacyUpdateAcceptError:
+                "Kunne ikke lagre samtykket akkurat nå. Prøv igjen om et øyeblikk.",
+            privacyDialogTitle: "Personvern",
+            privacyDialogMessage:
+                "Vi behandler personopplysninger for å levere appen og arrangementene våre. Les mer i personvernerklæringen.",
+            privacyDialogRead: "Les personvernerklæringen",
+            privacyDialogContinue: "Fortsett",
+            privacyDialogErrorTitle: "Kunne ikke lagre bekreftelsen",
+            privacyDialogErrorMessage: "Prøv igjen om et øyeblikk.",
+            analyticsDialogTitle: "Analyse og forbedring",
+            analyticsDialogMessage:
+                "Vi vil gjerne bruke analyse for å forstå trafikk og kjøp, og for å forbedre appen og nettsiden. Dette er valgfritt.",
+            analyticsDialogAccept: "Godta analyse",
+            analyticsDialogDecline: "Avslå",
+            analyticsDialogErrorTitle: "Kunne ikke lagre analysevalget",
+            analyticsDialogErrorMessage: "Prøv igjen om et øyeblikk.",
+            analyticsPromptTitle: "Hjelp oss å forbedre appen",
+            analyticsPromptMessage:
+                "Vi vil gjerne bruke valgfri analyse for å forstå trafikk og kjøp, og for å forbedre appen og nettsiden. Du kan endre valget senere i innstillinger.",
+            analyticsPromptAccept: "Godta analyse",
+            analyticsPromptSkip: "Ikke nå",
+            analyticsSettingsTitle: "Analyse og forbedring",
+            analyticsSettingsBody:
+                "Du kan velge om vi kan bruke valgfri produktanalyse fra PostHog for å forstå trafikk og kjøp, og for å forbedre appen og nettsiden. Du kan endre valget når som helst.",
+            analyticsSettingsStatusGranted: "Analyse er slått på.",
+            analyticsSettingsStatusDeclined: "Analyse er slått av.",
+            analyticsSettingsStatusUndecided: "Du har ikke valgt ennå.",
+            analyticsSettingsEnable: "Slå på analyse",
+            analyticsSettingsDisable: "Slå av analyse",
+            privacyManageAnalyticsText:
+                "Du kan administrere valgfri analyse og endre valget ditt når som helst i innstillinger.",
+            privacyManageAnalyticsAction: "Administrer analyse",
             privacyPolicyConsent: "Jeg godtar personvernerklæringen",
             privacyPolicyConsentAlert:
                 "Du må godta bruksvilkårene og personvernerklæringen før du kan logge inn.",
@@ -269,6 +305,42 @@ export const translations = {
             feedbackSending: "Sending...",
             feedbackSuccess: "Message sent.",
             feedbackError: "Could not send feedback. Please try again.",
+            privacyUpdateTitle: "Updated privacy policy",
+            privacyUpdateIntro:
+                "We have updated the privacy policy. You must read and accept it before continuing in the app.",
+            privacyUpdateAccept: "Accept and continue",
+            privacyUpdateAcceptError:
+                "Could not save your acceptance right now. Please try again in a moment.",
+            privacyDialogTitle: "Privacy policy",
+            privacyDialogMessage:
+                "We process personal data to provide the app and our events. You can read more in the privacy policy.",
+            privacyDialogRead: "Read privacy policy",
+            privacyDialogContinue: "Continue",
+            privacyDialogErrorTitle: "Could not save acknowledgement",
+            privacyDialogErrorMessage: "Please try again in a moment.",
+            analyticsDialogTitle: "Analytics and improvement",
+            analyticsDialogMessage:
+                "We would like to use analytics to understand traffic and purchases, and to improve the app and website. This is optional.",
+            analyticsDialogAccept: "Allow analytics",
+            analyticsDialogDecline: "Decline",
+            analyticsDialogErrorTitle: "Could not save analytics choice",
+            analyticsDialogErrorMessage: "Please try again in a moment.",
+            analyticsPromptTitle: "Help us improve the app",
+            analyticsPromptMessage:
+                "We would like to use optional analytics to understand traffic and purchases, and to improve the app and website. You can change this later in settings.",
+            analyticsPromptAccept: "Allow analytics",
+            analyticsPromptSkip: "Not now",
+            analyticsSettingsTitle: "Analytics and improvement",
+            analyticsSettingsBody:
+                "You can choose whether we may use optional PostHog product analytics to understand traffic and purchases, and to improve the app and website. You can change this choice at any time.",
+            analyticsSettingsStatusGranted: "Analytics is enabled.",
+            analyticsSettingsStatusDeclined: "Analytics is disabled.",
+            analyticsSettingsStatusUndecided: "You have not chosen yet.",
+            analyticsSettingsEnable: "Enable analytics",
+            analyticsSettingsDisable: "Disable analytics",
+            privacyManageAnalyticsText:
+                "You can manage optional analytics and change your choice at any time in settings.",
+            privacyManageAnalyticsAction: "Manage analytics",
             privacyPolicyConsent: "I accept the terms and privacy policy",
             privacyPolicyConsentAlert:
                 "You must accept the terms and privacy policy before you can login.",

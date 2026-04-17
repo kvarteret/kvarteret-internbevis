@@ -1,5 +1,7 @@
 import { SupportedLanguage } from "@/app/providers/LanguageProvider"
 
+export const CURRENT_PRIVACY_POLICY_VERSION = "2026-04-17-1"
+
 export const PRIVACY_POLICY_MARKDOWN: Record<SupportedLanguage, string> = {
     no: `# Personvernerklæring for Kvarteret
 
@@ -27,11 +29,14 @@ Kvarteret lagrer begrensede data lokalt på enheten for å forbedre ytelse og st
 ## Sikkerhet
 - Innlogging skjer via en sikker to-faktor autentisering med e-post
 
-## Operasjonell telemetri og oppdateringstjenester
-Vi bruker Expo-tjenester, inkludert EAS Update og EAS Insights, for å levere appoppdateringer og følge med på teknisk bruk av appen. Dette kan omfatte teknisk informasjon som appversjon, plattform, operativsystemversjon, oppdateringsadopsjon, prosjektidentifikator og en tilfeldig installasjonstoken som Expo bruker for å behandle oppdaterings- og brukshendelser. Vi bruker denne informasjonen for å drifte, vedlikeholde, feilsøke og forbedre appen. Denne telemetrien er ikke ment å identifisere deg direkte som enkeltperson.
+## Oppdateringstjenester og teknisk drift
+Vi bruker Expo-tjenester, inkludert EAS Update og EAS Insights, for å levere appoppdateringer og følge med på teknisk drift av appen. Dette kan omfatte teknisk informasjon som appversjon, plattform, operativsystemversjon, oppdateringsadopsjon, prosjektidentifikator og en tilfeldig installasjonstoken som Expo bruker for å behandle oppdaterings- og brukshendelser. Vi bruker denne informasjonen for å drifte, vedlikeholde, feilsøke og forbedre appen.
+
+## Valgfri produktanalyse
+Hvis du velger å tillate analyse, bruker vi PostHog Cloud med datalagring i EU for produktanalyse og funnel-måling på tvers av Kvarteret-appen og Kvarterets nettside. Dette kan omfatte skjermvisninger, navigasjon, innloggingsflyt, tilbakemeldingsinnsendinger og klikk på lenker eller knapper som hjelper oss å forstå om brukere finner frem til arrangementer, kjøper billetter eller vurderer å bli frivillige. Disse dataene brukes til å forbedre brukeropplevelsen, innholdet og konverteringen i våre digitale flater, ikke til annonsering. Analyse er valgfritt og kan slås av igjen i appens innstillinger.
 
 ## Deling av personopplysninger
-Vi selger ikke dine personopplysninger og deler dem ikke med tredjeparter for annonseringsformål. Vi bruker tjenesteleverandører der det er nødvendig for å drifte appen, inkludert Expo for oppdateringslevering og operasjonell telemetri. Informasjonen som vises i appen er ellers kun tilgjengelig for deg og autorisert personell på Kvarteret.
+Vi selger ikke dine personopplysninger og deler dem ikke med tredjeparter for annonseringsformål. Vi bruker tjenesteleverandører der det er nødvendig for å drifte appen, inkludert Expo for oppdateringslevering og teknisk drift. Hvis du velger å slå på analyse, bruker vi også PostHog for produktanalyse i EU. Informasjonen som vises i appen er ellers kun tilgjengelig for deg og autorisert personell på Kvarteret.
 
 ## Dine rettigheter
 Du har rett til å:
@@ -47,7 +52,7 @@ For spørsmål om personvern eller utøvelse av dine rettigheter, kontakt:
 
 **Adresse:** Det Akademiske Kvarter, Olav Kyrres gate 49, 5015 Bergen
 
-Sist oppdatert: [02/03/2026]`,
+Sist oppdatert: [17/04/2026]`,
     en: `# Privacy Policy for Kvarteret
 
 ## About the App
@@ -74,11 +79,14 @@ Kvarteret stores limited data locally on the device to improve performance and r
 ## Security
 - Login is done through secure two-factor authentication with email
 
-## Operational Telemetry and Update Services
-We use Expo services, including EAS Update and EAS Insights, to deliver app updates and monitor technical app usage. This may include technical information such as app version, platform, operating system version, update adoption, project identifier, and a randomized installation token used by Expo to process update and usage events. We use this information to operate, maintain, troubleshoot, and improve the app. This telemetry is not intended to directly identify you as an individual user.
+## Update Services and Technical Operations
+We use Expo services, including EAS Update and EAS Insights, to deliver app updates and monitor the app's technical operation. This may include technical information such as app version, platform, operating system version, update adoption, project identifier, and a randomized installation token used by Expo to process update and usage events. We use this information to operate, maintain, troubleshoot, and improve the app.
+
+## Optional Product Analytics
+If you choose to allow analytics, we use PostHog Cloud with data hosting in the EU for product analytics and funnel measurement across the Kvarteret app and the Kvarteret website. This may include screen views, navigation, login flow events, feedback submissions, and clicks on links or buttons that help us understand whether users discover events, buy tickets, or consider volunteering. We use this data to improve the product experience, content, and conversion across our digital surfaces, not for advertising. Analytics is optional and can be turned off again in the app settings.
 
 ## Sharing of Personal Data
-We do not sell your personal data or share it with third parties for advertising purposes. We use service providers where necessary to operate the app, including Expo for update delivery and operational telemetry. The information displayed in the app is otherwise only accessible to you and authorized personnel at Kvarteret.
+We do not sell your personal data or share it with third parties for advertising purposes. We use service providers where necessary to operate the app, including Expo for update delivery and technical operations. If you choose to enable analytics, we also use PostHog for EU-hosted product analytics. The information displayed in the app is otherwise only accessible to you and authorized personnel at Kvarteret.
 
 ## Your Rights
 You have the right to:
@@ -94,5 +102,5 @@ For questions about privacy or to exercise your rights, contact:
 
 **Address:** Det Akademiske Kvarter, Olav Kyrres gate 49, 5015 Bergen
 
-Last updated: [02/03/2026]`,
+Last updated: [17/04/2026]`,
 }

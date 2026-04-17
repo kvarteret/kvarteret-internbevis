@@ -1,24 +1,30 @@
 import { useIsFocused } from "@react-navigation/native"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "expo-router"
-import React, { useEffect, useMemo } from "react"
+import React, { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, ScrollView, View } from "react-native"
+import { useAnalyticsConsent } from "@/app/providers/AnalyticsConsentProvider"
+import { usePrivacyConsent } from "@/app/providers/PrivacyConsentProvider"
 import { useSession } from "@/app/providers/SessionProvider"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
-import { shouldShowGrondahlsStatusCard } from "@/features/dashboard/domain/grondahlsOpening"
 import { splitHomeEventsByType } from "@/features/dashboard/domain/eventSelection"
+import { shouldShowGrondahlsStatusCard } from "@/features/dashboard/domain/grondahlsOpening"
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
 import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
+import { shouldShowAnalyticsConsentPrompt } from "@/features/privacy/domain/analyticsConsent"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
+import { Button } from "@/shared/ui/Button"
 import { CachedImage } from "@/shared/ui/CachedImage"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
 
 const NOW_PLAYING_POLL_INTERVAL_MS = 10_000
+
+const ANALYTICS_PROMPT_SOURCE = "kvarteret_prompt" as const
 
 const clampProgress = (value: number | null): number => {
     if (value === null || !Number.isFinite(value)) return 0
@@ -148,18 +154,65 @@ const NowPlayingWidget = ({
     )
 }
 
+interface AnalyticsConsentPromptCardProps {
+    onAllow: () => Promise<void>
+    onNotNow: () => Promise<void>
+    onReadPrivacy: () => void
+}
+
+const AnalyticsConsentPromptCard = ({
+    onAllow,
+    onNotNow,
+    onReadPrivacy,
+}: AnalyticsConsentPromptCardProps): React.JSX.Element => {
+    const { t } = useTranslation()
+
+    return (
+        <Card className="w-full gap-3 rounded-3xl px-4 py-4" effect="liquid" variant="grouped">
+            <Text className="text-2xl leading-8 text-editorial-ink font-black">
+                {t("analyticsPromptTitle")}
+            </Text>
+            <Text className="text-base leading-6 text-text-secondary">
+                {t("analyticsPromptMessage")}
+            </Text>
+            <View className="gap-3 pt-1">
+                <Button
+                    onPress={() => {
+                        void onAllow()
+                    }}
+                >
+                    {t("analyticsPromptAccept")}
+                </Button>
+                <Button
+                    variant="secondary"
+                    onPress={() => {
+                        void onNotNow()
+                    }}
+                >
+                    {t("analyticsPromptSkip")}
+                </Button>
+                <Button variant="ghost" onPress={onReadPrivacy}>
+                    {t("privacyDialogRead")}
+                </Button>
+            </View>
+        </Card>
+    )
+}
+
 export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
-    const { user, isAnonymous, hasStoredCredentials, isLoading } = useSession()
+    const { user, isLoading } = useSession()
+    const { hasAcknowledgedCurrentPolicy } = usePrivacyConsent()
+    const {
+        analyticsConsentStatus,
+        grantAnalyticsConsent,
+        hasSeenAnalyticsPromptCurrentVersion,
+        isHydrating: analyticsHydrating,
+        markAnalyticsPromptSeen,
+    } = useAnalyticsConsent()
     const isFocused = useIsFocused()
     const { textPrimary } = useThemeRuntimeColors()
-
-    useEffect(() => {
-        if (!user && !isAnonymous && !hasStoredCredentials) {
-            router.replace("/login")
-        }
-    }, [hasStoredCredentials, isAnonymous, router, user])
 
     const {
         data: events,
@@ -192,6 +245,13 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const showNowPlayingWidget = !nowPlayingError && shouldShowGrondahlsStatusCard(nowPlaying)
     const nowPlayingProgressWidth =
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
+    const shouldShowAnalyticsPrompt =
+        !analyticsHydrating &&
+        shouldShowAnalyticsConsentPrompt({
+            hasAcknowledgedCurrentPolicy,
+            analyticsConsentStatus,
+            hasSeenAnalyticsPromptCurrentVersion,
+        })
 
     const isVenueOpen = showNowPlayingWidget
     const groupedEvents = useMemo(() => splitHomeEventsByType(events ?? []), [events])
@@ -234,6 +294,16 @@ export const KvarteretScreen = (): React.JSX.Element => {
                         title={t("kvarteretOpenStatusTitle")}
                         nowPlaying={showNowPlayingWidget && nowPlaying ? nowPlaying : null}
                         progressWidth={nowPlayingProgressWidth}
+                    />
+                ) : null}
+
+                {shouldShowAnalyticsPrompt ? (
+                    <AnalyticsConsentPromptCard
+                        onAllow={async () => grantAnalyticsConsent(ANALYTICS_PROMPT_SOURCE)}
+                        onNotNow={async () => markAnalyticsPromptSeen(ANALYTICS_PROMPT_SOURCE)}
+                        onReadPrivacy={() => {
+                            router.push("/privacy")
+                        }}
                     />
                 ) : null}
 

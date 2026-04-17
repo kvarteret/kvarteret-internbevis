@@ -2,7 +2,9 @@ import { useNavigation, useRouter } from "expo-router"
 import React, { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { FlatList, ListRenderItem, Pressable, View } from "react-native"
+import { useAppAnalytics } from "@/app/providers/AppAnalyticsProvider"
 import { useSession } from "@/app/providers/SessionProvider"
+import { ANALYTICS_EVENT } from "@/features/analytics/domain/analytics"
 import {
     getMembershipBenefitTranslationKeys,
     MembershipBenefitTier,
@@ -15,8 +17,8 @@ import {
     serializeRoleSelections,
     toggleFrontPageRoleSelection,
 } from "@/features/dashboard/domain/profileRoles"
-import { MembershipBenefitsCard } from "@/features/dashboard/ui/components/MembershipBenefitsCard"
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
+import { MembershipBenefitsCard } from "@/features/dashboard/ui/components/MembershipBenefitsCard"
 import { SelectedFrontpageRolesGrid } from "@/features/dashboard/ui/components/SelectedFrontpageRolesGrid"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Card } from "@/shared/ui/Card"
@@ -46,6 +48,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
     const router = useRouter()
+    const { track } = useAppAnalytics()
     const { editorialValid } = useThemeRuntimeColors()
     const {
         user,
@@ -74,7 +77,9 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
             return []
         }
 
-        return getMembershipBenefitTranslationKeys(selectedMembershipBenefitsTier).map(key => t(key))
+        return getMembershipBenefitTranslationKeys(selectedMembershipBenefitsTier).map(key =>
+            t(key),
+        )
     }, [selectedMembershipBenefitsTier, t])
 
     useEffect(() => {
@@ -111,8 +116,21 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
         switch (result.action) {
             case "added":
             case "removed":
+                const nextSelectedRoles = resolvePersistedRoleSelections(
+                    displayRoles,
+                    result.nextSelections,
+                )
                 await triggerSelectionHaptic()
                 await setSelectedFrontpageRoleSelections(result.nextSelections)
+                track(ANALYTICS_EVENT.profileRolesUpdated, {
+                    primary_role_group: nextSelectedRoles[0]?.gruppe ?? null,
+                    primary_role_name: nextSelectedRoles[0]
+                        ? getRoleTitle(nextSelectedRoles[0])
+                        : null,
+                    role_groups: nextSelectedRoles.map(nextRole => nextRole.gruppe),
+                    role_names: nextSelectedRoles.map(nextRole => getRoleTitle(nextRole)),
+                    role_selection_count: nextSelectedRoles.length,
+                })
                 return
             case "blocked_max":
                 await triggerSoftImpactHaptic()

@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query"
 import { useLocalSearchParams, useNavigation } from "expo-router"
-import React, { useCallback, useLayoutEffect, useMemo } from "react"
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
+import { useAppAnalytics } from "@/app/providers/AppAnalyticsProvider"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
+import { ANALYTICS_EVENT, getAnalyticsDestinationHost } from "@/features/analytics/domain/analytics"
 import { fetchEventById, selectEventTranslation } from "@/features/dashboard/data/eventsRepository"
 import {
     formatEventStartStopWithDuration,
@@ -27,11 +29,13 @@ import { triggerSoftImpactHaptic } from "@/shared/utils/haptics"
 export const EventDetailsScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
+    const { track } = useAppAnalytics()
     const { language } = useLanguage()
     const { user } = useSession()
     const { width } = useWindowDimensions()
     const { eventId } = useLocalSearchParams<{ eventId?: string | string[] }>()
     const resolvedEventId = Array.isArray(eventId) ? eventId[0] : eventId
+    const trackedEventIdRef = useRef<string | null>(null)
 
     const {
         data: event,
@@ -82,6 +86,21 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         await openExternalUrl(url)
     }, [])
 
+    const buildTrackedEventProperties = useCallback(() => {
+        if (!event || !translationSelection) {
+            return null
+        }
+
+        return {
+            event_id: event.id,
+            event_title: translationSelection.value.title,
+            event_type_slug: event.event_type?.slug ?? null,
+            funnel_area: "events" as const,
+            is_featured: event.is_featured,
+            visibility: event.is_internal ? ("internal" as const) : ("public" as const),
+        }
+    }, [event, translationSelection])
+
     const retry = useCallback(async (): Promise<void> => {
         await triggerSoftImpactHaptic()
         await refetch()
@@ -90,6 +109,19 @@ export const EventDetailsScreen = (): React.JSX.Element => {
     useLayoutEffect(() => {
         navigation.setOptions({ title })
     }, [navigation, title])
+
+    useEffect(() => {
+        const eventProperties = buildTrackedEventProperties()
+        if (!eventProperties || trackedEventIdRef.current === eventProperties.event_id) {
+            return
+        }
+
+        trackedEventIdRef.current = eventProperties.event_id
+        track(ANALYTICS_EVENT.eventOpened, {
+            ...eventProperties,
+            organizer_group_slugs: event?.organizer_groups.map(group => group.slug) ?? [],
+        })
+    }, [buildTrackedEventProperties, event?.organizer_groups, track])
 
     const htmlSource = useMemo(() => ({ html: details?.detailsHtml ?? "" }), [details?.detailsHtml])
 
@@ -212,20 +244,35 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                         {
                             url: event.ticket_url,
                             label: t("eventDetailsTickets"),
+                            analyticsEvent: ANALYTICS_EVENT.eventTicketCtaClicked,
+                            destinationType: "tickets",
                             variant: "destructive" as const,
                         },
                         {
                             url: event.facebook_url,
                             label: t("eventDetailsFacebook"),
+                            analyticsEvent: ANALYTICS_EVENT.eventFacebookCtaClicked,
+                            destinationType: "facebook",
                             variant: "secondary" as const,
                         },
-                    ].map(({ url, label, variant }) =>
+                    ].map(({ url, label, variant, analyticsEvent, destinationType }) =>
                         url?.trim() ? (
                             <Button
                                 key={label}
                                 accessibilityLabel={label}
                                 variant={variant}
-                                onPress={() => void openLink(url)}
+                                onPress={() => {
+                                    const eventProperties = buildTrackedEventProperties()
+                                    if (eventProperties) {
+                                        track(analyticsEvent, {
+                                            ...eventProperties,
+                                            destination_host: getAnalyticsDestinationHost(url),
+                                            destination_type: destinationType,
+                                            destination_url: url,
+                                        })
+                                    }
+                                    void openLink(url)
+                                }}
                             >
                                 {label}
                             </Button>

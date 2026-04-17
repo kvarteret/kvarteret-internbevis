@@ -2,7 +2,9 @@ import { useMutation } from "@tanstack/react-query"
 import React, { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Platform, Pressable, ScrollView, View } from "react-native"
+import { useAppAnalytics } from "@/app/providers/AppAnalyticsProvider"
 import { useSession } from "@/app/providers/SessionProvider"
+import { ANALYTICS_EVENT } from "@/features/analytics/domain/analytics"
 import { getSavedCredentials } from "@/features/auth/data/authRepository"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { submitFeedback } from "@/features/feedback/data/feedbackRepository"
@@ -46,12 +48,19 @@ const getFeedbackErrorMessage = (
 
 export const FeedbackScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
+    const { track } = useAppAnalytics()
     const { user } = useSession()
     const isLoggedIn = Boolean(user)
     const [allowContact, setAllowContact] = useState(false)
     const [contactEmail, setContactEmail] = useState("")
     const [message, setMessage] = useState("")
     const [status, setStatus] = useState<FeedbackStatus>(null)
+    const feedbackEventProperties = {
+        funnel_area: "feedback" as const,
+        contact_allowed: isLoggedIn ? allowContact : contactEmail.trim().length > 0,
+        has_contact_email: isLoggedIn ? allowContact : contactEmail.trim().length > 0,
+        is_logged_in: isLoggedIn,
+    }
 
     const mutation = useMutation({
         mutationFn: async (rawMessage: string) => {
@@ -71,6 +80,7 @@ export const FeedbackScreen = (): React.JSX.Element => {
             })
         },
         onSuccess: () => {
+            track(ANALYTICS_EVENT.feedbackSubmitted, feedbackEventProperties)
             if (!isLoggedIn) {
                 setContactEmail("")
             }
@@ -83,6 +93,7 @@ export const FeedbackScreen = (): React.JSX.Element => {
             })
         },
         onError: error => {
+            track(ANALYTICS_EVENT.feedbackSubmitFailed, feedbackEventProperties)
             setStatus({
                 kind: "error",
                 message: getFeedbackErrorMessage(error, t),

@@ -6,8 +6,10 @@ import { useRouter } from "expo-router"
 import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Platform } from "react-native"
+import { useAppAnalytics } from "@/app/providers/AppAnalyticsProvider"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { useSession } from "@/app/providers/SessionProvider"
+import { ANALYTICS_EVENT } from "@/features/analytics/domain/analytics"
 import { AppHeaderMenuItem } from "@/features/dashboard/ui/menu/headerMenu.types"
 import {
     buildNativeMenuActions,
@@ -64,6 +66,7 @@ export const useHeaderMenuActions = (): {
 } => {
     const { t } = useTranslation()
     const router = useRouter()
+    const { track } = useAppAnalytics()
     const { user, logout, exitAnonymousMode } = useSession()
     const { changeLanguage } = useLanguage()
     const isLoggedIn = Boolean(user)
@@ -80,29 +83,48 @@ export const useHeaderMenuActions = (): {
 
     const onMenuAction = useCallback(
         async (id: string): Promise<void> => {
+            const trackMenuAction = (destination: string): void => {
+                track(ANALYTICS_EVENT.menuItemClicked, {
+                    menu_item_id: id,
+                    destination,
+                })
+            }
+
             switch (id) {
                 case NATIVE_MENU_ACTION_ID.privacy:
+                    trackMenuAction("/privacy")
                     router.push("/privacy")
                     return
+                case NATIVE_MENU_ACTION_ID.settings:
+                    trackMenuAction("/settings")
+                    router.push("/settings")
+                    return
                 case NATIVE_MENU_ACTION_ID.about:
+                    trackMenuAction("/about")
                     router.push("/about")
                     return
                 case NATIVE_MENU_ACTION_ID.games:
+                    trackMenuAction("/games")
                     router.push("/games")
                     return
                 case NATIVE_MENU_ACTION_ID.nerdStats:
+                    trackMenuAction("/nerd-stats")
                     router.push("/nerd-stats")
                     return
                 case NATIVE_MENU_ACTION_ID.languageNo:
+                    trackMenuAction("language:no")
                     await changeLanguage("no")
                     return
                 case NATIVE_MENU_ACTION_ID.languageEn:
+                    trackMenuAction("language:en")
                     await changeLanguage("en")
                     return
                 case NATIVE_MENU_ACTION_ID.authLogout:
+                    trackMenuAction("logout")
                     await logout()
                     return
                 case NATIVE_MENU_ACTION_ID.authLogin:
+                    trackMenuAction("/login")
                     await exitAnonymousMode()
                     router.replace("/login")
                     return
@@ -110,7 +132,7 @@ export const useHeaderMenuActions = (): {
                     return
             }
         },
-        [changeLanguage, exitAnonymousMode, logout, router],
+        [changeLanguage, exitAnonymousMode, logout, router, track],
     )
 
     const nativeMenuItems = useMemo(
