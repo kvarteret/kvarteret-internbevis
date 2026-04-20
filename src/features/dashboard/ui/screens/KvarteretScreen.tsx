@@ -1,7 +1,7 @@
 import { useIsFocused } from "@react-navigation/native"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "expo-router"
-import React, { useEffect, useMemo } from "react"
+import React, { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, ScrollView, View } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
@@ -151,15 +151,9 @@ const NowPlayingWidget = ({
 export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
-    const { user, isAnonymous, hasStoredCredentials, isLoading } = useSession()
+    const { user, isLoading } = useSession()
     const isFocused = useIsFocused()
     const { textPrimary } = useThemeRuntimeColors()
-
-    useEffect(() => {
-        if (!user && !isAnonymous && !hasStoredCredentials) {
-            router.replace("/login")
-        }
-    }, [hasStoredCredentials, isAnonymous, router, user])
 
     const {
         data: events,
