@@ -2,7 +2,7 @@ import React from "react"
 import { useTranslation } from "react-i18next"
 import { FlatList, ListRenderItem, useWindowDimensions, View } from "react-native"
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
-import { EventCard } from "@/features/dashboard/ui/components/EventCard"
+import { EventCard, EventCardProps } from "@/features/dashboard/ui/components/EventCard"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
@@ -16,6 +16,7 @@ interface EventCarouselProps {
     onEventPress: (eventId: string) => void
     showTitle?: boolean
     emptyText?: string
+    cardLayout?: EventCardProps["layout"]
 }
 
 const CAROUSEL_CARD_WIDTH_RATIO = 0.8
@@ -30,16 +31,21 @@ export const EventCarousel = ({
     onEventPress,
     showTitle = true,
     emptyText,
+    cardLayout = "carousel",
 }: EventCarouselProps): React.JSX.Element => {
     const { t } = useTranslation()
     const { width } = useWindowDimensions()
-    const cardWidth = Math.max(width * CAROUSEL_CARD_WIDTH_RATIO, MIN_CAROUSEL_CARD_WIDTH)
+    const cardWidth =
+        cardLayout === "featured"
+            ? width - 32
+            : Math.max(width * CAROUSEL_CARD_WIDTH_RATIO, MIN_CAROUSEL_CARD_WIDTH)
 
     const renderItem: ListRenderItem<KvarteretEventDocument> = ({ item }) => (
         <EventCard
             accessibilityOpenHint={t("homeEventsOpenHint")}
             event={item}
             cardWidth={cardWidth}
+            layout={cardLayout}
             onPress={onEventPress}
         />
     )

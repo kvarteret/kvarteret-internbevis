@@ -36,10 +36,10 @@ export interface EventFilterState {
 }
 
 export interface EventFeedSections {
-    featured: KvarteretEventDocument | null
+    featured: KvarteretEventDocument[]
     today: KvarteretEventDocument[]
     soon: KvarteretEventDocument[]
-    all: KvarteretEventDocument[]
+    rest: KvarteretEventDocument[]
 }
 
 export const selectEventTranslation = (
@@ -70,24 +70,6 @@ const isEventEnded = (event: KvarteretEventDocument, now: Date): boolean =>
 const hasDisplayableTranslation = (event: KvarteretEventDocument): boolean =>
     event.title.trim().length > 0
 
-const resolveFeaturedEvents = (events: KvarteretEventDocument[]): KvarteretEventDocument[] => {
-    const nearestFeaturedEventId = [...events]
-        .filter(event => event.is_featured)
-        .sort(
-            (left, right) =>
-                new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
-        )[0]?.id
-
-    if (!nearestFeaturedEventId) {
-        return events
-    }
-
-    return events.map(event => ({
-        ...event,
-        is_featured: event.id === nearestFeaturedEventId,
-    }))
-}
-
 export const pickHomeEvents = (
     events: KvarteretEventDocument[],
     options?: {
@@ -98,15 +80,14 @@ export const pickHomeEvents = (
     const now = options?.now ?? new Date()
     const maxCount = options?.maxCount ?? DEFAULT_HOME_EVENTS_MAX_COUNT
 
-    return resolveFeaturedEvents(
-        [...events]
-            .filter(event => !isEventEnded(event, now))
-            .filter(hasDisplayableTranslation)
-            .sort(
-                (left, right) =>
-                    new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
-            ),
-    ).slice(0, maxCount)
+    return [...events]
+        .filter(event => !isEventEnded(event, now))
+        .filter(hasDisplayableTranslation)
+        .sort(
+            (left, right) =>
+                new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
+        )
+        .slice(0, maxCount)
 }
 
 const getTaxonomyGroupName = (event: KvarteretEventDocument): string =>
@@ -126,7 +107,7 @@ export const splitHomeEventsByTaxonomy = (
     const internal: KvarteretEventDocument[] = []
     const groupedEvents = new Map<string, KvarteretEventDocument[]>()
 
-    for (const event of resolveFeaturedEvents(events)) {
+    for (const event of events) {
         if (event.is_internal) {
             internal.push(event)
             continue
@@ -176,6 +157,24 @@ const sortEventsByStart = (events: KvarteretEventDocument[]): KvarteretEventDocu
         (left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
     )
 
+const shuffleEvents = (
+    events: KvarteretEventDocument[],
+    random: () => number,
+): KvarteretEventDocument[] => {
+    const shuffledEvents = [...events]
+
+    for (let index = shuffledEvents.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(random() * (index + 1))
+        const currentEvent = shuffledEvents[index]
+        const swapEvent = shuffledEvents[swapIndex]
+        if (!currentEvent || !swapEvent) continue
+        shuffledEvents[index] = swapEvent
+        shuffledEvents[swapIndex] = currentEvent
+    }
+
+    return shuffledEvents
+}
+
 export const createEmptyEventFilterState = (): EventFilterState => ({
     eventTypeIds: [],
     organizerGroupIds: [],
@@ -215,19 +214,38 @@ export const filterEvents = (
 export const buildEventFeedSections = (
     events: KvarteretEventDocument[],
     now = new Date(),
+    random: () => number = Math.random,
 ): EventFeedSections => {
     const sortedEvents = sortEventsByStart(events)
     const todayDayNumber = getOsloCalendarDayNumber(now)
+    const featured = shuffleEvents(
+        sortedEvents.filter(event => event.is_featured),
+        random,
+    )
+    const featuredEventIds = new Set(featured.map(event => event.id))
+    const today = sortedEvents.filter(
+        event =>
+            !featuredEventIds.has(event.id) &&
+            getOsloCalendarDayNumber(new Date(event.starts_at)) === todayDayNumber,
+    )
+    const soon = sortedEvents.filter(event => {
+        if (featuredEventIds.has(event.id)) {
+            return false
+        }
+
+        const daysUntil = getOsloCalendarDayNumber(new Date(event.starts_at)) - todayDayNumber
+        return daysUntil >= 1 && daysUntil <= 7
+    })
+    const groupedEventIds = new Set([
+        ...featuredEventIds,
+        ...today.map(event => event.id),
+        ...soon.map(event => event.id),
+    ])
 
     return {
-        featured: sortedEvents.find(event => event.is_featured) ?? null,
-        today: sortedEvents.filter(
-            event => getOsloCalendarDayNumber(new Date(event.starts_at)) === todayDayNumber,
-        ),
-        soon: sortedEvents.filter(event => {
-            const daysUntil = getOsloCalendarDayNumber(new Date(event.starts_at)) - todayDayNumber
-            return daysUntil >= 1 && daysUntil <= 7
-        }),
-        all: sortedEvents,
+        featured,
+        rest: sortedEvents.filter(event => !groupedEventIds.has(event.id)),
+        soon,
+        today,
     }
 }

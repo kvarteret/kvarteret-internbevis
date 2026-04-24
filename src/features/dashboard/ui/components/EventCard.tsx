@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "react-i18next"
 import { Image, Pressable, View } from "react-native"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import {
@@ -30,7 +29,6 @@ export const EventCard = ({
     accessibilityOpenHint,
     layout = "carousel",
 }: EventCardProps): React.JSX.Element | null => {
-    const { t } = useTranslation()
     const { language } = useLanguage()
     if (!event.title.trim()) {
         return null
@@ -111,11 +109,6 @@ export const EventCard = ({
                         {event.title}
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
-                        {event.is_featured ? (
-                            <Text className="text-xs font-semibold text-editorial-valid">
-                                {t("eventFeaturedBadge")}
-                            </Text>
-                        ) : null}
                         {event.recurring_interval_days ? (
                             <Text className="text-xs font-semibold text-text-secondary">
                                 {getRecurringBadgeText(event.recurring_interval_days, language)}

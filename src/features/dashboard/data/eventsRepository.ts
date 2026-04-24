@@ -76,24 +76,6 @@ const writeCachedValue = async <T>(key: string, value: T): Promise<void> => {
     }
 }
 
-const resolveFeaturedEvents = (events: KvarteretEventDocument[]): KvarteretEventDocument[] => {
-    const nearestFeaturedEventId = [...events]
-        .filter(event => event.is_featured)
-        .sort(
-            (left, right) =>
-                new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
-        )[0]?.id
-
-    if (!nearestFeaturedEventId) {
-        return events
-    }
-
-    return events.map(event => ({
-        ...event,
-        is_featured: event.id === nearestFeaturedEventId,
-    }))
-}
-
 const unwrapApiResponse = <T>(
     result: {
         data?: T
@@ -193,7 +175,7 @@ export const fetchHomeEvents = async (
             },
             signal,
         )
-        const pickedEvents = resolveFeaturedEvents(eventList.events)
+        const pickedEvents = eventList.events
 
         await writeCachedValue(cacheKey, pickedEvents)
 
@@ -226,9 +208,8 @@ export const fetchEventById = async (
 
     try {
         const event = await fetchEventDetail(eventId, options, signal)
-        const resolvedEvent = resolveFeaturedEvents([event])[0]
-        await writeCachedValue(cacheKey, resolvedEvent)
-        return resolvedEvent
+        await writeCachedValue(cacheKey, event)
+        return event
     } catch (error) {
         const cachedEvent = await readCachedValue<KvarteretEventDocument>(
             cacheKey,

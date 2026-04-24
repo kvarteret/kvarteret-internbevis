@@ -243,11 +243,15 @@ describe("eventsService", () => {
         ).toEqual(["music"])
     })
 
-    test("buildEventFeedSections selects featured, today, soon, and all events", () => {
+    test("buildEventFeedSections selects all featured, today, soon, and remaining events", () => {
         const now = new Date("2026-04-22T10:00:00.000Z")
-        const featured = createEvent("featured", {
+        const featuredSoon = createEvent("featured-soon", {
             featured: true,
             start: new Date("2026-04-23T18:00:00.000Z"),
+        })
+        const featuredLater = createEvent("featured-later", {
+            featured: true,
+            start: new Date("2026-05-10T18:00:00.000Z"),
         })
         const today = createEvent("today", {
             start: new Date("2026-04-22T18:00:00.000Z"),
@@ -259,11 +263,15 @@ describe("eventsService", () => {
             start: new Date("2026-05-08T18:00:00.000Z"),
         })
 
-        const result = buildEventFeedSections([later, soon, featured, today], now)
+        const result = buildEventFeedSections(
+            [later, soon, featuredSoon, featuredLater, today],
+            now,
+            () => 0,
+        )
 
-        expect(result.featured?.id).toBe("featured")
+        expect(result.featured.map(event => event.id)).toEqual(["featured-later", "featured-soon"])
         expect(result.today.map(event => event.id)).toEqual(["today"])
-        expect(result.soon.map(event => event.id)).toEqual(["featured", "soon"])
-        expect(result.all.map(event => event.id)).toEqual(["today", "featured", "soon", "later"])
+        expect(result.soon.map(event => event.id)).toEqual(["soon"])
+        expect(result.rest.map(event => event.id)).toEqual(["later"])
     })
 })

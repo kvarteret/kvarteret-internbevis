@@ -1,11 +1,13 @@
 import { useIsFocused } from "@react-navigation/native"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "expo-router"
-import React, { useMemo, useState } from "react"
+import React, { useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
     ActivityIndicator,
     Modal,
+    NativeTouchEvent,
+    PanResponder,
     Pressable,
     ScrollView,
     useWindowDimensions,
@@ -75,6 +77,18 @@ interface EventSectionProps {
     onRetry: () => Promise<unknown>
     onEventPress: (eventId: string) => void
     layout?: "carousel" | "grid"
+    columns?: 1 | 2
+    onPinchColumnsChange?: (columns: 1 | 2) => void
+    showCount?: boolean
+}
+
+const getTouchDistance = (touches: NativeTouchEvent["touches"]): number | null => {
+    const [firstTouch, secondTouch] = touches
+    if (!firstTouch || !secondTouch) {
+        return null
+    }
+
+    return Math.hypot(firstTouch.pageX - secondTouch.pageX, firstTouch.pageY - secondTouch.pageY)
 }
 
 const EventSection = ({
@@ -83,26 +97,65 @@ const EventSection = ({
     onRetry,
     onEventPress,
     layout = "carousel",
+    columns = 1,
+    onPinchColumnsChange,
+    showCount = false,
 }: EventSectionProps): React.JSX.Element => {
+    const { t } = useTranslation()
     const { width } = useWindowDimensions()
-    const gridCardWidth = (width - 32 - GRID_CARD_GAP) / 2
+    const pinchDistanceRef = useRef<number | null>(null)
+    const listCardWidth = columns === 2 ? (width - 32 - GRID_CARD_GAP) / 2 : width - 32
+    const panResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onMoveShouldSetPanResponder: event => event.nativeEvent.touches.length === 2,
+                onStartShouldSetPanResponder: event => event.nativeEvent.touches.length === 2,
+                onPanResponderGrant: event => {
+                    pinchDistanceRef.current = getTouchDistance(event.nativeEvent.touches)
+                },
+                onPanResponderMove: event => {
+                    const initialDistance = pinchDistanceRef.current
+                    const currentDistance = getTouchDistance(event.nativeEvent.touches)
+                    if (!initialDistance || !currentDistance || !onPinchColumnsChange) {
+                        return
+                    }
+
+                    const scale = currentDistance / initialDistance
+                    if (scale < 0.86) {
+                        onPinchColumnsChange(2)
+                    } else if (scale > 1.14) {
+                        onPinchColumnsChange(1)
+                    }
+                },
+                onPanResponderRelease: () => {
+                    pinchDistanceRef.current = null
+                },
+                onPanResponderTerminate: () => {
+                    pinchDistanceRef.current = null
+                },
+            }),
+        [onPinchColumnsChange],
+    )
 
     return (
         <View className="w-full gap-2.5">
             <View className="flex-row items-center justify-between px-1">
                 <Text className="text-2xl leading-8 text-editorial-ink font-black">{title}</Text>
-                {layout === "grid" ? (
+                {layout === "grid" || showCount ? (
                     <Text className="text-xs uppercase tracking-widest text-editorial-action font-extrabold">
-                        {events.length}
+                        {t("eventSectionCount", { count: events.length })}
                     </Text>
                 ) : null}
             </View>
             {layout === "grid" ? (
-                <View className="flex-row flex-wrap gap-2.5">
+                <View
+                    className={columns === 2 ? "flex-row flex-wrap gap-2.5" : "gap-3"}
+                    {...panResponder.panHandlers}
+                >
                     {events.map(event => (
                         <EventCard
                             accessibilityOpenHint=""
-                            cardWidth={gridCardWidth}
+                            cardWidth={listCardWidth}
                             event={event}
                             key={event.id}
                             layout="grid"
@@ -128,15 +181,21 @@ interface FilterChipProps {
     label: string
     selected: boolean
     onPress: () => void
+    variant?: "filled" | "outlined"
 }
 
-const FilterChip = ({ label, selected, onPress }: FilterChipProps): React.JSX.Element => (
+const FilterChip = ({
+    label,
+    selected,
+    onPress,
+    variant = "filled",
+}: FilterChipProps): React.JSX.Element => (
     <Pressable
         accessibilityRole="button"
         accessibilityState={{ selected }}
         className={`h-12 items-center justify-center rounded-none px-5 ${
-            selected ? "bg-editorial-ink" : "bg-surface-muted"
-        }`}
+            variant === "outlined" ? "border-2 border-editorial-ink" : ""
+        } ${selected ? "bg-editorial-ink" : "bg-surface-muted"}`}
         onPress={onPress}
     >
         <Text
@@ -245,7 +304,7 @@ const EventFiltersModal = ({
     return (
         <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
             <View className="flex-1 justify-end bg-black/25">
-                <View className="max-h-[88%] rounded-t-3xl bg-editorial-surface px-5 pb-8 pt-5">
+                <View className="max-h-[88%] rounded-t-3xl bg-background px-5 pb-8 pt-5">
                     <View className="mb-5 flex-row items-center justify-between">
                         <Text className="text-3xl text-editorial-ink font-black">
                             {t("eventFilterTitle")}
@@ -260,42 +319,16 @@ const EventFiltersModal = ({
                         </Pressable>
                     </View>
                     <ScrollView contentContainerClassName="gap-7">
-                        <View className="gap-3">
+                        <View className="gap-5">
                             <Text className="text-sm uppercase tracking-widest text-editorial-action font-extrabold">
                                 {t("eventFilterType")}
                             </Text>
-                            <View className="flex-row flex-wrap gap-2">
-                                <FilterChip
-                                    label={t("eventFilterAll")}
-                                    selected={
-                                        !filters.taxonomyGroup && filters.eventTypeIds.length === 0
-                                    }
-                                    onPress={() =>
-                                        onChange({
-                                            ...filters,
-                                            eventTypeIds: [],
-                                            taxonomyGroup: null,
-                                        })
-                                    }
-                                />
-                                {taxonomy?.event_type_groups.map(group => (
-                                    <React.Fragment key={group.name}>
-                                        <FilterChip
-                                            label={getLocalizedTaxonomyGroupName(
-                                                group.name,
-                                                language,
-                                            )}
-                                            selected={filters.taxonomyGroup === group.name}
-                                            onPress={() =>
-                                                onChange({
-                                                    ...filters,
-                                                    taxonomyGroup:
-                                                        filters.taxonomyGroup === group.name
-                                                            ? null
-                                                            : group.name,
-                                                })
-                                            }
-                                        />
+                            {taxonomy?.event_type_groups.map(group => (
+                                <View className="gap-3" key={group.name}>
+                                    <Text className="text-4xl leading-tight text-editorial-ink font-black">
+                                        {getLocalizedTaxonomyGroupName(group.name, language)}
+                                    </Text>
+                                    <View className="flex-row flex-wrap gap-3">
                                         {group.event_types.map(eventType => (
                                             <FilterChip
                                                 key={eventType.id}
@@ -310,13 +343,15 @@ const EventFiltersModal = ({
                                                             filters.eventTypeIds,
                                                             eventType.id,
                                                         ),
+                                                        taxonomyGroup: null,
                                                     })
                                                 }
+                                                variant="outlined"
                                             />
                                         ))}
-                                    </React.Fragment>
-                                ))}
-                            </View>
+                                    </View>
+                                </View>
+                            ))}
                         </View>
                         <View className="gap-3 border-t border-border-soft pt-6">
                             <Text className="text-sm uppercase tracking-widest text-editorial-action font-extrabold">
@@ -405,9 +440,9 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const { language } = useLanguage()
     const isFocused = useIsFocused()
     const { textPrimary } = useThemeRuntimeColors()
-    const { width } = useWindowDimensions()
     const [filters, setFilters] = useState<EventFilterState>(() => createEmptyEventFilterState())
     const [filtersVisible, setFiltersVisible] = useState(false)
+    const [restColumns, setRestColumns] = useState<1 | 2>(1)
 
     const {
         data: events,
@@ -453,7 +488,6 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const filteredEvents = useMemo(() => filterEvents(events ?? [], filters), [events, filters])
     const eventFeed = useMemo(() => buildEventFeedSections(filteredEvents), [filteredEvents])
     const activeFilterCount = countActiveEventFilters(filters)
-    const featuredCardWidth = width - 32
     const renderedEventSections = useMemo(
         () =>
             [
@@ -467,13 +501,16 @@ export const KvarteretScreen = (): React.JSX.Element => {
                     events: eventFeed.soon,
                     key: "soon",
                     layout: "carousel" as const,
+                    showCount: true,
                     title: t("eventFeedSoon"),
                 },
                 {
-                    events: eventFeed.all,
-                    key: "all",
+                    columns: restColumns,
+                    events: eventFeed.rest,
+                    key: "rest",
                     layout: "grid" as const,
-                    title: t("eventFeedAll"),
+                    onPinchColumnsChange: setRestColumns,
+                    title: t("eventFeedRest"),
                 },
             ]
                 .filter(section => section.events.length > 0)
@@ -482,12 +519,15 @@ export const KvarteretScreen = (): React.JSX.Element => {
                         events={section.events}
                         key={section.key}
                         layout={section.layout}
+                        columns={section.columns}
+                        showCount={section.showCount}
                         title={section.title}
+                        onPinchColumnsChange={section.onPinchColumnsChange}
                         onRetry={async () => refetchEvents()}
                         onEventPress={eventId => router.push(`/event/${eventId}`)}
                     />
                 )),
-        [eventFeed, refetchEvents, router, t],
+        [eventFeed, refetchEvents, restColumns, router, t],
     )
 
     if (isLoading) {
@@ -536,13 +576,15 @@ export const KvarteretScreen = (): React.JSX.Element => {
                         />
                     ) : (
                         <View className="w-full gap-5">
-                            {eventFeed.featured ? (
-                                <EventCard
-                                    accessibilityOpenHint={t("homeEventsOpenHint")}
-                                    cardWidth={featuredCardWidth}
-                                    event={eventFeed.featured}
-                                    layout="featured"
-                                    onPress={eventId => router.push(`/event/${eventId}`)}
+                            {eventFeed.featured.length > 0 ? (
+                                <EventCarousel
+                                    events={eventFeed.featured}
+                                    isPending={false}
+                                    isError={false}
+                                    onRetry={async () => refetchEvents()}
+                                    onEventPress={eventId => router.push(`/event/${eventId}`)}
+                                    showTitle={false}
+                                    cardLayout="featured"
                                 />
                             ) : null}
                             {renderedEventSections.length > 0 ? (
