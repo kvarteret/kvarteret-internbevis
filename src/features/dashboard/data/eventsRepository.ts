@@ -1,150 +1,53 @@
 import { appEnv } from "@/app/config/env"
+import type { EventDetail, EventList, EventTaxonomy } from "@/core/api/kvarteret-personal"
+import { getEvent, getEventTaxonomy, listEvents } from "@/core/api/kvarteret-personal"
+import { client } from "@/core/api/kvarteret-personal/client.gen"
 import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
+import { getSessionValue, SESSION_STORAGE_KEYS } from "@/core/storage/sessionStorage"
 import { pickHomeEvents, selectEventTranslation } from "@/features/dashboard/domain/eventSelection"
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 
 const HOME_EVENTS_QUERY_LIMIT = 30
-const EVENTS_CACHE_KEY_PREFIX = "supabase_cache:events:home"
-const EVENT_CACHE_KEY_PREFIX = "supabase_cache:event"
+const EVENTS_CACHE_KEY_PREFIX = "events_api_cache:events:home"
+const EVENT_CACHE_KEY_PREFIX = "events_api_cache:event"
 const EVENTS_CACHE_TTL_MS = 15 * 60 * 1000
-
-type EventRow = {
-    id: string
-    slug: string
-    status: KvarteretEventDocument["status"]
-    event_start: string
-    event_end: string
-    created_at: string
-    updated_at: string
-    ticket_url: string | null
-    facebook_url: string | null
-    image_url: string | null
-    price: string | null
-    event_type_id: string
-    room_id: string | null
-    room_text: string | null
-    is_internal: boolean
-    is_featured: boolean
-    recurring_interval_days: number | null
-    translations: KvarteretEventDocument["translations"]
-    event_type: KvarteretEventDocument["event_type"]
-    room: KvarteretEventDocument["room"]
-    event_organizer_group_memberships:
-        | {
-              display_order: number
-              organizer_group: KvarteretEventDocument["organizer_groups"][number] | null
-          }[]
-        | null
-}
 
 interface CachedPayload<T> {
     cachedAt: number
     value: T
 }
 
-const EVENT_SELECT = [
-    "id",
-    "slug",
-    "status",
-    "event_start",
-    "event_end",
-    "created_at",
-    "updated_at",
-    "ticket_url",
-    "facebook_url",
-    "image_url",
-    "price",
-    "event_type_id",
-    "room_id",
-    "room_text",
-    "is_internal",
-    "is_featured",
-    "recurring_interval_days",
-    "translations",
-    "event_type:event_types(id,slug,name,description,sort_order,is_active)",
-    "room:rooms(id,slug,name,sort_order,is_active)",
-    "event_organizer_group_memberships(display_order,organizer_group:event_organizer_groups(id,slug,name,sort_order,is_active,default_event_type_id))",
-].join(",")
+type EventLanguage = "no" | "en"
 
-const toEventInstant = (value: string) => {
-    const date = new Date(value)
-    return {
-        toDate: () => new Date(date),
-        toMillis: () => date.getTime(),
-        toISOString: () => date.toISOString(),
-    }
+const getClientBaseUrl = (): string =>
+    appEnv.kvarteretPersonalApiBaseUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "")
+
+const configureClient = (): void => {
+    client.setConfig({
+        baseUrl: getClientBaseUrl(),
+    })
 }
 
-const serializeEvent = (event: KvarteretEventDocument): EventRow => ({
-    id: event.id,
-    slug: event.slug,
-    status: event.status,
-    event_start: event.event_start.toISOString(),
-    event_end: event.event_end.toISOString(),
-    created_at: event.created_at.toISOString(),
-    updated_at: event.updated_at.toISOString(),
-    ticket_url: event.ticket_url,
-    facebook_url: event.facebook_url,
-    image_url: event.image?.url ?? null,
-    price: event.price,
-    event_type_id: event.event_type_id,
-    room_id: event.room_id,
-    room_text: event.room_text,
-    is_internal: event.is_internal,
-    is_featured: event.is_featured,
-    recurring_interval_days: event.recurring_interval_days,
-    translations: event.translations,
-    event_type: event.event_type,
-    room: event.room,
-    event_organizer_group_memberships: event.organizer_groups.map((organizer_group, index) => ({
-        display_order: index,
-        organizer_group,
-    })),
-})
+const getStoredMobileCardToken = async (): Promise<string | null> => {
+    const token = await getSessionValue(SESSION_STORAGE_KEYS.accessToken)
+    const trimmedToken = token?.trim()
+    return trimmedToken ? trimmedToken : null
+}
 
-const mapEventRow = (row: EventRow): KvarteretEventDocument => ({
-    id: row.id,
-    slug: row.slug,
-    status: row.status,
-    event_start: toEventInstant(row.event_start),
-    event_end: toEventInstant(row.event_end),
-    created_at: toEventInstant(row.created_at),
-    updated_at: toEventInstant(row.updated_at),
-    ticket_url: row.ticket_url,
-    facebook_url: row.facebook_url,
-    image: row.image_url
-        ? {
-              url: row.image_url,
-              __typename: "supabase",
-          }
-        : null,
-    event_type_id: row.event_type_id,
-    event_type: row.event_type,
-    room_id: row.room_id,
-    room_text: row.room_text,
-    room: row.room,
-    organizer_groups: [...(row.event_organizer_group_memberships ?? [])]
-        .sort((left, right) => left.display_order - right.display_order)
-        .map(membership => membership.organizer_group)
-        .filter(Boolean) as KvarteretEventDocument["organizer_groups"],
-    is_internal: row.is_internal,
-    is_featured: row.is_featured,
-    recurring_interval_days: row.recurring_interval_days,
-    price: row.price,
-    translations: row.translations,
-})
+const getAuthorizationHeader = (token: string | null): string | undefined =>
+    token ? `Bearer ${token}` : undefined
 
-const getHomeEventsCacheKey = (includeInternal: boolean): string =>
-    `${EVENTS_CACHE_KEY_PREFIX}:${includeInternal ? "internal" : "public"}`
+const getHomeEventsCacheKey = (includeInternal: boolean, language: EventLanguage): string =>
+    `${EVENTS_CACHE_KEY_PREFIX}:${includeInternal ? "internal" : "public"}:${language}`
 
-const getEventCacheKey = (eventId: string, includeInternal: boolean): string =>
-    `${EVENT_CACHE_KEY_PREFIX}:${includeInternal ? "internal" : "public"}:${eventId}`
+const getEventCacheKey = (
+    eventId: string,
+    includeInternal: boolean,
+    language: EventLanguage,
+): string =>
+    `${EVENT_CACHE_KEY_PREFIX}:${includeInternal ? "internal" : "public"}:${language}:${eventId}`
 
-const readCachedValue = async <T, U>(
-    key: string,
-    maxAgeMs: number,
-    deserialize: (value: T) => U,
-): Promise<U | null> => {
+const readCachedValue = async <T>(key: string, maxAgeMs: number): Promise<T | null> => {
     try {
         const payload = await getStoredJson<CachedPayload<T>>(key)
         if (!payload) {
@@ -156,7 +59,7 @@ const readCachedValue = async <T, U>(
             return null
         }
 
-        return deserialize(payload.value)
+        return payload.value
     } catch {
         return null
     }
@@ -173,55 +76,13 @@ const writeCachedValue = async <T>(key: string, value: T): Promise<void> => {
     }
 }
 
-const fetchEventsFromSupabase = async (
-    options: {
-        eventId?: string
-        includeInternal: boolean
-        limit?: number
-    },
-    signal?: AbortSignal,
-): Promise<KvarteretEventDocument[]> => {
-    const url = new URL("/rest/v1/events", appEnv.supabaseUrl)
-    url.searchParams.set("select", EVENT_SELECT)
-    url.searchParams.set("status", "eq.published")
-    url.searchParams.set("order", "event_start.asc")
-
-    if (!options.includeInternal) {
-        url.searchParams.set("is_internal", "eq.false")
-    }
-
-    if (options.eventId) {
-        url.searchParams.set("id", `eq.${options.eventId}`)
-    }
-
-    if (options.limit) {
-        url.searchParams.set("limit", String(options.limit))
-    }
-
-    const response = await fetch(url.toString(), {
-        method: "GET",
-        headers: {
-            apikey: appEnv.supabaseAnonKey,
-            Authorization: `Bearer ${appEnv.supabaseAnonKey}`,
-            Accept: "application/json",
-        },
-        signal,
-    })
-
-    if (!response.ok) {
-        throw new Error(`Unable to fetch events (${response.status}).`)
-    }
-
-    const data = (await response.json()) as EventRow[]
-    return data.map(mapEventRow)
-}
-
-const resolveFeaturedEvents = (
-    events: KvarteretEventDocument[],
-): KvarteretEventDocument[] => {
+const resolveFeaturedEvents = (events: KvarteretEventDocument[]): KvarteretEventDocument[] => {
     const nearestFeaturedEventId = [...events]
         .filter(event => event.is_featured)
-        .sort((left, right) => left.event_start.toMillis() - right.event_start.toMillis())[0]?.id
+        .sort(
+            (left, right) =>
+                new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
+        )[0]?.id
 
     if (!nearestFeaturedEventId) {
         return events
@@ -233,34 +94,116 @@ const resolveFeaturedEvents = (
     }))
 }
 
+const unwrapApiResponse = <T>(
+    result: {
+        data?: T
+        error?: unknown
+        response: Response
+    },
+    fallbackMessage: string,
+): T => {
+    if (!result.response.ok || result.error || !result.data) {
+        throw new Error(`${fallbackMessage} (${result.response.status}).`)
+    }
+
+    return result.data
+}
+
+const fetchEventList = async (
+    options: {
+        includeInternal: boolean
+        language: EventLanguage
+        limit?: number
+    },
+    signal?: AbortSignal,
+): Promise<EventList> => {
+    configureClient()
+
+    const token = await getStoredMobileCardToken()
+    const includeInternal = options.includeInternal && Boolean(token)
+    const authorization = getAuthorizationHeader(token)
+    const result = await listEvents({
+        headers: {
+            "accept-language": options.language,
+            ...(authorization ? { authorization } : {}),
+        },
+        query: {
+            include_internal: includeInternal,
+            limit: options.limit,
+        },
+        signal,
+    })
+
+    return unwrapApiResponse(result, "Unable to fetch events")
+}
+
+const fetchEventDetail = async (
+    eventId: string,
+    options: {
+        includeInternal: boolean
+        language: EventLanguage
+    },
+    signal?: AbortSignal,
+): Promise<EventDetail> => {
+    configureClient()
+
+    const token = await getStoredMobileCardToken()
+    const authorization = getAuthorizationHeader(token)
+    const result = await getEvent({
+        headers: {
+            "accept-language": options.language,
+            ...(authorization ? { authorization } : {}),
+        },
+        path: {
+            event_id: eventId,
+        },
+        signal,
+    })
+
+    return unwrapApiResponse(result, "Unable to fetch event")
+}
+
+export const fetchEventTaxonomy = async (signal?: AbortSignal): Promise<EventTaxonomy> => {
+    configureClient()
+
+    const result = await getEventTaxonomy({
+        signal,
+    })
+
+    return unwrapApiResponse(result, "Unable to fetch event taxonomy")
+}
+
 export const fetchHomeEvents = async (
     options: {
         includeInternal: boolean
+        language: EventLanguage
     },
     signal?: AbortSignal,
 ): Promise<KvarteretEventDocument[]> => {
-    const cacheKey = getHomeEventsCacheKey(options.includeInternal)
+    const token = await getStoredMobileCardToken()
+    const includeInternal = options.includeInternal && Boolean(token)
+    const cacheKey = getHomeEventsCacheKey(includeInternal, options.language)
 
     try {
-        const events = await fetchEventsFromSupabase(
+        const eventList = await fetchEventList(
             {
-                includeInternal: options.includeInternal,
+                includeInternal,
+                language: options.language,
                 limit: HOME_EVENTS_QUERY_LIMIT,
             },
             signal,
         )
-        const pickedEvents = pickHomeEvents(resolveFeaturedEvents(events), {
+        const pickedEvents = pickHomeEvents(resolveFeaturedEvents(eventList.events), {
             maxCount: HOME_EVENTS_QUERY_LIMIT,
         })
 
-        await writeCachedValue(cacheKey, pickedEvents.map(serializeEvent))
+        await writeCachedValue(cacheKey, pickedEvents)
 
         return pickedEvents
     } catch (error) {
-        const cachedEvents = await readCachedValue<EventRow[], KvarteretEventDocument[]>(
+        const cachedEvents = await readCachedValue<KvarteretEventDocument[]>(
             cacheKey,
             EVENTS_CACHE_TTL_MS,
-            value => value.map(mapEventRow),
         )
 
         if (cachedEvents) {
@@ -275,33 +218,23 @@ export const fetchEventById = async (
     eventId: string,
     options: {
         includeInternal: boolean
+        language: EventLanguage
     },
     signal?: AbortSignal,
 ): Promise<KvarteretEventDocument> => {
-    const cacheKey = getEventCacheKey(eventId, options.includeInternal)
+    const token = await getStoredMobileCardToken()
+    const includeInternal = options.includeInternal && Boolean(token)
+    const cacheKey = getEventCacheKey(eventId, includeInternal, options.language)
 
     try {
-        const events = await fetchEventsFromSupabase(
-            {
-                eventId,
-                includeInternal: options.includeInternal,
-            },
-            signal,
-        )
-
-        const event = events[0]
-        if (!event) {
-            throw new Error("Event not found.")
-        }
-
+        const event = await fetchEventDetail(eventId, options, signal)
         const resolvedEvent = resolveFeaturedEvents([event])[0]
-        await writeCachedValue(cacheKey, serializeEvent(resolvedEvent))
+        await writeCachedValue(cacheKey, resolvedEvent)
         return resolvedEvent
     } catch (error) {
-        const cachedEvent = await readCachedValue<EventRow, KvarteretEventDocument>(
+        const cachedEvent = await readCachedValue<KvarteretEventDocument>(
             cacheKey,
             EVENTS_CACHE_TTL_MS,
-            mapEventRow,
         )
 
         if (cachedEvent) {

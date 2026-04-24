@@ -1,6 +1,6 @@
-import { BlurTargetView } from "@/shared/ui/interop"
 import React, { createContext, PropsWithChildren, useContext, useRef } from "react"
 import { Platform, UIManager, View } from "react-native"
+import { BlurTargetView } from "@/shared/ui/interop"
 
 type BlurTargetRef = React.RefObject<View | null>
 

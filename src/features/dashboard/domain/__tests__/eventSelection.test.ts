@@ -1,13 +1,9 @@
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
-import { pickHomeEvents, selectEventTranslation, splitHomeEventsByType } from "../eventSelection"
-
-function createTimestamp(date: Date): KvarteretEventDocument["event_start"] {
-    return {
-        toDate: () => date,
-        toMillis: () => date.getTime(),
-        toISOString: () => date.toISOString(),
-    } as KvarteretEventDocument["event_start"]
-}
+import {
+    pickHomeEvents,
+    selectEventTranslation,
+    splitHomeEventsByTaxonomy,
+} from "../eventSelection"
 
 function createEvent(
     id: string,
@@ -18,6 +14,7 @@ function createEvent(
         englishTitle?: string | null
         eventTypeSlug?: string
         eventTypeName?: string
+        taxonomyGroup?: string
     },
 ): KvarteretEventDocument {
     const start = options?.start ?? new Date("2026-02-20T12:00:00.000Z")
@@ -26,18 +23,20 @@ function createEvent(
     const englishTitle = options?.englishTitle
     const eventTypeSlug = options?.eventTypeSlug
     const eventTypeName = options?.eventTypeName
+    const title = norwegianTitle ?? englishTitle ?? `Norsk ${id}`
 
     return {
         id,
         slug: `event-${id}`,
         status: "published",
-        event_start: createTimestamp(start),
-        event_end: createTimestamp(end),
-        created_at: createTimestamp(start),
-        updated_at: createTimestamp(start),
+        starts_at: start.toISOString(),
+        ends_at: end.toISOString(),
+        created_at: start.toISOString(),
+        updated_at: start.toISOString(),
         ticket_url: null,
         facebook_url: null,
-        image: null,
+        image_url: null,
+        image_caption: null,
         event_type_id: eventTypeSlug ?? "sosialt",
         event_type: eventTypeSlug
             ? {
@@ -47,6 +46,7 @@ function createEvent(
                   description: null,
                   sort_order: 0,
                   is_active: true,
+                  taxonomy_group: options?.taxonomyGroup ?? "Sosialt",
               }
             : null,
         room_id: null,
@@ -57,6 +57,9 @@ function createEvent(
         is_featured: false,
         recurring_interval_days: null,
         price: null,
+        language: norwegianTitle === null ? "en" : "no",
+        title,
+        description: null,
         translations: {
             no:
                 norwegianTitle === null
@@ -132,36 +135,63 @@ describe("eventsService", () => {
         expect(result.map(event => event.id)).toEqual(["1", "2", "3", "4", "5"])
     })
 
-    test("splitHomeEventsByType groups by schema category IDs", () => {
+    test("splitHomeEventsByTaxonomy groups by backend taxonomy order", () => {
         const internal = createEvent("internal", {
             eventTypeSlug: "internarrangement",
             eventTypeName: "Internarrangement",
+            taxonomyGroup: "Organisasjon",
         })
         internal.is_internal = true
 
-        const lecture = createEvent("lecture", {
-            eventTypeSlug: "foredrag",
-            eventTypeName: "Foredrag",
-        })
-        const debate = createEvent("debate", {
-            eventTypeSlug: "debatt",
-            eventTypeName: "Debatt",
-        })
-        const concert = createEvent("concert", {
+        const music = createEvent("music", {
             eventTypeSlug: "konsert",
             eventTypeName: "Konsert",
+            taxonomyGroup: "Musikk",
         })
-        const other = createEvent("other", {
-            eventTypeSlug: "sosialt",
-            eventTypeName: "Sosialt",
+        const academic = createEvent("academic", {
+            eventTypeSlug: "debatt",
+            eventTypeName: "Debatt",
+            taxonomyGroup: "Faglig",
+        })
+        const fallback = createEvent("fallback", {
+            eventTypeSlug: "unknown",
+            eventTypeName: "Unknown",
+            taxonomyGroup: "Annet",
         })
 
-        const result = splitHomeEventsByType([internal, lecture, debate, concert, other])
+        const result = splitHomeEventsByTaxonomy(
+            [internal, academic, fallback, music],
+            {
+                event_type_groups: [
+                    {
+                        name: "Musikk",
+                        event_types: [],
+                    },
+                    {
+                        name: "Faglig",
+                        event_types: [],
+                    },
+                    {
+                        name: "Annet",
+                        event_types: [],
+                    },
+                ],
+                organizer_groups: [],
+                rooms: [],
+            },
+            "en",
+        )
 
         expect(result.internal.map(event => event.id)).toEqual(["internal"])
-        expect(result.lectures.map(event => event.id)).toEqual(["lecture"])
-        expect(result.debates.map(event => event.id)).toEqual(["debate"])
-        expect(result.concerts.map(event => event.id)).toEqual(["concert"])
-        expect(result.others.map(event => event.id)).toEqual(["other"])
+        expect(result.taxonomyGroups.map(group => group.title)).toEqual([
+            "Music",
+            "Talks and debates",
+            "Other events",
+        ])
+        expect(result.taxonomyGroups.map(group => group.events.map(event => event.id))).toEqual([
+            ["music"],
+            ["academic"],
+            ["fallback"],
+        ])
     })
 })

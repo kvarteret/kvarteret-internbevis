@@ -4,10 +4,11 @@ import { useRouter } from "expo-router"
 import React, { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, ScrollView, View } from "react-native"
+import { useLanguage } from "@/app/providers/LanguageProvider"
 import { useSession } from "@/app/providers/SessionProvider"
-import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
+import { fetchEventTaxonomy, fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
+import { splitHomeEventsByTaxonomy } from "@/features/dashboard/domain/eventSelection"
 import { shouldShowGrondahlsStatusCard } from "@/features/dashboard/domain/grondahlsOpening"
-import { splitHomeEventsByType } from "@/features/dashboard/domain/eventSelection"
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
@@ -83,22 +84,6 @@ const EVENT_SECTION_CONFIG = [
         key: "internal",
         titleKey: "homeEventsInternalTitle",
     },
-    {
-        key: "lectures",
-        titleKey: "homeEventsLecturesTitle",
-    },
-    {
-        key: "debates",
-        titleKey: "homeEventsDebatesTitle",
-    },
-    {
-        key: "concerts",
-        titleKey: "homeEventsConcertsTitle",
-    },
-    {
-        key: "others",
-        titleKey: "homeEventsOtherTitle",
-    },
 ] as const
 
 interface NowPlayingWidgetProps {
@@ -152,6 +137,7 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
     const { user, isLoading } = useSession()
+    const { language } = useLanguage()
     const isFocused = useIsFocused()
     const { textPrimary } = useThemeRuntimeColors()
 
@@ -161,15 +147,23 @@ export const KvarteretScreen = (): React.JSX.Element => {
         isError: eventsError,
         refetch: refetchEvents,
     } = useQuery({
-        queryKey: ["home-events", Boolean(user)],
+        queryKey: ["home-events", Boolean(user), language],
         queryFn: ({ signal }) =>
             fetchHomeEvents(
                 {
                     includeInternal: Boolean(user),
+                    language,
                 },
                 signal,
             ),
         staleTime: 30_000,
+        retry: 1,
+    })
+
+    const { data: eventTaxonomy } = useQuery({
+        queryKey: ["event-taxonomy"],
+        queryFn: ({ signal }) => fetchEventTaxonomy(signal),
+        staleTime: 5 * 60_000,
         retry: 1,
     })
 
@@ -188,18 +182,25 @@ export const KvarteretScreen = (): React.JSX.Element => {
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
 
     const isVenueOpen = showNowPlayingWidget
-    const groupedEvents = useMemo(() => splitHomeEventsByType(events ?? []), [events])
+    const groupedEvents = useMemo(
+        () => splitHomeEventsByTaxonomy(events ?? [], eventTaxonomy, language),
+        [eventTaxonomy, events, language],
+    )
     const renderedEventSections = useMemo(() => {
-        return EVENT_SECTION_CONFIG.map(section => ({
-            ...section,
-            events: groupedEvents[section.key],
-        }))
+        return [
+            ...EVENT_SECTION_CONFIG.map(section => ({
+                key: section.key,
+                title: t(section.titleKey),
+                events: groupedEvents.internal,
+            })),
+            ...groupedEvents.taxonomyGroups,
+        ]
             .filter(section => section.events.length > 0)
             .map(section => (
                 <EventSection
                     key={section.key}
                     events={section.events}
-                    title={t(section.titleKey)}
+                    title={section.title}
                     onRetry={async () => refetchEvents()}
                     onEventPress={eventId => router.push(`/event/${eventId}`)}
                 />

@@ -1,5 +1,5 @@
-import { isWithinGrondahlsOpeningHours, shouldShowGrondahlsStatusCard } from "../grondahlsOpening"
 import type { NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
+import { isWithinGrondahlsOpeningHours, shouldShowGrondahlsStatusCard } from "../grondahlsOpening"
 
 const createNowPlayingState = (overrides?: Partial<NowPlayingState>): NowPlayingState => ({
     authorized: true,

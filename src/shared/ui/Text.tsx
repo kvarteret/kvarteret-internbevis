@@ -1,5 +1,5 @@
 import React from "react"
-import { StyleProp, Text as RNText, TextProps, TextStyle } from "react-native"
+import { Text as RNText, StyleProp, TextProps, TextStyle } from "react-native"
 import { cn } from "@/shared/utils/cn"
 
 interface TextPropsExtended extends TextProps {

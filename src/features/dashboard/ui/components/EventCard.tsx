@@ -9,10 +9,9 @@ import {
     getRecurringBadgeText,
     selectProjectedDescriptionPreview,
 } from "@/features/dashboard/domain/eventFormatting"
-import { selectEventTranslation } from "@/features/dashboard/domain/eventSelection"
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
-import { Card } from "@/shared/ui/Card"
 import { CachedImage } from "@/shared/ui/CachedImage"
+import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { triggerSelectionHaptic } from "@/shared/utils/haptics"
 
@@ -31,16 +30,15 @@ export const EventCard = ({
 }: EventCardProps): React.JSX.Element | null => {
     const { t } = useTranslation()
     const { language } = useLanguage()
-    const translation = selectEventTranslation(event.translations)
-    if (!translation) {
+    if (!event.title.trim()) {
         return null
     }
 
-    const descriptionPreview = selectProjectedDescriptionPreview(translation.value)
-    const formattedDate = formatEventStart(event.event_start.toDate(), language)
+    const descriptionPreview = selectProjectedDescriptionPreview(event.description)
+    const formattedDate = formatEventStart(new Date(event.starts_at), language)
     const taxonomyText = getEventTaxonomyText(event)
     const roomText = getEventRoomText(event)
-    const accessibilityLabel = `${translation.value.title}. ${formattedDate}.`
+    const accessibilityLabel = `${event.title}. ${formattedDate}.`
 
     return (
         <Card
@@ -65,11 +63,11 @@ export const EventCard = ({
                     },
                 ]}
             >
-                {event.image?.url ? (
+                {event.image_url ? (
                     <CachedImage
                         className="h-44 w-full"
                         contentFit="cover"
-                        source={event.image.url}
+                        source={event.image_url}
                     />
                 ) : (
                     <View className="h-44 w-full bg-surface-muted" />
@@ -102,7 +100,7 @@ export const EventCard = ({
                         className="text-lg leading-6 text-editorial-ink font-extrabold"
                         numberOfLines={2}
                     >
-                        {translation.value.title}
+                        {event.title}
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
                         {event.is_featured ? (
