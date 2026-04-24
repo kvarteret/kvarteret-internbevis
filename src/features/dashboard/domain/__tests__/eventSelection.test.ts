@@ -1,5 +1,8 @@
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 import {
+    buildEventFeedSections,
+    createEmptyEventFilterState,
+    filterEvents,
     pickHomeEvents,
     selectEventTranslation,
     splitHomeEventsByTaxonomy,
@@ -15,6 +18,8 @@ function createEvent(
         eventTypeSlug?: string
         eventTypeName?: string
         taxonomyGroup?: string
+        organizerGroupId?: string
+        featured?: boolean
     },
 ): KvarteretEventDocument {
     const start = options?.start ?? new Date("2026-02-20T12:00:00.000Z")
@@ -52,9 +57,20 @@ function createEvent(
         room_id: null,
         room_text: null,
         room: null,
-        organizer_groups: [],
+        organizer_groups: options?.organizerGroupId
+            ? [
+                  {
+                      id: options.organizerGroupId,
+                      slug: options.organizerGroupId,
+                      name: options.organizerGroupId,
+                      sort_order: 0,
+                      is_active: true,
+                      default_event_type_id: null,
+                  },
+              ]
+            : [],
         is_internal: false,
-        is_featured: false,
+        is_featured: Boolean(options?.featured),
         recurring_interval_days: null,
         price: null,
         language: norwegianTitle === null ? "en" : "no",
@@ -193,5 +209,61 @@ describe("eventsService", () => {
             ["academic"],
             ["fallback"],
         ])
+    })
+
+    test("filterEvents applies taxonomy, event type, and organizer filters", () => {
+        const music = createEvent("music", {
+            eventTypeSlug: "konsert",
+            organizerGroupId: "asf",
+            taxonomyGroup: "Musikk",
+        })
+        const debate = createEvent("debate", {
+            eventTypeSlug: "debatt",
+            organizerGroupId: "debatt",
+            taxonomyGroup: "Faglig",
+        })
+
+        expect(
+            filterEvents([music, debate], {
+                ...createEmptyEventFilterState(),
+                taxonomyGroup: "Musikk",
+            }).map(event => event.id),
+        ).toEqual(["music"])
+        expect(
+            filterEvents([music, debate], {
+                ...createEmptyEventFilterState(),
+                eventTypeIds: ["debatt"],
+            }).map(event => event.id),
+        ).toEqual(["debate"])
+        expect(
+            filterEvents([music, debate], {
+                ...createEmptyEventFilterState(),
+                organizerGroupIds: ["asf"],
+            }).map(event => event.id),
+        ).toEqual(["music"])
+    })
+
+    test("buildEventFeedSections selects featured, today, soon, and all events", () => {
+        const now = new Date("2026-04-22T10:00:00.000Z")
+        const featured = createEvent("featured", {
+            featured: true,
+            start: new Date("2026-04-23T18:00:00.000Z"),
+        })
+        const today = createEvent("today", {
+            start: new Date("2026-04-22T18:00:00.000Z"),
+        })
+        const soon = createEvent("soon", {
+            start: new Date("2026-04-28T18:00:00.000Z"),
+        })
+        const later = createEvent("later", {
+            start: new Date("2026-05-08T18:00:00.000Z"),
+        })
+
+        const result = buildEventFeedSections([later, soon, featured, today], now)
+
+        expect(result.featured?.id).toBe("featured")
+        expect(result.today.map(event => event.id)).toEqual(["today"])
+        expect(result.soon.map(event => event.id)).toEqual(["featured", "soon"])
+        expect(result.all.map(event => event.id)).toEqual(["today", "featured", "soon", "later"])
     })
 })

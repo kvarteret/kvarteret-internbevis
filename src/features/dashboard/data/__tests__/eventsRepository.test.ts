@@ -91,7 +91,7 @@ describe("eventsRepository", () => {
 
         const request = (global.fetch as jest.Mock).mock.calls[0][0] as Request
         expect(request.url).toBe(
-            "https://personal.kvarteret.no/api/v1/events?include_internal=false&limit=30",
+            "https://personal.kvarteret.no/api/v1/events?include_internal=false&limit=100",
         )
         expect(request.headers.get("accept-language")).toBe("en")
         expect(request.headers.get("authorization")).toBeNull()
@@ -108,7 +108,7 @@ describe("eventsRepository", () => {
 
         const request = (global.fetch as jest.Mock).mock.calls[0][0] as Request
         expect(request.url).toBe(
-            "https://personal.kvarteret.no/api/v1/events?include_internal=true&limit=30",
+            "https://personal.kvarteret.no/api/v1/events?include_internal=true&limit=100",
         )
         expect(request.headers.get("accept-language")).toBe("no")
         expect(request.headers.get("authorization")).toBe("Bearer mobile-card-token")

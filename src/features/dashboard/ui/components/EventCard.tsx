@@ -20,6 +20,7 @@ export interface EventCardProps {
     cardWidth: number
     onPress: (eventId: string) => void
     accessibilityOpenHint: string
+    layout?: "carousel" | "featured" | "grid"
 }
 
 export const EventCard = ({
@@ -27,6 +28,7 @@ export const EventCard = ({
     cardWidth,
     onPress,
     accessibilityOpenHint,
+    layout = "carousel",
 }: EventCardProps): React.JSX.Element | null => {
     const { t } = useTranslation()
     const { language } = useLanguage()
@@ -39,6 +41,15 @@ export const EventCard = ({
     const taxonomyText = getEventTaxonomyText(event)
     const roomText = getEventRoomText(event)
     const accessibilityLabel = `${event.title}. ${formattedDate}.`
+    const imageHeightClassName =
+        layout === "featured" ? "h-80" : layout === "grid" ? "h-36" : "h-44"
+    const contentClassName = layout === "grid" ? "gap-1.5 p-2.5" : "gap-1.5 p-4"
+    const titleClassName =
+        layout === "featured"
+            ? "text-2xl leading-8 text-editorial-ink font-black"
+            : layout === "grid"
+              ? "text-base leading-5 text-editorial-ink font-extrabold"
+              : "text-lg leading-6 text-editorial-ink font-extrabold"
 
     return (
         <Card
@@ -65,17 +76,17 @@ export const EventCard = ({
             >
                 {event.image_url ? (
                     <CachedImage
-                        className="h-44 w-full"
+                        className={`${imageHeightClassName} w-full`}
                         contentFit="cover"
                         source={event.image_url}
                     />
                 ) : (
-                    <View className="h-44 w-full bg-surface-muted" />
+                    <View className={`${imageHeightClassName} w-full bg-surface-muted`} />
                 )}
 
-                <View className="gap-1.5 p-4">
+                <View className={contentClassName}>
                     <Text
-                        className="text-xs uppercase tracking-wide text-text-secondary font-semibold"
+                        className="text-xs uppercase tracking-wide text-state-danger font-extrabold"
                         numberOfLines={1}
                     >
                         {formattedDate}
@@ -96,10 +107,7 @@ export const EventCard = ({
                             {roomText}
                         </Text>
                     ) : null}
-                    <Text
-                        className="text-lg leading-6 text-editorial-ink font-extrabold"
-                        numberOfLines={2}
-                    >
+                    <Text className={titleClassName} numberOfLines={2}>
                         {event.title}
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
@@ -114,7 +122,7 @@ export const EventCard = ({
                             </Text>
                         ) : null}
                     </View>
-                    {descriptionPreview ? (
+                    {descriptionPreview && layout !== "grid" ? (
                         <Text
                             className="text-sm leading-5 text-editorial-ink-soft"
                             numberOfLines={3}

@@ -8,6 +8,8 @@ import {
 
 const DEFAULT_HOME_EVENTS_MAX_COUNT = 5
 const FALLBACK_TAXONOMY_GROUP = "Annet"
+const OSLO_TIME_ZONE = "Europe/Oslo"
+const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 const TAXONOMY_GROUP_LABELS: Record<string, { no: string; en: string }> = {
     Musikk: { no: "Musikk", en: "Music" },
@@ -25,6 +27,19 @@ export interface HomeEventSections {
         title: string
         events: KvarteretEventDocument[]
     }[]
+}
+
+export interface EventFilterState {
+    taxonomyGroup: string | null
+    eventTypeIds: string[]
+    organizerGroupIds: string[]
+}
+
+export interface EventFeedSections {
+    featured: KvarteretEventDocument | null
+    today: KvarteretEventDocument[]
+    soon: KvarteretEventDocument[]
+    all: KvarteretEventDocument[]
 }
 
 export const selectEventTranslation = (
@@ -136,5 +151,83 @@ export const splitHomeEventsByTaxonomy = (
     return {
         internal,
         taxonomyGroups,
+    }
+}
+
+const osloDateFormatter = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: OSLO_TIME_ZONE,
+    year: "numeric",
+})
+
+const getOsloCalendarDayNumber = (date: Date): number => {
+    const parts = osloDateFormatter.formatToParts(date)
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]))
+    const year = Number(values.year)
+    const month = Number(values.month)
+    const day = Number(values.day)
+
+    return Math.floor(Date.UTC(year, month - 1, day) / MS_PER_DAY)
+}
+
+const sortEventsByStart = (events: KvarteretEventDocument[]): KvarteretEventDocument[] =>
+    [...events].sort(
+        (left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
+    )
+
+export const createEmptyEventFilterState = (): EventFilterState => ({
+    eventTypeIds: [],
+    organizerGroupIds: [],
+    taxonomyGroup: null,
+})
+
+export const countActiveEventFilters = (filters: EventFilterState): number =>
+    (filters.taxonomyGroup ? 1 : 0) + filters.eventTypeIds.length + filters.organizerGroupIds.length
+
+export const filterEvents = (
+    events: KvarteretEventDocument[],
+    filters: EventFilterState,
+): KvarteretEventDocument[] => {
+    const eventTypeIds = new Set(filters.eventTypeIds)
+    const organizerGroupIds = new Set(filters.organizerGroupIds)
+
+    return sortEventsByStart(events).filter(event => {
+        if (filters.taxonomyGroup && getTaxonomyGroupName(event) !== filters.taxonomyGroup) {
+            return false
+        }
+
+        if (eventTypeIds.size > 0 && !eventTypeIds.has(event.event_type_id)) {
+            return false
+        }
+
+        if (
+            organizerGroupIds.size > 0 &&
+            !event.organizer_groups.some(group => organizerGroupIds.has(group.id))
+        ) {
+            return false
+        }
+
+        return true
+    })
+}
+
+export const buildEventFeedSections = (
+    events: KvarteretEventDocument[],
+    now = new Date(),
+): EventFeedSections => {
+    const sortedEvents = sortEventsByStart(events)
+    const todayDayNumber = getOsloCalendarDayNumber(now)
+
+    return {
+        featured: sortedEvents.find(event => event.is_featured) ?? null,
+        today: sortedEvents.filter(
+            event => getOsloCalendarDayNumber(new Date(event.starts_at)) === todayDayNumber,
+        ),
+        soon: sortedEvents.filter(event => {
+            const daysUntil = getOsloCalendarDayNumber(new Date(event.starts_at)) - todayDayNumber
+            return daysUntil >= 1 && daysUntil <= 7
+        }),
+        all: sortedEvents,
     }
 }

@@ -7,7 +7,7 @@ import { getSessionValue, SESSION_STORAGE_KEYS } from "@/core/storage/sessionSto
 import { pickHomeEvents, selectEventTranslation } from "@/features/dashboard/domain/eventSelection"
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 
-const HOME_EVENTS_QUERY_LIMIT = 30
+const HOME_EVENTS_QUERY_LIMIT = 100
 const EVENTS_CACHE_KEY_PREFIX = "events_api_cache:events:home"
 const EVENT_CACHE_KEY_PREFIX = "events_api_cache:event"
 const EVENTS_CACHE_TTL_MS = 15 * 60 * 1000
@@ -193,9 +193,7 @@ export const fetchHomeEvents = async (
             },
             signal,
         )
-        const pickedEvents = pickHomeEvents(resolveFeaturedEvents(eventList.events), {
-            maxCount: HOME_EVENTS_QUERY_LIMIT,
-        })
+        const pickedEvents = resolveFeaturedEvents(eventList.events)
 
         await writeCachedValue(cacheKey, pickedEvents)
 
