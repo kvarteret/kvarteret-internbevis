@@ -7,7 +7,7 @@ import RenderHTML from "react-native-render-html"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
-import { fetchEventById, selectEventTranslation } from "@/features/dashboard/data/eventsRepository"
+import { fetchEventById } from "@/features/dashboard/data/eventsRepository"
 import {
     formatEventStartStopWithDuration,
     getEventRoomText,
@@ -39,7 +39,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         isError,
         refetch,
     } = useQuery({
-        queryKey: ["event", resolvedEventId, Boolean(user)],
+        queryKey: ["event", resolvedEventId, Boolean(user), language],
         queryFn: ({ signal }) => {
             if (!resolvedEventId) {
                 throw new Error("Missing event ID.")
@@ -49,6 +49,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                 resolvedEventId,
                 {
                     includeInternal: Boolean(user),
+                    language,
                 },
                 signal,
             )
@@ -57,15 +58,14 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         retry: 1,
     })
 
-    const translationSelection = event ? selectEventTranslation(event.translations) : null
-    const title = translationSelection?.value.title ?? t("eventDetailsTitle")
+    const title = event?.title || t("eventDetailsTitle")
 
     const details = useMemo(() => {
-        if (!event || !translationSelection) return null
-        const detailsHtml = toRenderableHtml(selectPrimaryDetailsHtml(translationSelection.value))
+        if (!event) return null
+        const detailsHtml = toRenderableHtml(selectPrimaryDetailsHtml(event.description))
         const whenValue = formatEventStartStopWithDuration(
-            event.event_start.toDate(),
-            event.event_end.toDate(),
+            new Date(event.starts_at),
+            new Date(event.ends_at),
             language,
         )
         const taxonomy = getEventTaxonomyText(event)
@@ -74,7 +74,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
             ? getRecurringBadgeText(event.recurring_interval_days, language)
             : ""
         return { event, detailsHtml, whenValue, taxonomy, roomText, recurring }
-    }, [event, language, translationSelection])
+    }, [event, language])
 
     const openLink = useCallback(async (url: string): Promise<void> => {
         if (!url) return
@@ -122,7 +122,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         )
     }
 
-    if (!resolvedEventId || isError || !event || !translationSelection || !details) {
+    if (!resolvedEventId || isError || !event || !details) {
         return (
             <View className="flex-1 bg-background">
                 <ScrollView
@@ -154,18 +154,39 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         <View className="flex-1 bg-background">
             <ScrollView
                 className="flex-1"
-                contentContainerClassName="gap-3 p-4"
+                contentContainerClassName="gap-5 px-4 pb-8 pt-3"
                 contentInsetAdjustmentBehavior="automatic"
             >
-                {event.image?.url ? (
-                    <Card variant="elevated">
+                <View className="gap-3">
+                    {event.image_url ? (
                         <CachedImage
-                            className="h-56 w-full rounded-card"
+                            className="h-80 w-full rounded-none"
                             contentFit="cover"
-                            source={event.image.url}
+                            source={event.image_url}
                         />
-                    </Card>
-                ) : null}
+                    ) : null}
+                    {event.image_caption ? (
+                        <Text className="text-xs leading-5 text-editorial-ink-soft">
+                            {event.image_caption}
+                        </Text>
+                    ) : null}
+                </View>
+
+                <View className="gap-2 border-b border-border-soft pb-5">
+                    {details.taxonomy ? (
+                        <Text className="text-sm uppercase tracking-widest text-editorial-action font-extrabold">
+                            {details.taxonomy}
+                        </Text>
+                    ) : null}
+                    <Text className="text-5xl leading-tight text-editorial-ink font-black">
+                        {event.title}
+                    </Text>
+                    {details.roomText ? (
+                        <Text className="text-base uppercase tracking-widest text-editorial-action font-extrabold">
+                            {details.roomText}
+                        </Text>
+                    ) : null}
+                </View>
 
                 <Card className="p-4" effect="liquid" variant="grouped">
                     <LabeledValueRow label={t("eventDetailsWhen")} value={details.whenValue} />
@@ -182,12 +203,6 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                         <LabeledValueRow
                             label={t("eventDetailsRecurring")}
                             value={details.recurring}
-                        />
-                    ) : null}
-                    {event.is_featured ? (
-                        <LabeledValueRow
-                            label={t("eventDetailsFeatured")}
-                            value={t("eventFeaturedBadge")}
                         />
                     ) : null}
                     {event.price ? (

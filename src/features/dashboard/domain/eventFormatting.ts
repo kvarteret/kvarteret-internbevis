@@ -165,17 +165,11 @@ export const getRecurringBadgeText = (
         return `every ${recurringIntervalDays} days`
     }
 
-    return recurringIntervalDays === 1
-        ? "hver dag"
-        : `hver ${recurringIntervalDays}. dag`
+    return recurringIntervalDays === 1 ? "hver dag" : `hver ${recurringIntervalDays}. dag`
 }
 
-export const selectPrimaryDetailsHtml = (
-    translation:
-        | KvarteretEventDocument["translations"]["no"]
-        | KvarteretEventDocument["translations"]["en"],
-): string => {
-    return normalizeDescriptionInput(translation?.description ?? "")
+export const selectPrimaryDetailsHtml = (description: string | null | undefined): string => {
+    return normalizeDescriptionInput(description ?? "")
 }
 
 export const toRenderableHtml = (value: string): string => {
@@ -210,11 +204,9 @@ export const toRenderableHtml = (value: string): string => {
 }
 
 export const selectProjectedDescriptionPreview = (
-    translation:
-        | KvarteretEventDocument["translations"]["no"]
-        | KvarteretEventDocument["translations"]["en"],
+    description: string | null | undefined,
 ): string => {
-    const descriptionSource = normalizeDescriptionInput(translation?.description ?? "")
+    const descriptionSource = normalizeDescriptionInput(description ?? "")
     if (descriptionSource.length === 0) {
         return ""
     }

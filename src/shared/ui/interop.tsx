@@ -2,9 +2,9 @@ import { BlurTargetView as ExpoBlurTargetView } from "expo-blur"
 import { GlassView as ExpoGlassView } from "expo-glass-effect"
 import React from "react"
 import {
+    SafeAreaView as RNSafeAreaView,
     SafeAreaListener,
     SafeAreaProvider,
-    SafeAreaView as RNSafeAreaView,
     useSafeAreaFrame,
     useSafeAreaInsets,
 } from "react-native-safe-area-context"

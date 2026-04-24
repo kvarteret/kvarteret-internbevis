@@ -66,7 +66,10 @@ describe("MembershipBenefitsCard", () => {
             benefitLabels: ["Gratis te", "Hansa 0.4"],
         })
 
-        const texts = tree.root.findAllByType(RNText).map(node => node.props.children).flat()
+        const texts = tree.root
+            .findAllByType(RNText)
+            .map(node => node.props.children)
+            .flat()
 
         expect(texts).toContain("Benefits")
         expect(texts).toContain("Gratis te")
@@ -89,7 +92,10 @@ describe("MembershipBenefitsCard", () => {
             )
         })
 
-        const texts = tree.root.findAllByType(RNText).map(node => node.props.children).flat()
+        const texts = tree.root
+            .findAllByType(RNText)
+            .map(node => node.props.children)
+            .flat()
 
         expect(texts).toContain("Bulmers")
         expect(texts).not.toContain("Gratis te")

@@ -15,8 +15,8 @@ import {
     serializeRoleSelections,
     toggleFrontPageRoleSelection,
 } from "@/features/dashboard/domain/profileRoles"
-import { MembershipBenefitsCard } from "@/features/dashboard/ui/components/MembershipBenefitsCard"
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
+import { MembershipBenefitsCard } from "@/features/dashboard/ui/components/MembershipBenefitsCard"
 import { SelectedFrontpageRolesGrid } from "@/features/dashboard/ui/components/SelectedFrontpageRolesGrid"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Card } from "@/shared/ui/Card"
@@ -74,7 +74,9 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
             return []
         }
 
-        return getMembershipBenefitTranslationKeys(selectedMembershipBenefitsTier).map(key => t(key))
+        return getMembershipBenefitTranslationKeys(selectedMembershipBenefitsTier).map(key =>
+            t(key),
+        )
     }, [selectedMembershipBenefitsTier, t])
 
     useEffect(() => {

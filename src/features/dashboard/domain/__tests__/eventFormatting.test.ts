@@ -5,14 +5,6 @@ import {
     selectProjectedDescriptionPreview,
     toRenderableHtml,
 } from "../eventFormatting"
-import type { EventTranslation } from "../types"
-
-const buildTranslation = (description: string | null): EventTranslation => ({
-    available: true,
-    title: "Test event",
-    description,
-    image_caption: null,
-})
 
 describe("eventFormatting", () => {
     afterEach(() => {
@@ -20,41 +12,35 @@ describe("eventFormatting", () => {
     })
 
     test("selectPrimaryDetailsHtml uses description", () => {
-        const translation = buildTranslation("<p>Article body with <strong>rich text</strong></p>")
-
-        expect(selectPrimaryDetailsHtml(translation)).toBe(
-            "<p>Article body with <strong>rich text</strong></p>",
-        )
+        expect(
+            selectPrimaryDetailsHtml("<p>Article body with <strong>rich text</strong></p>"),
+        ).toBe("<p>Article body with <strong>rich text</strong></p>")
     })
 
     test("selectPrimaryDetailsHtml returns empty string when description is missing", () => {
-        const translation = buildTranslation(null)
-
-        expect(selectPrimaryDetailsHtml(translation)).toBe("")
+        expect(selectPrimaryDetailsHtml(null)).toBe("")
     })
 
     test("selectPrimaryDetailsHtml returns empty string when description is empty", () => {
-        const translation = buildTranslation("   ")
-
-        expect(selectPrimaryDetailsHtml(translation)).toBe("")
+        expect(selectPrimaryDetailsHtml("   ")).toBe("")
     })
 
     test("selectProjectedDescriptionPreview strips html from description", () => {
-        const translation = buildTranslation("<p><strong>Hello</strong> world</p>")
-
-        expect(selectProjectedDescriptionPreview(translation)).toBe("Hello world")
+        expect(selectProjectedDescriptionPreview("<p><strong>Hello</strong> world</p>")).toBe(
+            "Hello world",
+        )
     })
 
     test("selectProjectedDescriptionPreview returns description when present", () => {
-        const translation = buildTranslation("Description fallback")
-
-        expect(selectProjectedDescriptionPreview(translation)).toBe("Description fallback")
+        expect(selectProjectedDescriptionPreview("Description fallback")).toBe(
+            "Description fallback",
+        )
     })
 
     test("selectProjectedDescriptionPreview truncates to 200 chars", () => {
-        const translation = buildTranslation(`<p>${"a".repeat(240)}</p>`)
-
-        expect(selectProjectedDescriptionPreview(translation)).toBe(`${"a".repeat(200)}...`)
+        expect(selectProjectedDescriptionPreview(`<p>${"a".repeat(240)}</p>`)).toBe(
+            `${"a".repeat(200)}...`,
+        )
     })
 
     test("toRenderableHtml keeps existing html untouched", () => {
@@ -75,9 +61,9 @@ describe("eventFormatting", () => {
     })
 
     test("selectProjectedDescriptionPreview ignores wrapping quotes", () => {
-        const translation = buildTranslation('"<p><strong>Hello</strong> world</p>"')
-
-        expect(selectProjectedDescriptionPreview(translation)).toBe("Hello world")
+        expect(selectProjectedDescriptionPreview('"<p><strong>Hello</strong> world</p>"')).toBe(
+            "Hello world",
+        )
     })
 
     test("formatEventStart uses relative phrasing for same-week dates", () => {

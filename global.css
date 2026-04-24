@@ -3,7 +3,7 @@
 @source "./src";
 
 @theme static {
-    --color-background: #F3E2CC;
+    --color-background: #FFF7E4;
     --color-brand-primary: #F54B4B;
     --color-surface: #FFFFFF;
     --color-surface-soft: #F8F7F4;
@@ -27,8 +27,8 @@
     --color-tab-active: #7F2E2E;
     --color-overlay: #00000033;
     --color-overlay-strong: #00000059;
-    --color-android-header-surface: #F6ECDC;
-    --color-android-card-grouped-surface: #F8EAD8;
+    --color-android-header-surface: #FFF7E4;
+    --color-android-card-grouped-surface: #FFF7E4;
     --color-android-card-elevated-surface: #FFF4E7;
     --color-android-surface-outline: #0000001F;
     --color-android-action-surface: #FFFFFFCC;

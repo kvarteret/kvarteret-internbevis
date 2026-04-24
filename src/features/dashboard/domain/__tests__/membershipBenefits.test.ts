@@ -1,9 +1,9 @@
+import { User } from "@/shared/types/user"
 import {
     getMembershipBenefitTranslationKeys,
     MEMBERSHIP_BENEFIT_TIERS,
     resolveInitialMembershipBenefitTier,
 } from "../membershipBenefits"
-import { User } from "@/shared/types/user"
 
 const createUser = (overrides: Partial<User> = {}): User => ({
     id: 1,

@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "react-i18next"
 import { Image, Pressable, View } from "react-native"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import {
@@ -9,10 +8,9 @@ import {
     getRecurringBadgeText,
     selectProjectedDescriptionPreview,
 } from "@/features/dashboard/domain/eventFormatting"
-import { selectEventTranslation } from "@/features/dashboard/domain/eventSelection"
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
-import { Card } from "@/shared/ui/Card"
 import { CachedImage } from "@/shared/ui/CachedImage"
+import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { triggerSelectionHaptic } from "@/shared/utils/haptics"
 
@@ -21,6 +19,7 @@ export interface EventCardProps {
     cardWidth: number
     onPress: (eventId: string) => void
     accessibilityOpenHint: string
+    layout?: "carousel" | "featured" | "grid"
 }
 
 export const EventCard = ({
@@ -28,19 +27,27 @@ export const EventCard = ({
     cardWidth,
     onPress,
     accessibilityOpenHint,
+    layout = "carousel",
 }: EventCardProps): React.JSX.Element | null => {
-    const { t } = useTranslation()
     const { language } = useLanguage()
-    const translation = selectEventTranslation(event.translations)
-    if (!translation) {
+    if (!event.title.trim()) {
         return null
     }
 
-    const descriptionPreview = selectProjectedDescriptionPreview(translation.value)
-    const formattedDate = formatEventStart(event.event_start.toDate(), language)
+    const descriptionPreview = selectProjectedDescriptionPreview(event.description)
+    const formattedDate = formatEventStart(new Date(event.starts_at), language)
     const taxonomyText = getEventTaxonomyText(event)
     const roomText = getEventRoomText(event)
-    const accessibilityLabel = `${translation.value.title}. ${formattedDate}.`
+    const accessibilityLabel = `${event.title}. ${formattedDate}.`
+    const imageHeightClassName =
+        layout === "featured" ? "h-80" : layout === "grid" ? "h-36" : "h-44"
+    const contentClassName = layout === "grid" ? "gap-1.5 p-2.5" : "gap-1.5 p-4"
+    const titleClassName =
+        layout === "featured"
+            ? "text-2xl leading-8 text-editorial-ink font-black"
+            : layout === "grid"
+              ? "text-base leading-5 text-editorial-ink font-extrabold"
+              : "text-lg leading-6 text-editorial-ink font-extrabold"
 
     return (
         <Card
@@ -65,19 +72,19 @@ export const EventCard = ({
                     },
                 ]}
             >
-                {event.image?.url ? (
+                {event.image_url ? (
                     <CachedImage
-                        className="h-44 w-full"
+                        className={`${imageHeightClassName} w-full`}
                         contentFit="cover"
-                        source={event.image.url}
+                        source={event.image_url}
                     />
                 ) : (
-                    <View className="h-44 w-full bg-surface-muted" />
+                    <View className={`${imageHeightClassName} w-full bg-surface-muted`} />
                 )}
 
-                <View className="gap-1.5 p-4">
+                <View className={contentClassName}>
                     <Text
-                        className="text-xs uppercase tracking-wide text-text-secondary font-semibold"
+                        className="text-xs uppercase tracking-wide text-state-danger font-extrabold"
                         numberOfLines={1}
                     >
                         {formattedDate}
@@ -98,25 +105,17 @@ export const EventCard = ({
                             {roomText}
                         </Text>
                     ) : null}
-                    <Text
-                        className="text-lg leading-6 text-editorial-ink font-extrabold"
-                        numberOfLines={2}
-                    >
-                        {translation.value.title}
+                    <Text className={titleClassName} numberOfLines={2}>
+                        {event.title}
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
-                        {event.is_featured ? (
-                            <Text className="text-xs font-semibold text-editorial-valid">
-                                {t("eventFeaturedBadge")}
-                            </Text>
-                        ) : null}
                         {event.recurring_interval_days ? (
                             <Text className="text-xs font-semibold text-text-secondary">
                                 {getRecurringBadgeText(event.recurring_interval_days, language)}
                             </Text>
                         ) : null}
                     </View>
-                    {descriptionPreview ? (
+                    {descriptionPreview && layout !== "grid" ? (
                         <Text
                             className="text-sm leading-5 text-editorial-ink-soft"
                             numberOfLines={3}

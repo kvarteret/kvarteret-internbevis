@@ -6,7 +6,7 @@
         "useIgnoreFile": true
     },
     "files": {
-        "includes": ["**", "!docs/**", "!dist/**", "!node_modules/**", "!**/*.css"],
+        "includes": ["**", "!.claude/**", "!docs/**", "!dist/**", "!node_modules/**", "!**/*.css"],
         "ignoreUnknown": true
     },
     "formatter": {

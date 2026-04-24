@@ -1,13 +1,12 @@
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
-import { pickHomeEvents, selectEventTranslation, splitHomeEventsByType } from "../eventSelection"
-
-function createTimestamp(date: Date): KvarteretEventDocument["event_start"] {
-    return {
-        toDate: () => date,
-        toMillis: () => date.getTime(),
-        toISOString: () => date.toISOString(),
-    } as KvarteretEventDocument["event_start"]
-}
+import {
+    buildEventFeedSections,
+    createEmptyEventFilterState,
+    filterEvents,
+    pickHomeEvents,
+    selectEventTranslation,
+    splitHomeEventsByTaxonomy,
+} from "../eventSelection"
 
 function createEvent(
     id: string,
@@ -18,6 +17,9 @@ function createEvent(
         englishTitle?: string | null
         eventTypeSlug?: string
         eventTypeName?: string
+        taxonomyGroup?: string
+        organizerGroupId?: string
+        featured?: boolean
     },
 ): KvarteretEventDocument {
     const start = options?.start ?? new Date("2026-02-20T12:00:00.000Z")
@@ -26,18 +28,20 @@ function createEvent(
     const englishTitle = options?.englishTitle
     const eventTypeSlug = options?.eventTypeSlug
     const eventTypeName = options?.eventTypeName
+    const title = norwegianTitle ?? englishTitle ?? `Norsk ${id}`
 
     return {
         id,
         slug: `event-${id}`,
         status: "published",
-        event_start: createTimestamp(start),
-        event_end: createTimestamp(end),
-        created_at: createTimestamp(start),
-        updated_at: createTimestamp(start),
+        starts_at: start.toISOString(),
+        ends_at: end.toISOString(),
+        created_at: start.toISOString(),
+        updated_at: start.toISOString(),
         ticket_url: null,
         facebook_url: null,
-        image: null,
+        image_url: null,
+        image_caption: null,
         event_type_id: eventTypeSlug ?? "sosialt",
         event_type: eventTypeSlug
             ? {
@@ -47,16 +51,31 @@ function createEvent(
                   description: null,
                   sort_order: 0,
                   is_active: true,
+                  taxonomy_group: options?.taxonomyGroup ?? "Sosialt",
               }
             : null,
         room_id: null,
         room_text: null,
         room: null,
-        organizer_groups: [],
+        organizer_groups: options?.organizerGroupId
+            ? [
+                  {
+                      id: options.organizerGroupId,
+                      slug: options.organizerGroupId,
+                      name: options.organizerGroupId,
+                      sort_order: 0,
+                      is_active: true,
+                      default_event_type_id: null,
+                  },
+              ]
+            : [],
         is_internal: false,
-        is_featured: false,
+        is_featured: Boolean(options?.featured),
         recurring_interval_days: null,
         price: null,
+        language: norwegianTitle === null ? "en" : "no",
+        title,
+        description: null,
         translations: {
             no:
                 norwegianTitle === null
@@ -132,36 +151,127 @@ describe("eventsService", () => {
         expect(result.map(event => event.id)).toEqual(["1", "2", "3", "4", "5"])
     })
 
-    test("splitHomeEventsByType groups by schema category IDs", () => {
+    test("splitHomeEventsByTaxonomy groups by backend taxonomy order", () => {
         const internal = createEvent("internal", {
             eventTypeSlug: "internarrangement",
             eventTypeName: "Internarrangement",
+            taxonomyGroup: "Organisasjon",
         })
         internal.is_internal = true
 
-        const lecture = createEvent("lecture", {
-            eventTypeSlug: "foredrag",
-            eventTypeName: "Foredrag",
+        const music = createEvent("music", {
+            eventTypeSlug: "konsert",
+            eventTypeName: "Konsert",
+            taxonomyGroup: "Musikk",
+        })
+        const academic = createEvent("academic", {
+            eventTypeSlug: "debatt",
+            eventTypeName: "Debatt",
+            taxonomyGroup: "Faglig",
+        })
+        const fallback = createEvent("fallback", {
+            eventTypeSlug: "unknown",
+            eventTypeName: "Unknown",
+            taxonomyGroup: "Annet",
+        })
+
+        const result = splitHomeEventsByTaxonomy(
+            [internal, academic, fallback, music],
+            {
+                event_type_groups: [
+                    {
+                        name: "Musikk",
+                        event_types: [],
+                    },
+                    {
+                        name: "Faglig",
+                        event_types: [],
+                    },
+                    {
+                        name: "Annet",
+                        event_types: [],
+                    },
+                ],
+                organizer_groups: [],
+                rooms: [],
+            },
+            "en",
+        )
+
+        expect(result.internal.map(event => event.id)).toEqual(["internal"])
+        expect(result.taxonomyGroups.map(group => group.title)).toEqual([
+            "Music",
+            "Talks and debates",
+            "Other events",
+        ])
+        expect(result.taxonomyGroups.map(group => group.events.map(event => event.id))).toEqual([
+            ["music"],
+            ["academic"],
+            ["fallback"],
+        ])
+    })
+
+    test("filterEvents applies taxonomy, event type, and organizer filters", () => {
+        const music = createEvent("music", {
+            eventTypeSlug: "konsert",
+            organizerGroupId: "asf",
+            taxonomyGroup: "Musikk",
         })
         const debate = createEvent("debate", {
             eventTypeSlug: "debatt",
-            eventTypeName: "Debatt",
-        })
-        const concert = createEvent("concert", {
-            eventTypeSlug: "konsert",
-            eventTypeName: "Konsert",
-        })
-        const other = createEvent("other", {
-            eventTypeSlug: "sosialt",
-            eventTypeName: "Sosialt",
+            organizerGroupId: "debatt",
+            taxonomyGroup: "Faglig",
         })
 
-        const result = splitHomeEventsByType([internal, lecture, debate, concert, other])
+        expect(
+            filterEvents([music, debate], {
+                ...createEmptyEventFilterState(),
+                taxonomyGroup: "Musikk",
+            }).map(event => event.id),
+        ).toEqual(["music"])
+        expect(
+            filterEvents([music, debate], {
+                ...createEmptyEventFilterState(),
+                eventTypeIds: ["debatt"],
+            }).map(event => event.id),
+        ).toEqual(["debate"])
+        expect(
+            filterEvents([music, debate], {
+                ...createEmptyEventFilterState(),
+                organizerGroupIds: ["asf"],
+            }).map(event => event.id),
+        ).toEqual(["music"])
+    })
 
-        expect(result.internal.map(event => event.id)).toEqual(["internal"])
-        expect(result.lectures.map(event => event.id)).toEqual(["lecture"])
-        expect(result.debates.map(event => event.id)).toEqual(["debate"])
-        expect(result.concerts.map(event => event.id)).toEqual(["concert"])
-        expect(result.others.map(event => event.id)).toEqual(["other"])
+    test("buildEventFeedSections selects all featured, today, soon, and remaining events", () => {
+        const now = new Date("2026-04-22T10:00:00.000Z")
+        const featuredSoon = createEvent("featured-soon", {
+            featured: true,
+            start: new Date("2026-04-23T18:00:00.000Z"),
+        })
+        const featuredLater = createEvent("featured-later", {
+            featured: true,
+            start: new Date("2026-05-10T18:00:00.000Z"),
+        })
+        const today = createEvent("today", {
+            start: new Date("2026-04-22T18:00:00.000Z"),
+        })
+        const soon = createEvent("soon", {
+            start: new Date("2026-04-28T18:00:00.000Z"),
+        })
+        const later = createEvent("later", {
+            start: new Date("2026-05-08T18:00:00.000Z"),
+        })
+
+        const result = buildEventFeedSections(
+            [later, soon, featuredSoon, featuredLater, today],
+            now,
+            () => 0,
+        )
+
+        expect(result.featured.map(event => event.id)).toEqual(["featured-later", "featured-soon"])
+        expect(result.today.map(event => event.id)).toEqual(["today"])
+        expect(result.soon.map(event => event.id)).toEqual(["soon"])
+        expect(result.rest.map(event => event.id)).toEqual(["later"])
     })
 })
