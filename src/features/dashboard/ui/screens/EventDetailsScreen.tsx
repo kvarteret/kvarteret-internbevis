@@ -165,11 +165,6 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                             source={event.image_url}
                         />
                     ) : null}
-                    {event.image_caption ? (
-                        <Text className="text-xs leading-5 text-editorial-ink-soft">
-                            {event.image_caption}
-                        </Text>
-                    ) : null}
                 </View>
 
                 <View className="gap-2 border-b border-border-soft pb-5">
