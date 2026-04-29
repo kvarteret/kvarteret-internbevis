@@ -151,11 +151,11 @@ export type BodyGroupRoleAssignmentsCreateGroupsGroupIdRoleAssignmentsPost = {
     /**
      * Role Id
      */
-    role_id: number
+    role_id?: string | null
     /**
      * Term
      */
-    term: number
+    term?: string | null
     /**
      * Volunteer Ids
      */
@@ -163,7 +163,7 @@ export type BodyGroupRoleAssignmentsCreateGroupsGroupIdRoleAssignmentsPost = {
     /**
      * Year
      */
-    year: number
+    year?: string | null
 }
 
 /**
@@ -253,7 +253,7 @@ export type BodyGroupsUpdateGroupsGroupIdPatch = {
     /**
      * Active Until Semester
      */
-    active_until_semester: number
+    active_until_semester?: number | null
     /**
      * Description
      */
@@ -547,7 +547,7 @@ export type BodyVolunteerUploadPhotoVolunteersVolunteerIdPhotoPost = {
     /**
      * Photo
      */
-    photo: Blob | File
+    photo?: Blob | File | null
 }
 
 /**
@@ -880,6 +880,10 @@ export type MobileCardResponse = {
      */
     pingvin_points: number
     /**
+     * Role History
+     */
+    role_history?: Array<MobileCardRoleHistory> | null
+    /**
      * Valid Until
      */
     valid_until: string
@@ -913,6 +917,48 @@ export type MobileCardRole = {
      * Signed Contract
      */
     signed_contract?: boolean
+}
+
+/**
+ * MobileCardRoleHistory
+ */
+export type MobileCardRoleHistory = {
+    /**
+     * Discount Level
+     */
+    discount_level?: number | null
+    /**
+     * Group
+     */
+    group: string
+    /**
+     * Is Active
+     */
+    is_active?: boolean
+    /**
+     * Name
+     */
+    name: string
+    /**
+     * Pingvin Points
+     */
+    pingvin_points?: number
+    /**
+     * Semester
+     */
+    semester: string
+    /**
+     * Signed Contract
+     */
+    signed_contract?: boolean
+    /**
+     * Term
+     */
+    term: number
+    /**
+     * Year
+     */
+    year: number
 }
 
 /**
@@ -1586,7 +1632,12 @@ export type GetCurrentMobileCardData = {
         authorization?: string | null
     }
     path?: never
-    query?: never
+    query?: {
+        /**
+         * Include Role History
+         */
+        include_role_history?: boolean
+    }
     url: "/api/v1/mobile-card/me"
 }
 
@@ -1612,7 +1663,12 @@ export type GetCurrentMobileCardResponse =
 export type CreateMobileCardSessionData = {
     body: MobileCardSessionCreateRequest
     path?: never
-    query?: never
+    query?: {
+        /**
+         * Include Role History
+         */
+        include_role_history?: boolean
+    }
     url: "/api/v1/mobile-card/sessions"
 }
 
@@ -2287,7 +2343,7 @@ export type GroupHistoryDeleteGroupsGroupIdHistoryHistoryIdDeleteResponses = {
 }
 
 export type GroupRoleAssignmentsCreateGroupsGroupIdRoleAssignmentsPostData = {
-    body: BodyGroupRoleAssignmentsCreateGroupsGroupIdRoleAssignmentsPost
+    body?: BodyGroupRoleAssignmentsCreateGroupsGroupIdRoleAssignmentsPost
     path: {
         /**
          * Group Id
@@ -3740,7 +3796,7 @@ export type VolunteerDeletePhotoVolunteersVolunteerIdPhotoDeleteResponses = {
 }
 
 export type VolunteerUploadPhotoVolunteersVolunteerIdPhotoPostData = {
-    body: BodyVolunteerUploadPhotoVolunteersVolunteerIdPhotoPost
+    body?: BodyVolunteerUploadPhotoVolunteersVolunteerIdPhotoPost
     path: {
         /**
          * Volunteer Id

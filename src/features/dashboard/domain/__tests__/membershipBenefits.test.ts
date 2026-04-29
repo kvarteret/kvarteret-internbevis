@@ -15,6 +15,7 @@ const createUser = (overrides: Partial<User> = {}): User => ({
     bildeUrl: undefined,
     pingvinPoengSum: 0,
     aktiveVerv: [],
+    vervHistorikk: [],
     dagensOrd: "ord",
     ...overrides,
 })

@@ -10,10 +10,12 @@ import {
 } from "@/features/dashboard/domain/membershipBenefits"
 import {
     buildDisplayRoles,
+    buildVolunteerHistoryRows,
     DisplayRoleRow,
     resolvePersistedRoleSelections,
     serializeRoleSelections,
     toggleFrontPageRoleSelection,
+    VolunteerHistoryRow,
 } from "@/features/dashboard/domain/profileRoles"
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
 import { MembershipBenefitsCard } from "@/features/dashboard/ui/components/MembershipBenefitsCard"
@@ -42,6 +44,118 @@ const getTierBadgeClass = (tier: number | null): string => {
     }
 }
 
+const historyDateFormatter = new Intl.DateTimeFormat("nb-NO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+})
+
+const formatHistoryDate = (value: string | null): string | null => {
+    if (!value) {
+        return null
+    }
+
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) {
+        return null
+    }
+
+    return historyDateFormatter.format(parsed)
+}
+
+const formatHistoryPeriod = (
+    role: VolunteerHistoryRow,
+    activeLabel: string,
+    unknownLabel: string,
+): string => {
+    if (role.aktiv) {
+        return activeLabel
+    }
+
+    const startDate = formatHistoryDate(role.startet)
+    const endDate = formatHistoryDate(role.sluttet)
+    if (startDate || endDate) {
+        return `${startDate ?? "?"} - ${endDate ?? "?"}`
+    }
+
+    if (role.semester && role.ar) {
+        return `${role.semester} ${role.ar}`
+    }
+
+    if (role.ar) {
+        return String(role.ar)
+    }
+
+    return unknownLabel
+}
+
+interface VolunteerHistorySectionProps {
+    rows: VolunteerHistoryRow[]
+    emptyLabel: string
+    getPeriodLabel: (role: VolunteerHistoryRow) => string
+    tierLabel: (tier: number) => string
+    title: string
+}
+
+const VolunteerHistorySection = ({
+    rows,
+    emptyLabel,
+    getPeriodLabel,
+    tierLabel,
+    title,
+}: VolunteerHistorySectionProps): React.JSX.Element => (
+    <View className="gap-2">
+        <Text className="px-1 pt-1 text-lg font-bold">{title}</Text>
+        {rows.length > 0 ? (
+            <View className="gap-2">
+                {rows.map((role, index) => (
+                    <Card
+                        className="flex-row items-center justify-between gap-3 px-4 py-3"
+                        effect="liquid"
+                        key={`${role.gruppe}:${role.navn}:${role.ar ?? "year"}:${role.semester ?? "term"}:${role.sluttet ?? "end"}:${index}`}
+                        variant="grouped"
+                    >
+                        <View className="min-w-0 flex-1">
+                            <Text className="text-base font-semibold" numberOfLines={1}>
+                                {role.navn}
+                            </Text>
+                            <Text className="text-sm text-text-secondary" numberOfLines={1}>
+                                {role.gruppe}
+                            </Text>
+                        </View>
+                        <View className="items-end gap-1">
+                            <Text className="text-sm font-semibold text-text-secondary">
+                                {getPeriodLabel(role)}
+                            </Text>
+                            <View
+                                className={cn(
+                                    "rounded-full px-3 py-1",
+                                    getTierBadgeClass(role.rabattTrinn),
+                                )}
+                            >
+                                <Text
+                                    className={cn(
+                                        "text-xs font-bold",
+                                        role.rabattTrinn === null
+                                            ? "text-text-secondary"
+                                            : "text-surface",
+                                    )}
+                                >
+                                    {role.rabattTrinn === null ? "-" : tierLabel(role.rabattTrinn)}
+                                </Text>
+                            </View>
+                        </View>
+                    </Card>
+                ))}
+            </View>
+        ) : (
+            <Card className="px-4 py-5" effect="liquid" variant="grouped">
+                <Text className="text-base text-text-secondary">{emptyLabel}</Text>
+            </Card>
+        )}
+    </View>
+)
+
 export const ProfileRolesScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
@@ -55,6 +169,10 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
     } = useSession()
 
     const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
+    const volunteerHistoryRows = useMemo(
+        () => (user ? buildVolunteerHistoryRows(user) : []),
+        [user],
+    )
     const selectedRoles = useMemo(
         () => resolvePersistedRoleSelections(displayRoles, selectedFrontpageRoleSelections),
         [displayRoles, selectedFrontpageRoleSelections],
@@ -102,6 +220,8 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
 
     const getRoleTitle = (role: DisplayRoleRow): string =>
         role.source === "virtual_pingvin" ? t("profileRoleVirtualPingvin") : role.navn
+    const getVolunteerHistoryPeriod = (role: VolunteerHistoryRow): string =>
+        formatHistoryPeriod(role, t("profileRoleHistoryActive"), t("profileRoleHistoryUnknown"))
 
     const handleRolePress = async (role: DisplayRoleRow): Promise<void> => {
         const result = toggleFrontPageRoleSelection(
@@ -253,6 +373,14 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                             selectedTier={selectedMembershipBenefitsTier}
                             tierLabel={tier => t("tierLabel", { tier })}
                             title={t("profileMembershipBenefitsTitle")}
+                        />
+
+                        <VolunteerHistorySection
+                            emptyLabel={t("profileNoRoleHistory")}
+                            getPeriodLabel={getVolunteerHistoryPeriod}
+                            rows={volunteerHistoryRows}
+                            tierLabel={tier => t("tierLabel", { tier })}
+                            title={t("profileRoleHistory")}
                         />
 
                         <Text className="px-1 pt-1 text-lg font-bold">

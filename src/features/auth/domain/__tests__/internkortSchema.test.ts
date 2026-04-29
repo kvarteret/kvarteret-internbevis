@@ -18,9 +18,24 @@ describe("parseInternkortInformation", () => {
                     discount_level: 2,
                     pingvin_points: 8,
                     signed_contract: true,
+                    future_field: "ignored",
+                },
+            ],
+            role_history: [
+                {
+                    name: "Utvikler",
+                    group: "E-Tjenesten",
+                    discount_level: 3,
+                    pingvin_points: 12,
+                    signed_contract: true,
+                    year: 2025,
+                    term: "Høst",
+                    is_active: true,
+                    future_history_field: "ignored",
                 },
             ],
             word_of_the_day: "eplepingvin",
+            server_rollout_field: true,
         })
 
         expect(user.id).toBe(123)
@@ -28,6 +43,14 @@ describe("parseInternkortInformation", () => {
         expect(user.gyldigTil).toBeInstanceOf(Date)
         expect(user.aktiveVerv).toHaveLength(1)
         expect(user.aktiveVerv[0]?.pingvinPoeng).toBe(8)
+        expect(user.vervHistorikk).toHaveLength(1)
+        expect(user.vervHistorikk[0]).toMatchObject({
+            aktiv: true,
+            ar: 2025,
+            gruppe: "E-Tjenesten",
+            navn: "Utvikler",
+            semester: "Høst",
+        })
     })
 
     it("throws when required strict fields are missing", () => {
@@ -57,6 +80,7 @@ describe("parseInternkortInformation", () => {
         expect(user.etternavn).toBe("")
         expect(user.fodselsdato).toBeNull()
         expect(user.aktiveVerv).toEqual([])
+        expect(user.vervHistorikk).toEqual([])
         expect(user.dagensOrd).toBe("")
     })
 
@@ -97,6 +121,7 @@ describe("parseInternkortInformation", () => {
     it("parses a session response and extracts the bearer token", () => {
         const session = parseMobileCardSession({
             session_token: "session-123",
+            future_session_field: "ignored",
             card: {
                 person_id: 2,
                 first_name: "Ada",
@@ -108,6 +133,7 @@ describe("parseInternkortInformation", () => {
                 pingvin_points: 4,
                 active_roles: [],
                 word_of_the_day: "pingvin",
+                future_card_field: "ignored",
             },
         })
 

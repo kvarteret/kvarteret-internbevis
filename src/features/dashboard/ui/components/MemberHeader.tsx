@@ -1,8 +1,6 @@
-import { MaterialIcons } from "@expo/vector-icons"
 import React, { useEffect, useMemo, useRef } from "react"
-import { Animated, Easing, Image, useWindowDimensions, View } from "react-native"
-import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
-import { CachedImage } from "@/shared/ui/CachedImage"
+import { Animated, Easing, useWindowDimensions, View } from "react-native"
+import { ProfileAvatar } from "@/features/dashboard/ui/components/ProfileAvatar"
 import { Text } from "@/shared/ui/Text"
 
 interface MemberHeaderProps {
@@ -15,10 +13,6 @@ interface MemberHeaderProps {
     wordOfTheDay?: string
 }
 
-const localImageMap: Record<string, number> = {
-    "assets/images/nils.jpg": require("@assets/images/nils.jpg"),
-}
-
 export const MemberHeader = ({
     imageUrl,
     animationTrigger,
@@ -29,7 +23,6 @@ export const MemberHeader = ({
     wordOfTheDay,
 }: MemberHeaderProps): React.JSX.Element => {
     const { width } = useWindowDimensions()
-    const { textSecondary } = useThemeRuntimeColors()
     const avatarSize = useMemo(() => Math.min(92, Math.max(64, width * 0.22)), [width])
     const normalizedRoleGroup = roleGroup.trim()
     const normalizedRoleTitle = roleTitle.trim()
@@ -89,9 +82,6 @@ export const MemberHeader = ({
         ]).start()
     }, [animationTrigger, rotationAnim, scaleAnim])
 
-    const localImageSource = imageUrl ? localImageMap[imageUrl] : undefined
-    const hasRemoteImage = Boolean(imageUrl && !localImageSource)
-
     return (
         <View className="w-full rounded-card px-3 py-3">
             <View className="w-full flex-row items-center">
@@ -109,40 +99,11 @@ export const MemberHeader = ({
                             ],
                         }}
                     >
-                        <View
-                            className="overflow-hidden bg-surface-muted"
-                            style={{
-                                width: avatarSize,
-                                height: avatarSize,
-                                borderRadius: avatarSize / 2,
-                            }}
-                        >
-                            {localImageSource ? (
-                                <Image
-                                    className="h-full w-full"
-                                    resizeMode="cover"
-                                    source={localImageSource}
-                                />
-                            ) : null}
-
-                            {!localImageSource && hasRemoteImage ? (
-                                <CachedImage
-                                    className="h-full w-full"
-                                    contentFit="cover"
-                                    source={imageUrl}
-                                />
-                            ) : null}
-
-                            {!localImageSource && !hasRemoteImage ? (
-                                <View className="h-full w-full items-center justify-center">
-                                    <MaterialIcons
-                                        color={textSecondary}
-                                        name="person"
-                                        size={avatarSize * 0.54}
-                                    />
-                                </View>
-                            ) : null}
-                        </View>
+                        <ProfileAvatar
+                            iconSize={avatarSize * 0.54}
+                            imageUrl={imageUrl}
+                            size={avatarSize}
+                        />
                     </Animated.View>
                 </View>
 

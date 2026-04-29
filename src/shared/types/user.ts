@@ -8,6 +8,14 @@ export interface InternKortVerv {
     pingvinPoeng: number
 }
 
+export interface InternKortVervHistorikk extends InternKortVerv {
+    startet: string | null
+    sluttet: string | null
+    ar: number | null
+    semester: string | null
+    aktiv: boolean
+}
+
 export interface User {
     id: number
     fornavn: string
@@ -18,6 +26,7 @@ export interface User {
     bildeUrl?: string
     pingvinPoengSum: number
     aktiveVerv: InternKortVerv[]
+    vervHistorikk: InternKortVervHistorikk[]
     dagensOrd: string
 }
 
@@ -111,6 +120,20 @@ export const createDemoUser = (): User => ({
             signertKontrakt: false,
             rabattTrinn: 2,
             pingvinPoeng: 6,
+        },
+    ],
+    vervHistorikk: [
+        {
+            navn: "Utvikler",
+            gruppe: "E-Tjenesten",
+            signertKontrakt: true,
+            rabattTrinn: 3,
+            pingvinPoeng: 12,
+            startet: null,
+            sluttet: null,
+            ar: new Date().getFullYear(),
+            semester: "Høst",
+            aktiv: true,
         },
     ],
     dagensOrd: "eplepingvin",

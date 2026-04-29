@@ -15,6 +15,7 @@ import {
 import { User } from "@/shared/types/user"
 
 const DEFAULT_INTERNKORT_BASE_URL = "https://personal.kvarteret.no/api/v1/mobile-card"
+const INCLUDE_ROLE_HISTORY_QUERY = "?include_role_history=true"
 const SESSION_CACHE_USER_KEY = "session_cached_user"
 const SESSION_LOGIN_MARKER_KEY = "session_login_marker"
 
@@ -77,6 +78,26 @@ const mapCachedUser = (payload: unknown): User | null => {
         return Number.isNaN(parsed.getTime()) ? null : parsed
     }
 
+    const mapCachedRole = (entry: Record<string, unknown>): User["aktiveVerv"][number] => ({
+        navn: typeof entry.navn === "string" ? entry.navn : "",
+        gruppe: typeof entry.gruppe === "string" ? entry.gruppe : "",
+        signertKontrakt: Boolean(entry.signertKontrakt),
+        rabattTrinn:
+            typeof entry.rabattTrinn === "number" && Number.isInteger(entry.rabattTrinn)
+                ? entry.rabattTrinn
+                : null,
+        pingvinPoeng:
+            typeof entry.pingvinPoeng === "number" && Number.isInteger(entry.pingvinPoeng)
+                ? entry.pingvinPoeng
+                : 0,
+    })
+    const cachedActiveRoles = Array.isArray(candidate.aktiveVerv)
+        ? (candidate.aktiveVerv as unknown[])
+        : []
+    const cachedRoleHistory = Array.isArray(candidate.vervHistorikk)
+        ? (candidate.vervHistorikk as unknown[])
+        : []
+
     return {
         id: candidate.id,
         fornavn: typeof candidate.fornavn === "string" ? candidate.fornavn : "",
@@ -87,28 +108,25 @@ const mapCachedUser = (payload: unknown): User | null => {
         bildeUrl: typeof candidate.bildeUrl === "string" ? candidate.bildeUrl : undefined,
         pingvinPoengSum:
             typeof candidate.pingvinPoengSum === "number" ? candidate.pingvinPoengSum : 0,
-        aktiveVerv: Array.isArray(candidate.aktiveVerv)
-            ? candidate.aktiveVerv
-                  .filter(
-                      (entry): entry is User["aktiveVerv"][number] =>
-                          Boolean(entry) && typeof entry === "object",
-                  )
-                  .map(entry => ({
-                      navn: typeof entry.navn === "string" ? entry.navn : "",
-                      gruppe: typeof entry.gruppe === "string" ? entry.gruppe : "",
-                      signertKontrakt: Boolean(entry.signertKontrakt),
-                      rabattTrinn:
-                          typeof entry.rabattTrinn === "number" &&
-                          Number.isInteger(entry.rabattTrinn)
-                              ? entry.rabattTrinn
-                              : null,
-                      pingvinPoeng:
-                          typeof entry.pingvinPoeng === "number" &&
-                          Number.isInteger(entry.pingvinPoeng)
-                              ? entry.pingvinPoeng
-                              : 0,
-                  }))
-            : [],
+        aktiveVerv: cachedActiveRoles
+            .filter(
+                (entry): entry is Record<string, unknown> =>
+                    Boolean(entry) && typeof entry === "object",
+            )
+            .map(entry => mapCachedRole(entry)),
+        vervHistorikk: cachedRoleHistory
+            .filter(
+                (entry): entry is Record<string, unknown> =>
+                    Boolean(entry) && typeof entry === "object",
+            )
+            .map(entry => ({
+                ...mapCachedRole(entry),
+                startet: typeof entry.startet === "string" ? entry.startet : null,
+                sluttet: typeof entry.sluttet === "string" ? entry.sluttet : null,
+                ar: typeof entry.ar === "number" && Number.isInteger(entry.ar) ? entry.ar : null,
+                semester: typeof entry.semester === "string" ? entry.semester : null,
+                aktiv: Boolean(entry.aktiv),
+            })),
         dagensOrd: typeof candidate.dagensOrd === "string" ? candidate.dagensOrd : "",
     }
 }
@@ -192,7 +210,7 @@ export const createMobileCardSession = async (
 
     let response: Response
     try {
-        response = await postAuthJson("sessions", {
+        response = await postAuthJson(`sessions${INCLUDE_ROLE_HISTORY_QUERY}`, {
             email: requestBody.email,
             access_code: requestBody.accessCode,
         })
@@ -267,7 +285,7 @@ export const createMobileCardSession = async (
 export const getInternkortInformation = async (sessionToken: string): Promise<User> => {
     let response: Response
     try {
-        response = await getAuthJson("me", sessionToken)
+        response = await getAuthJson(`me${INCLUDE_ROLE_HISTORY_QUERY}`, sessionToken)
     } catch (error) {
         throw createAuthServiceError({
             code: "NETWORK_ERROR",

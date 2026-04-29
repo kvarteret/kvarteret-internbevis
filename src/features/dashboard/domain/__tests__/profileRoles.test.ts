@@ -2,6 +2,7 @@ import { User } from "@/shared/types/user"
 import {
     arePersistedRoleSelectionsEqual,
     buildDisplayRoles,
+    buildVolunteerHistoryRows,
     isPersistedRoleSelection,
     isPersistedRoleSelectionArray,
     resolveDefaultRoleSelections,
@@ -21,6 +22,7 @@ const createUser = (overrides: Partial<User> = {}): User => ({
     bildeUrl: undefined,
     pingvinPoengSum: 0,
     aktiveVerv: [],
+    vervHistorikk: [],
     dagensOrd: "",
     ...overrides,
 })
@@ -118,6 +120,76 @@ describe("buildDisplayRoles", () => {
             signertKontrakt: false,
             source: "active",
         })
+    })
+})
+
+describe("buildVolunteerHistoryRows", () => {
+    it("uses full volunteer history when available and sorts active roles first", () => {
+        const rows = buildVolunteerHistoryRows(
+            createUser({
+                aktiveVerv: [
+                    {
+                        navn: "Current fallback",
+                        gruppe: "Fallback",
+                        rabattTrinn: 1,
+                        pingvinPoeng: 1,
+                        signertKontrakt: true,
+                    },
+                ],
+                vervHistorikk: [
+                    {
+                        navn: "Tidligere medlem",
+                        gruppe: "PR-Etaten",
+                        rabattTrinn: 1,
+                        pingvinPoeng: 3,
+                        signertKontrakt: true,
+                        startet: null,
+                        sluttet: null,
+                        ar: 2024,
+                        semester: "Vår",
+                        aktiv: false,
+                    },
+                    {
+                        navn: "Utvikler",
+                        gruppe: "E-Tjenesten",
+                        rabattTrinn: 3,
+                        pingvinPoeng: 12,
+                        signertKontrakt: true,
+                        startet: null,
+                        sluttet: null,
+                        ar: 2023,
+                        semester: "Høst",
+                        aktiv: true,
+                    },
+                ],
+            }),
+        )
+
+        expect(rows.map(role => role.navn)).toEqual(["Utvikler", "Tidligere medlem"])
+    })
+
+    it("falls back to active roles until the API provides history", () => {
+        const rows = buildVolunteerHistoryRows(
+            createUser({
+                aktiveVerv: [
+                    {
+                        navn: "Medlem",
+                        gruppe: "PR-Etaten",
+                        rabattTrinn: 2,
+                        pingvinPoeng: 6,
+                        signertKontrakt: true,
+                    },
+                ],
+            }),
+        )
+
+        expect(rows).toEqual([
+            expect.objectContaining({
+                aktiv: true,
+                gruppe: "PR-Etaten",
+                navn: "Medlem",
+            }),
+        ])
     })
 })
 

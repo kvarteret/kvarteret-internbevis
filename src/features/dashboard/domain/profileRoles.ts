@@ -1,4 +1,4 @@
-import { InternKortVerv, User } from "@/shared/types/user"
+import { InternKortVerv, InternKortVervHistorikk, User } from "@/shared/types/user"
 
 export const MAX_FRONT_PAGE_ROLE_SELECTIONS = 3
 
@@ -19,6 +19,19 @@ export interface PersistedRoleSelection {
     navn: string
     gruppe: string
     rabattTrinn: number | null
+}
+
+export interface VolunteerHistoryRow {
+    navn: string
+    gruppe: string
+    rabattTrinn: number | null
+    pingvinPoeng: number
+    signertKontrakt: boolean
+    startet: string | null
+    sluttet: string | null
+    ar: number | null
+    semester: string | null
+    aktiv: boolean
 }
 
 export type ToggleRoleSelectionResult =
@@ -74,6 +87,62 @@ const normalizeActiveRole = (role: InternKortVerv): DisplayRoleRow => {
         pingvinPoeng,
         signertKontrakt: Boolean(role.signertKontrakt),
     }
+}
+
+const normalizeHistoryRole = (role: InternKortVervHistorikk): VolunteerHistoryRow => ({
+    aktiv: role.aktiv,
+    ar: typeof role.ar === "number" && Number.isInteger(role.ar) ? role.ar : null,
+    gruppe: normalizeText(role.gruppe),
+    navn: normalizeText(role.navn),
+    pingvinPoeng: normalizePingvinPoeng(role.pingvinPoeng),
+    rabattTrinn: normalizeRabattTrinn(role.rabattTrinn),
+    semester: role.semester?.trim() || null,
+    signertKontrakt: Boolean(role.signertKontrakt),
+    sluttet: role.sluttet?.trim() || null,
+    startet: role.startet?.trim() || null,
+})
+
+const activeRoleToHistoryRole = (role: InternKortVerv): VolunteerHistoryRow => ({
+    ...normalizeHistoryRole({
+        ...role,
+        aktiv: true,
+        ar: null,
+        semester: null,
+        sluttet: null,
+        startet: null,
+    }),
+})
+
+const getHistorySortTime = (role: VolunteerHistoryRow): number => {
+    const explicitDate = role.sluttet ?? role.startet
+    if (explicitDate) {
+        const dateMs = new Date(explicitDate).getTime()
+        if (!Number.isNaN(dateMs)) {
+            return dateMs
+        }
+    }
+
+    return role.ar ?? Number.NEGATIVE_INFINITY
+}
+
+const sortHistoryRows = (left: VolunteerHistoryRow, right: VolunteerHistoryRow): number => {
+    if (left.aktiv !== right.aktiv) {
+        return left.aktiv ? -1 : 1
+    }
+
+    const timeDiff = getHistorySortTime(right) - getHistorySortTime(left)
+    if (timeDiff !== 0) {
+        return timeDiff
+    }
+
+    const groupCompare = left.gruppe.localeCompare(right.gruppe, undefined, {
+        sensitivity: "base",
+    })
+    if (groupCompare !== 0) {
+        return groupCompare
+    }
+
+    return left.navn.localeCompare(right.navn, undefined, { sensitivity: "base" })
 }
 
 const sortByPriority = (a: DisplayRoleRow, b: DisplayRoleRow): number => {
@@ -263,4 +332,13 @@ export const buildDisplayRoles = (user: User): DisplayRoleRow[] => {
     }
 
     return [pingvinRole, ...activeRoles]
+}
+
+export const buildVolunteerHistoryRows = (user: User): VolunteerHistoryRow[] => {
+    const sourceRoles =
+        user.vervHistorikk.length > 0
+            ? user.vervHistorikk.map(normalizeHistoryRole)
+            : user.aktiveVerv.map(activeRoleToHistoryRole)
+
+    return sourceRoles.sort(sortHistoryRows)
 }

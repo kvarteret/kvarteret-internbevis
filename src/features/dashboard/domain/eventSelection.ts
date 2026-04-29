@@ -181,6 +181,37 @@ export const createEmptyEventFilterState = (): EventFilterState => ({
     taxonomyGroup: null,
 })
 
+const isStringArray = (value: unknown): value is string[] =>
+    Array.isArray(value) && value.every(item => typeof item === "string")
+
+const uniqueStrings = (values: string[]): string[] => [...new Set(values)]
+
+export const parsePersistedEventFilterState = (value: unknown): EventFilterState | null => {
+    if (!value || typeof value !== "object") {
+        return null
+    }
+
+    const candidate = value as Record<string, unknown>
+    const taxonomyGroup = candidate.taxonomyGroup
+    if (
+        taxonomyGroup !== null &&
+        taxonomyGroup !== undefined &&
+        typeof taxonomyGroup !== "string"
+    ) {
+        return null
+    }
+
+    if (!isStringArray(candidate.eventTypeIds) || !isStringArray(candidate.organizerGroupIds)) {
+        return null
+    }
+
+    return {
+        eventTypeIds: uniqueStrings(candidate.eventTypeIds),
+        organizerGroupIds: uniqueStrings(candidate.organizerGroupIds),
+        taxonomyGroup: taxonomyGroup?.trim() || null,
+    }
+}
+
 export const countActiveEventFilters = (filters: EventFilterState): number =>
     (filters.taxonomyGroup ? 1 : 0) + filters.eventTypeIds.length + filters.organizerGroupIds.length
 

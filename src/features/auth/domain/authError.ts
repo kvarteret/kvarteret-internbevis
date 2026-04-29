@@ -68,6 +68,7 @@ export function isTransientAuthError(error: unknown): boolean {
     return (
         authError.code === "NETWORK_ERROR" ||
         authError.code === "REQUEST_FAILED" ||
-        authError.code === "SERVER_ERROR"
+        authError.code === "SERVER_ERROR" ||
+        authError.code === "UNEXPECTED_RESPONSE"
     )
 }

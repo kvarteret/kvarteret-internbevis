@@ -1,4 +1,3 @@
-import { MaterialIcons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import React, { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -18,18 +17,14 @@ import {
     resolvePersistedRoleSelections,
 } from "@/features/dashboard/domain/profileRoles"
 import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
+import { ProfileAvatar } from "@/features/dashboard/ui/components/ProfileAvatar"
 import { SelectedFrontpageRolesGrid } from "@/features/dashboard/ui/components/SelectedFrontpageRolesGrid"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
-import { CachedImage } from "@/shared/ui/CachedImage"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { useSafeAreaFrame } from "@/shared/ui/interop"
 import { Text } from "@/shared/ui/Text"
-
-const localImageMap: Record<string, number> = {
-    "assets/images/nils.jpg": require("@assets/images/nils.jpg"),
-}
 
 interface IdentityHeroProps {
     fullName: string
@@ -40,8 +35,7 @@ interface IdentityHeroProps {
     openProfileDetailsLabel: string
     openProfileDetailsHint: string
     onRolePress: () => void
-    localImageSource?: number
-    remoteImageUrl?: string
+    imageUrl?: string
 }
 
 const IdentityHero = ({
@@ -53,11 +47,8 @@ const IdentityHero = ({
     openProfileDetailsLabel,
     openProfileDetailsHint,
     onRolePress,
-    localImageSource,
-    remoteImageUrl,
+    imageUrl,
 }: IdentityHeroProps): React.JSX.Element => {
-    const hasRemoteImage = Boolean(remoteImageUrl && !localImageSource)
-    const { textSecondary } = useThemeRuntimeColors()
     const avatarScale = useSharedValue(1)
     const avatarAnimatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: avatarScale.value }],
@@ -89,36 +80,12 @@ const IdentityHero = ({
             variant="grouped"
         >
             <Animated.View style={avatarAnimatedStyle}>
-                <View
-                    className="overflow-hidden rounded-full border border-editorial-border bg-surface-muted"
-                    style={{ width: avatarSize, height: avatarSize }}
-                >
-                    {localImageSource ? (
-                        <Image
-                            className="h-full w-full"
-                            resizeMode="cover"
-                            source={localImageSource}
-                        />
-                    ) : null}
-
-                    {!localImageSource && hasRemoteImage ? (
-                        <CachedImage
-                            className="h-full w-full"
-                            contentFit="cover"
-                            source={remoteImageUrl}
-                        />
-                    ) : null}
-
-                    {!localImageSource && !hasRemoteImage ? (
-                        <View className="h-full w-full items-center justify-center">
-                            <MaterialIcons
-                                color={textSecondary}
-                                name="person"
-                                size={Math.min(avatarSize * 0.38, 128)}
-                            />
-                        </View>
-                    ) : null}
-                </View>
+                <ProfileAvatar
+                    borderClassName="border border-editorial-border"
+                    iconSize={Math.min(avatarSize * 0.38, 128)}
+                    imageUrl={imageUrl}
+                    size={avatarSize}
+                />
             </Animated.View>
 
             <View className="w-full items-center gap-4 px-2">
@@ -281,9 +248,6 @@ export const ProfileScreen = (): React.JSX.Element => {
     const isValid = status?.isValid ?? false
     const tierLabel = t("tierLabel", { tier: status?.tier ?? 0 })
 
-    const localImageSource = user?.bildeUrl ? localImageMap[user.bildeUrl] : undefined
-    const remoteImageUrl = user?.bildeUrl
-
     if (isLoading) {
         return (
             <DashboardShellLayout>
@@ -312,8 +276,7 @@ export const ProfileScreen = (): React.JSX.Element => {
                             openProfileDetailsLabel={t("openProfileDetails")}
                             openProfileDetailsHint={t("openProfileDetailsHint")}
                             onRolePress={() => router.push("/profile-roles")}
-                            localImageSource={localImageSource}
-                            remoteImageUrl={remoteImageUrl}
+                            imageUrl={user.bildeUrl}
                         />
 
                         <VerificationStatusCard

@@ -357,6 +357,7 @@ export type {
     MobileCardAprilStateUpdateMobileCardAprilStatePostResponses,
     MobileCardResponse,
     MobileCardRole,
+    MobileCardRoleHistory,
     MobileCardSessionCreateRequest,
     MobileCardSessionLogoutEventRequest,
     MobileCardSessionResponse,

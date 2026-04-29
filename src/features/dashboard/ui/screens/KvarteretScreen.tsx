@@ -1,7 +1,7 @@
 import { useIsFocused } from "@react-navigation/native"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "expo-router"
-import React, { useMemo, useRef, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
     ActivityIndicator,
@@ -15,6 +15,7 @@ import {
 } from "react-native"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { useSession } from "@/app/providers/SessionProvider"
+import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
 import { fetchEventTaxonomy, fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
 import {
     buildEventFeedSections,
@@ -23,6 +24,7 @@ import {
     EventFilterState,
     filterEvents,
     getLocalizedTaxonomyGroupName,
+    parsePersistedEventFilterState,
 } from "@/features/dashboard/domain/eventSelection"
 import { shouldShowGrondahlsStatusCard } from "@/features/dashboard/domain/grondahlsOpening"
 import { EventTaxonomy, KvarteretEventDocument } from "@/features/dashboard/domain/types"
@@ -40,6 +42,7 @@ import { Text } from "@/shared/ui/Text"
 const NOW_PLAYING_POLL_INTERVAL_MS = 10_000
 const TAXONOMY_GROUP_ORDER = ["Musikk", "Scenekunst", "Faglig", "Sosialt", "Organisasjon"]
 const GRID_CARD_GAP = 10
+const EVENT_FILTER_STORAGE_KEY = "kvarteret_event_filters:v1"
 
 const clampProgress = (value: number | null): number => {
     if (value === null || !Number.isFinite(value)) return 0
@@ -441,8 +444,34 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const isFocused = useIsFocused()
     const { textPrimary } = useThemeRuntimeColors()
     const [filters, setFilters] = useState<EventFilterState>(() => createEmptyEventFilterState())
+    const [filtersHydrated, setFiltersHydrated] = useState(false)
     const [filtersVisible, setFiltersVisible] = useState(false)
     const [restColumns, setRestColumns] = useState<1 | 2>(1)
+
+    useEffect(() => {
+        const hydrateFilters = async (): Promise<void> => {
+            try {
+                const storedFilters = parsePersistedEventFilterState(
+                    await getStoredJson<unknown>(EVENT_FILTER_STORAGE_KEY),
+                )
+                if (storedFilters) {
+                    setFilters(storedFilters)
+                }
+            } finally {
+                setFiltersHydrated(true)
+            }
+        }
+
+        void hydrateFilters()
+    }, [])
+
+    useEffect(() => {
+        if (!filtersHydrated) {
+            return
+        }
+
+        void setStoredJson(EVENT_FILTER_STORAGE_KEY, filters)
+    }, [filters, filtersHydrated])
 
     const {
         data: events,

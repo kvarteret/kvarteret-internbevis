@@ -3,6 +3,7 @@ import {
     buildEventFeedSections,
     createEmptyEventFilterState,
     filterEvents,
+    parsePersistedEventFilterState,
     pickHomeEvents,
     selectEventTranslation,
     splitHomeEventsByTaxonomy,
@@ -241,6 +242,23 @@ describe("eventsService", () => {
                 organizerGroupIds: ["asf"],
             }).map(event => event.id),
         ).toEqual(["music"])
+    })
+
+    test("parsePersistedEventFilterState accepts valid saved filters and rejects invalid shapes", () => {
+        expect(
+            parsePersistedEventFilterState({
+                eventTypeIds: ["konsert", "konsert"],
+                organizerGroupIds: ["asf"],
+                taxonomyGroup: "Musikk",
+            }),
+        ).toEqual({
+            eventTypeIds: ["konsert"],
+            organizerGroupIds: ["asf"],
+            taxonomyGroup: "Musikk",
+        })
+
+        expect(parsePersistedEventFilterState({ eventTypeIds: ["konsert"] })).toBeNull()
+        expect(parsePersistedEventFilterState(null)).toBeNull()
     })
 
     test("buildEventFeedSections selects all featured, today, soon, and remaining events", () => {
