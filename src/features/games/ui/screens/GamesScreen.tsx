@@ -1,9 +1,10 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import { useHeaderHeight } from "@react-navigation/elements"
-import { useFocusEffect, useNavigation, useRouter } from "expo-router"
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useFocusEffect, useRouter } from "expo-router"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Pressable, ScrollView, useWindowDimensions, View } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
 import {
     applyDraftChessTimeControl,
@@ -190,14 +191,14 @@ const GameModeTabs = ({
 
 export const GamesScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
-    const navigation = useNavigation()
     const router = useRouter()
     const headerHeight = useHeaderHeight()
+    const { top: safeTop } = useSafeAreaInsets()
     const { width: windowWidth } = useWindowDimensions()
     const { stateDanger, surface, surfaceMuted, textPrimary, textSecondary } =
         useThemeRuntimeColors()
 
-    const [mode, setMode] = useState<GameMode>("d6")
+    const [mode, setMode] = useState<GameMode>("chess")
     const { selectedDiceType, diceValue, diceRollCount, isRolling, selectDiceType, rollDice } =
         useDiceRoll()
     const [timeControlState, setTimeControlState] = useState<ChessTimeControlState>({
@@ -272,8 +273,8 @@ export const GamesScreen = (): React.JSX.Element => {
         : null
 
     const tabs = [
-        { mode: "d6" as const, label: t("gamesDice") },
         { mode: "chess" as const, label: t("gamesChessTimer") },
+        { mode: "d6" as const, label: t("gamesDice") },
     ]
 
     const timerIsPristine = isChessTimerPristine(timerState, timeControlState.appliedTimeControl)
@@ -301,22 +302,8 @@ export const GamesScreen = (): React.JSX.Element => {
     const whiteTimerTextColor = whiteTimerActive ? surface : textPrimary
     const blackTimerBorderColor = blackTimerActive ? stateDanger : inactiveTimerBorderColor
     const whiteTimerBorderColor = whiteTimerActive ? stateDanger : inactiveTimerBorderColor
-    const chessTopPadding = (process.env.EXPO_OS === "ios" ? headerHeight : 0) + 16
-    const headerTabsWidth = Math.min(Math.max(windowWidth - 132, 220), 320)
-
-    useLayoutEffect(() => {
-        navigation.setOptions({
-            headerTitle: () => (
-                <GameModeTabs
-                    mode={mode}
-                    onSelectMode={setMode}
-                    tabs={tabs}
-                    width={headerTabsWidth}
-                />
-            ),
-            title: "",
-        })
-    }, [headerTabsWidth, mode, navigation, tabs])
+    const effectiveTop = Math.max(headerHeight, safeTop)
+    const inlineTabsWidth = Math.min(Math.max(windowWidth - 48, 220), 320)
 
     const handleOpenTimeControl = useCallback((): void => {
         router.push("/chess-time-control")
@@ -333,6 +320,14 @@ export const GamesScreen = (): React.JSX.Element => {
 
     return (
         <View className="flex-1 bg-background">
+            <View className="items-center px-4 pb-1" style={{ paddingTop: effectiveTop + 8 }}>
+                <GameModeTabs
+                    mode={mode}
+                    onSelectMode={setMode}
+                    tabs={tabs}
+                    width={inlineTabsWidth}
+                />
+            </View>
             {mode === "d6" ? (
                 <ScrollView
                     className="flex-1"
@@ -393,7 +388,7 @@ export const GamesScreen = (): React.JSX.Element => {
                     <EtjenestenFooter />
                 </ScrollView>
             ) : (
-                <View className="flex-1 gap-4 px-4 pb-4" style={{ paddingTop: chessTopPadding }}>
+                <View className="flex-1 gap-4 px-4 pb-4 pt-2">
                     <View className="flex-1 gap-5 px-1 py-2">
                         <View className="flex-1">
                             <ClockCard

@@ -47,9 +47,9 @@ export default function TabsLayout(): React.JSX.Element {
                 <NativeTabs.Trigger.Label>{t("tabSamfunnet")}</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>
 
-            <NativeTabs.Trigger name="feedback">
-                <NativeTabs.Trigger.Icon md="feedback" sf="bubble.left.fill" />
-                <NativeTabs.Trigger.Label>{t("feedbackTab")}</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger name="games">
+                <NativeTabs.Trigger.Icon md="sports_esports" sf="gamecontroller.fill" />
+                <NativeTabs.Trigger.Label>{"Spill"}</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>
         </NativeTabs>
     )

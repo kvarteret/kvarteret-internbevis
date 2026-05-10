@@ -3,7 +3,8 @@ import { AppHeaderMenuItem } from "@/features/dashboard/ui/menu/headerMenu.types
 export const NATIVE_MENU_ACTION_ID = {
     privacy: "privacy",
     about: "about",
-    games: "games",
+    feedback: "feedback",
+    benefits: "benefits",
     nerdStats: "nerd_stats",
     authLogin: "auth_login",
     authLogout: "auth_logout",
@@ -14,12 +15,14 @@ export const NATIVE_MENU_ACTION_ID = {
 interface BuildNativeMenuActionsParams {
     t: (key: string) => string
     isLoggedIn: boolean
+    isVolunteer: boolean
     platform: "ios" | "android"
 }
 
 export const buildNativeMenuActions = ({
     t,
     isLoggedIn,
+    isVolunteer,
     platform,
 }: BuildNativeMenuActionsParams): AppHeaderMenuItem[] => {
     const menuImage = ({ ios }: { ios: string }): string | undefined =>
@@ -75,13 +78,25 @@ export const buildNativeMenuActions = ({
             imageColor: "#111827",
         },
         {
-            id: NATIVE_MENU_ACTION_ID.games,
-            title: t("games"),
+            id: NATIVE_MENU_ACTION_ID.feedback,
+            title: t("feedback"),
             image: menuImage({
-                ios: "gamecontroller.fill",
+                ios: "bubble.left.and.bubble.right",
             }),
             imageColor: "#111827",
         },
+        ...(isVolunteer
+            ? [
+                  {
+                      id: NATIVE_MENU_ACTION_ID.benefits,
+                      title: t("benefits"),
+                      image: menuImage({
+                          ios: "star.fill",
+                      }),
+                      imageColor: "#111827",
+                  } satisfies AppHeaderMenuItem,
+              ]
+            : []),
         {
             id: "language",
             title: t("language"),

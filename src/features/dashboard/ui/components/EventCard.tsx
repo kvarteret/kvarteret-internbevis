@@ -1,13 +1,15 @@
 import React from "react"
-import { Image, Pressable, View } from "react-native"
+import { Pressable, View } from "react-native"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import {
     formatEventStart,
+    getEventEndDate,
     getEventRoomText,
+    getEventStartDate,
     getEventTaxonomyText,
-    getRecurringBadgeText,
     selectProjectedDescriptionPreview,
 } from "@/features/dashboard/domain/eventFormatting"
+import { buildUpcomingDateChips } from "@/features/dashboard/domain/eventSelection"
 import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 import { CachedImage } from "@/shared/ui/CachedImage"
 import { Card } from "@/shared/ui/Card"
@@ -20,6 +22,7 @@ export interface EventCardProps {
     onPress: (eventId: string) => void
     accessibilityOpenHint: string
     layout?: "carousel" | "featured" | "grid"
+    upcomingDates?: Date[]
 }
 
 export const EventCard = ({
@@ -28,14 +31,14 @@ export const EventCard = ({
     onPress,
     accessibilityOpenHint,
     layout = "carousel",
+    upcomingDates,
 }: EventCardProps): React.JSX.Element | null => {
     const { language } = useLanguage()
-    if (!event.title.trim()) {
-        return null
-    }
+    if (!event.title.trim()) return null
 
     const descriptionPreview = selectProjectedDescriptionPreview(event.description)
-    const formattedDate = formatEventStart(new Date(event.starts_at), language)
+    const startDate = getEventStartDate(event)
+    const formattedDate = formatEventStart(startDate, language)
     const taxonomyText = getEventTaxonomyText(event)
     const roomText = getEventRoomText(event)
     const accessibilityLabel = `${event.title}. ${formattedDate}.`
@@ -63,7 +66,7 @@ export const EventCard = ({
                 android_ripple={{ color: "rgba(0,0,0,0.08)" }}
                 onPress={() => {
                     void triggerSelectionHaptic()
-                    onPress(event.id)
+                    onPress(event._id)
                 }}
                 style={({ pressed }) => [
                     {
@@ -72,15 +75,17 @@ export const EventCard = ({
                     },
                 ]}
             >
-                {event.image_url ? (
-                    <CachedImage
-                        className={`${imageHeightClassName} w-full`}
-                        contentFit="cover"
-                        source={event.image_url}
-                    />
-                ) : (
-                    <View className={`${imageHeightClassName} w-full bg-surface-muted`} />
-                )}
+                <View>
+                    {event.imageUrl ? (
+                        <CachedImage
+                            className={`${imageHeightClassName} w-full`}
+                            contentFit="cover"
+                            source={event.imageUrl}
+                        />
+                    ) : (
+                        <View className={`${imageHeightClassName} w-full bg-surface-muted`} />
+                    )}
+                </View>
 
                 <View className={contentClassName}>
                     <Text
@@ -108,13 +113,20 @@ export const EventCard = ({
                     <Text className={titleClassName} numberOfLines={2}>
                         {event.title}
                     </Text>
-                    <View className="flex-row flex-wrap gap-2">
-                        {event.recurring_interval_days ? (
-                            <Text className="text-xs font-semibold text-text-secondary">
-                                {getRecurringBadgeText(event.recurring_interval_days, language)}
-                            </Text>
-                        ) : null}
-                    </View>
+                    {upcomingDates && upcomingDates.length > 0 ? (
+                        <View className="flex-row flex-wrap gap-1.5">
+                            {buildUpcomingDateChips(upcomingDates).map(chip => (
+                                <View
+                                    key={chip}
+                                    className="rounded-full border border-editorial-border bg-surface-muted px-2 py-0.5"
+                                >
+                                    <Text className="text-xs font-semibold text-text-secondary">
+                                        {chip}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                    ) : null}
                     {descriptionPreview && layout !== "grid" ? (
                         <Text
                             className="text-sm leading-5 text-editorial-ink-soft"

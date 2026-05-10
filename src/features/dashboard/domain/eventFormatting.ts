@@ -1,48 +1,141 @@
 import { differenceInMinutes, format, formatDistanceToNowStrict, isSameWeek } from "date-fns"
 import { enUS, nb } from "date-fns/locale"
-import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
+import { RRule } from "rrule"
+import {
+    KvarteretEventDocument,
+    SanityPortableTextBlock,
+    SanityPortableTextMarkDef,
+} from "@/features/dashboard/domain/types"
 
 const DESCRIPTION_PREVIEW_MAX_CHARS = 200
-const HTML_TAG_PATTERN = /<\/?[a-z][\s\S]*>/i
 
-const normalizeDescriptionInput = (value: string): string => {
-    const trimmed = value.trim()
-    if (trimmed.length < 2) {
-        return trimmed
-    }
+// ─── Date helpers ──────────────────────────────────────────────────────────
 
-    const hasWrappingDoubleQuotes = trimmed.startsWith('"') && trimmed.endsWith('"')
-    const hasWrappingSingleQuotes = trimmed.startsWith("'") && trimmed.endsWith("'")
-    if (!hasWrappingDoubleQuotes && !hasWrappingSingleQuotes) {
-        return trimmed
-    }
+const getOsloUtcOffset = (dateStr: string): string => {
+    const month = parseInt(dateStr.split("-")[1] ?? "1", 10)
+    // Rough DST approximation: CEST (UTC+2) April–October, CET (UTC+1) otherwise
+    return month >= 4 && month <= 10 ? "+02:00" : "+01:00"
+}
 
+export const toOsloDate = (startDate: string, time: string | null): Date => {
+    const offset = getOsloUtcOffset(startDate)
+    return new Date(`${startDate}T${time ?? "00:00"}:00${offset}`)
+}
+
+export const getEventStartDate = (event: KvarteretEventDocument): Date => {
+    const first = event.dates[0]
+    if (!first) return new Date()
+    return toOsloDate(first.startDate, first.startTime)
+}
+
+export const getEventEndDate = (event: KvarteretEventDocument): Date => {
+    const first = event.dates[0]
+    if (!first) return new Date()
+    if (first.endTime) return toOsloDate(first.startDate, first.endTime)
+    // Default: 2 hours after start
+    const start = toOsloDate(first.startDate, first.startTime)
+    return new Date(start.getTime() + 2 * 60 * 60 * 1000)
+}
+
+// ─── Rrule expansion ──────────────────────────────────────────────────────
+
+export const expandRruleUpcomingDates = (
+    anchorDateStr: string,
+    anchorTime: string | null,
+    rruleStr: string,
+    maxCount = 14,
+): Date[] => {
+    // Mirrors the approach in samfunnetibergen/ArrangementCard.tsx.
+    // Uses between(now, ceiling) so that past-anchored recurring events
+    // (whose explicit dates[] entry has passed) still yield future occurrences.
     try {
-        const parsed = JSON.parse(trimmed)
-        if (typeof parsed === "string") {
-            return parsed.trim()
-        }
+        const rule = new RRule({
+            ...RRule.parseString(rruleStr),
+            dtstart: new Date(`${anchorDateStr}T12:00:00Z`),
+        })
+        const now = new Date()
+        const ceiling = new Date(now.getFullYear() + 2, now.getMonth(), now.getDate())
+        return rule
+            .between(now, ceiling, true)
+            .slice(0, maxCount)
+            .map((d: Date) => toOsloDate(d.toISOString().split("T")[0]!, anchorTime))
     } catch {
-        // Fall back to unwrapping simple quoted payloads.
+        return []
     }
-
-    return trimmed.slice(1, -1).trim()
 }
 
-const decodeHtmlEntities = (value: string): string =>
-    value
-        .replace(/&nbsp;/gi, " ")
-        .replace(/&amp;/gi, "&")
-        .replace(/&lt;/gi, "<")
-        .replace(/&gt;/gi, ">")
-        .replace(/&quot;/gi, '"')
-        .replace(/&#39;/gi, "'")
+// ─── Portable Text serialization ───────────────────────────────────────────
 
-const stripHtml = (value: string): string => {
-    const withoutTags = value.replace(/<[^>]+>/g, " ")
-    const decoded = decodeHtmlEntities(withoutTags)
-    return decoded.replace(/\s+/g, " ").trim()
+const escapeHtml = (text: string): string =>
+    text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+
+const serializeSpans = (
+    children: SanityPortableTextBlock["children"],
+    markDefs: SanityPortableTextMarkDef[],
+): string => {
+    const defsMap = new Map(markDefs.map(def => [def._key, def]))
+
+    return children
+        .map(span => {
+            let text = escapeHtml(span.text)
+            for (const mark of span.marks ?? []) {
+                if (mark === "strong") {
+                    text = `<strong>${text}</strong>`
+                } else if (mark === "em") {
+                    text = `<em>${text}</em>`
+                } else if (mark === "code") {
+                    text = `<code>${text}</code>`
+                } else {
+                    const def = defsMap.get(mark)
+                    if (def?._type === "link" && def.href) {
+                        text = `<a href="${escapeHtml(def.href)}">${text}</a>`
+                    }
+                }
+            }
+            return text
+        })
+        .join("")
 }
+
+const portableTextToHtml = (blocks: SanityPortableTextBlock[] | null | undefined): string => {
+    if (!blocks || blocks.length === 0) return ""
+
+    return blocks
+        .filter(block => block._type === "block")
+        .map(block => {
+            const content = serializeSpans(block.children, block.markDefs)
+            switch (block.style) {
+                case "h1":
+                    return `<h1>${content}</h1>`
+                case "h2":
+                    return `<h2>${content}</h2>`
+                case "h3":
+                    return `<h3>${content}</h3>`
+                case "blockquote":
+                    return `<blockquote>${content}</blockquote>`
+                default:
+                    return `<p>${content}</p>`
+            }
+        })
+        .join("")
+}
+
+const portableTextToPlainText = (blocks: SanityPortableTextBlock[] | null | undefined): string => {
+    if (!blocks || blocks.length === 0) return ""
+
+    return blocks
+        .filter(block => block._type === "block")
+        .map(block => block.children.map(span => span.text).join(""))
+        .filter(Boolean)
+        .join("\n\n")
+}
+
+// ─── Formatting functions ──────────────────────────────────────────────────
 
 const resolveDateLocale = (language: "no" | "en") => (language === "en" ? enUS : nb)
 const WEEK_IN_MINUTES = 7 * 24 * 60
@@ -53,13 +146,9 @@ const formatEventWhen = (date: Date, language: "no" | "en", now: Date): string =
     const locale = resolveDateLocale(language)
     const timeLabel = format(date, "HH:mm", { locale })
     if (isSameWeek(date, now, { locale })) {
-        const relativeLabel = formatDistanceToNowStrict(date, {
-            addSuffix: true,
-            locale,
-        })
+        const relativeLabel = formatDistanceToNowStrict(date, { addSuffix: true, locale })
         return `${relativeLabel} - ${timeLabel}`
     }
-
     const dateLabel = format(date, language === "en" ? "d MMMM" : "d. MMMM", { locale })
     return `${dateLabel} - ${timeLabel}`
 }
@@ -70,7 +159,6 @@ const toDurationPart = (
     unit: "week" | "day" | "hour" | "minute",
 ): string | null => {
     if (value <= 0) return null
-
     if (language === "en") {
         switch (unit) {
             case "week":
@@ -83,7 +171,6 @@ const toDurationPart = (
                 return `${value} ${value === 1 ? "minute" : "minutes"}`
         }
     }
-
     switch (unit) {
         case "week":
             return `${value} ${value === 1 ? "uke" : "uker"}`
@@ -120,9 +207,6 @@ const formatEventDuration = (startDate: Date, endDate: Date, language: "no" | "e
     return durationParts.slice(0, 2).join(" ")
 }
 
-export const formatEventDateTime = (date: Date, language: "no" | "en"): string =>
-    format(date, "PPp", { locale: resolveDateLocale(language) })
-
 export const formatEventStart = (date: Date, language: "no" | "en"): string =>
     formatEventWhen(date, language, new Date())
 
@@ -135,86 +219,56 @@ export const formatEventStartStopWithDuration = (
     const durationLabel = formatEventDuration(startDate, endDate, language)
     const durationSentence =
         language === "en" ? `lasts ${durationLabel}` : `varer i ${durationLabel}`
-
     return `${whenLabel}\n${durationSentence}`
 }
 
 export const getEventTaxonomyText = (event: KvarteretEventDocument): string => {
-    const eventTypeName = event.event_type?.name ?? ""
-    const organizerGroups = event.organizer_groups.map(group => group.name).join(", ")
+    const eventTypeName = event.eventType?.name ?? ""
+    const organizerName = [event.organizerGroup?.name, event.organizerText]
+        .filter(Boolean)
+        .join(", ")
 
-    if (!eventTypeName) {
-        return organizerGroups
-    }
-
-    if (!organizerGroups) {
-        return eventTypeName
-    }
-
-    return `${eventTypeName} (${organizerGroups})`
+    if (!eventTypeName) return organizerName
+    if (!organizerName) return eventTypeName
+    return `${eventTypeName} (${organizerName})`
 }
 
 export const getEventRoomText = (event: KvarteretEventDocument): string =>
-    event.room?.name ?? event.room_text ?? ""
+    event.room?.name ?? event.roomText ?? ""
 
-export const getRecurringBadgeText = (
-    recurringIntervalDays: number,
-    language: "no" | "en",
-): string => {
-    if (language === "en") {
-        return `every ${recurringIntervalDays} days`
-    }
+export const getRecurringBadgeText = (rrule: string | null, language: "no" | "en"): string => {
+    if (!rrule) return language === "en" ? "Recurring" : "Gjentagende"
 
-    return recurringIntervalDays === 1 ? "hver dag" : `hver ${recurringIntervalDays}. dag`
+    const freqMatch = rrule.match(/FREQ=(\w+)/)
+    const freq = freqMatch?.[1]?.toUpperCase()
+
+    if (freq === "DAILY") return language === "en" ? "every day" : "hver dag"
+    if (freq === "WEEKLY") return language === "en" ? "every week" : "hver uke"
+    if (freq === "MONTHLY") return language === "en" ? "every month" : "hver måned"
+    return language === "en" ? "recurring" : "gjentagende"
 }
 
-export const selectPrimaryDetailsHtml = (description: string | null | undefined): string => {
-    return normalizeDescriptionInput(description ?? "")
+export const getPriceText = (event: KvarteretEventDocument): string => {
+    if (event.isFree) return "Gratis"
+    const prices = [event.priceOrdinar, event.priceStudent, event.priceMedlem].filter(
+        (p): p is number => p !== null && p !== undefined,
+    )
+    if (prices.length === 0) return ""
+    const min = Math.min(...prices)
+    const max = Math.max(...prices)
+    return min === max ? `${min} kr` : `${min}–${max} kr`
 }
 
-export const toRenderableHtml = (value: string): string => {
-    const trimmed = normalizeDescriptionInput(value)
-    if (trimmed.length === 0) {
-        return ""
-    }
-
-    if (HTML_TAG_PATTERN.test(trimmed)) {
-        return trimmed
-    }
-
-    const normalized = trimmed.replace(/\r\n?/g, "\n")
-    const paragraphs = normalized
-        .split(/\n{2,}/)
-        .map(part => part.trim())
-        .filter(Boolean)
-
-    return paragraphs
-        .map(paragraph => {
-            const escaped = paragraph
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/\"/g, "&quot;")
-                .replace(/'/g, "&#39;")
-                .replace(/\n/g, "<br/>")
-
-            return `<p>${escaped}</p>`
-        })
-        .join("")
-}
+export const selectPrimaryDetailsHtml = (
+    description: KvarteretEventDocument["description"],
+): string => portableTextToHtml(description)
 
 export const selectProjectedDescriptionPreview = (
-    description: string | null | undefined,
+    description: KvarteretEventDocument["description"],
 ): string => {
-    const descriptionSource = normalizeDescriptionInput(description ?? "")
-    if (descriptionSource.length === 0) {
-        return ""
-    }
-
-    const normalized = stripHtml(descriptionSource)
-    if (normalized.length <= DESCRIPTION_PREVIEW_MAX_CHARS) {
-        return normalized
-    }
-
-    return `${normalized.slice(0, DESCRIPTION_PREVIEW_MAX_CHARS).trimEnd()}...`
+    const text = portableTextToPlainText(description)
+    if (text.length <= DESCRIPTION_PREVIEW_MAX_CHARS) return text
+    return `${text.slice(0, DESCRIPTION_PREVIEW_MAX_CHARS).trimEnd()}...`
 }
+
+export const toRenderableHtml = (html: string): string => html

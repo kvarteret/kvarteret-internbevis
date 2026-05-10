@@ -10,8 +10,11 @@ import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchEventById } from "@/features/dashboard/data/eventsRepository"
 import {
     formatEventStartStopWithDuration,
+    getEventEndDate,
     getEventRoomText,
+    getEventStartDate,
     getEventTaxonomyText,
+    getPriceText,
     getRecurringBadgeText,
     selectPrimaryDetailsHtml,
     toRenderableHtml,
@@ -41,18 +44,8 @@ export const EventDetailsScreen = (): React.JSX.Element => {
     } = useQuery({
         queryKey: ["event", resolvedEventId, Boolean(user), language],
         queryFn: ({ signal }) => {
-            if (!resolvedEventId) {
-                throw new Error("Missing event ID.")
-            }
-
-            return fetchEventById(
-                resolvedEventId,
-                {
-                    includeInternal: Boolean(user),
-                    language,
-                },
-                signal,
-            )
+            if (!resolvedEventId) throw new Error("Missing event ID.")
+            return fetchEventById(resolvedEventId, { includeInternal: Boolean(user), language }, signal)
         },
         enabled: Boolean(resolvedEventId),
         retry: 1,
@@ -63,17 +56,15 @@ export const EventDetailsScreen = (): React.JSX.Element => {
     const details = useMemo(() => {
         if (!event) return null
         const detailsHtml = toRenderableHtml(selectPrimaryDetailsHtml(event.description))
-        const whenValue = formatEventStartStopWithDuration(
-            new Date(event.starts_at),
-            new Date(event.ends_at),
-            language,
-        )
+        const startDate = getEventStartDate(event)
+        const endDate = getEventEndDate(event)
+        const whenValue = formatEventStartStopWithDuration(startDate, endDate, language)
         const taxonomy = getEventTaxonomyText(event)
         const roomText = getEventRoomText(event)
-        const recurring = event.recurring_interval_days
-            ? getRecurringBadgeText(event.recurring_interval_days, language)
-            : ""
-        return { event, detailsHtml, whenValue, taxonomy, roomText, recurring }
+        const recurring =
+            event.isRecurring ? getRecurringBadgeText(event.rrule, language) : ""
+        const priceText = getPriceText(event)
+        return { event, detailsHtml, whenValue, taxonomy, roomText, recurring, priceText }
     }, [event, language])
 
     const openLink = useCallback(async (url: string): Promise<void> => {
@@ -158,16 +149,16 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                 contentInsetAdjustmentBehavior="automatic"
             >
                 <View className="gap-3">
-                    {event.image_url ? (
+                    {event.imageUrl ? (
                         <CachedImage
                             className="h-80 w-full rounded-none"
                             contentFit="cover"
-                            source={event.image_url}
+                            source={event.imageUrl}
                         />
                     ) : null}
-                    {event.image_caption ? (
+                    {event.imageCaption ? (
                         <Text className="text-xs leading-5 text-editorial-ink-soft">
-                            {event.image_caption}
+                            {event.imageCaption}
                         </Text>
                     ) : null}
                 </View>
@@ -205,8 +196,8 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                             value={details.recurring}
                         />
                     ) : null}
-                    {event.price ? (
-                        <LabeledValueRow label={t("eventDetailsPrice")} value={event.price} />
+                    {details.priceText ? (
+                        <LabeledValueRow label={t("eventDetailsPrice")} value={details.priceText} />
                     ) : null}
                 </Card>
 
@@ -225,12 +216,12 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                 <View className="gap-3">
                     {[
                         {
-                            url: event.ticket_url,
+                            url: event.ticketUrl,
                             label: t("eventDetailsTickets"),
                             variant: "destructive" as const,
                         },
                         {
-                            url: event.facebook_url,
+                            url: event.facebookUrl,
                             label: t("eventDetailsFacebook"),
                             variant: "secondary" as const,
                         },

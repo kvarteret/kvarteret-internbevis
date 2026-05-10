@@ -38,8 +38,10 @@ const resolveAndroidMenuIcon = (actionId: string): string | undefined => {
             return "shield-lock-outline"
         case NATIVE_MENU_ACTION_ID.about:
             return "information-outline"
-        case NATIVE_MENU_ACTION_ID.games:
-            return "gamepad-variant-outline"
+        case NATIVE_MENU_ACTION_ID.feedback:
+            return "message-reply-text-outline"
+        case NATIVE_MENU_ACTION_ID.benefits:
+            return "star-outline"
         case NATIVE_MENU_ACTION_ID.nerdStats:
             return "query-stats"
         case NATIVE_MENU_ACTION_ID.authLogin:

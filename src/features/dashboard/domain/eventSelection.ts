@@ -1,15 +1,9 @@
-import {
-    EventTaxonomy,
-    EventTranslationSelection,
-    EventTranslations,
-    EventTypeGroup,
-    KvarteretEventDocument,
-} from "@/features/dashboard/domain/types"
+import { expandRruleUpcomingDates, toOsloDate } from "@/features/dashboard/domain/eventFormatting"
+import { EventFeedEntry, KvarteretEventDocument } from "@/features/dashboard/domain/types"
 
-const DEFAULT_HOME_EVENTS_MAX_COUNT = 5
 const FALLBACK_TAXONOMY_GROUP = "Annet"
 const OSLO_TIME_ZONE = "Europe/Oslo"
-const MS_PER_DAY = 24 * 60 * 60 * 1000
+const TAXONOMY_GROUP_ORDER = ["Musikk", "Scenekunst", "Faglig", "Sosialt", "Organisasjon"]
 
 const TAXONOMY_GROUP_LABELS: Record<string, { no: string; en: string }> = {
     Musikk: { no: "Musikk", en: "Music" },
@@ -20,14 +14,72 @@ const TAXONOMY_GROUP_LABELS: Record<string, { no: string; en: string }> = {
     Annet: { no: "Annet", en: "Other events" },
 }
 
-export interface HomeEventSections {
-    internal: KvarteretEventDocument[]
-    taxonomyGroups: {
-        key: string
-        title: string
-        events: KvarteretEventDocument[]
-    }[]
+// ─── Taxonomy derivation ───────────────────────────────────────────────────
+
+export interface DerivedEventType {
+    _id: string
+    name: string
+    slug: string
 }
+
+export interface DerivedTaxonomyGroup {
+    name: string
+    eventTypes: DerivedEventType[]
+}
+
+export interface DerivedOrganizerGroup {
+    _id: string
+    name: string
+}
+
+export interface DerivedTaxonomy {
+    taxonomyGroups: DerivedTaxonomyGroup[]
+    organizerGroups: DerivedOrganizerGroup[]
+}
+
+export const deriveTaxonomyFromEvents = (events: KvarteretEventDocument[]): DerivedTaxonomy => {
+    const groupToTypes = new Map<string, Map<string, DerivedEventType>>()
+    const organizerGroupMap = new Map<string, DerivedOrganizerGroup>()
+
+    for (const event of events) {
+        if (event.eventType) {
+            const groupName = event.eventType.taxonomyGroup?.name ?? FALLBACK_TAXONOMY_GROUP
+            if (!groupToTypes.has(groupName)) {
+                groupToTypes.set(groupName, new Map())
+            }
+            groupToTypes.get(groupName)!.set(event.eventType._id, {
+                _id: event.eventType._id,
+                name: event.eventType.name,
+                slug: event.eventType.slug,
+            })
+        }
+        if (event.organizerGroup) {
+            organizerGroupMap.set(event.organizerGroup._id, {
+                _id: event.organizerGroup._id,
+                name: event.organizerGroup.name,
+            })
+        }
+    }
+
+    const orderedNames = TAXONOMY_GROUP_ORDER.filter(name => groupToTypes.has(name))
+    const remainingNames = [...groupToTypes.keys()].filter(
+        name => !TAXONOMY_GROUP_ORDER.includes(name),
+    )
+
+    const taxonomyGroups: DerivedTaxonomyGroup[] = [...orderedNames, ...remainingNames].map(
+        name => ({
+            name,
+            eventTypes: [...(groupToTypes.get(name)?.values() ?? [])],
+        }),
+    )
+
+    return {
+        taxonomyGroups,
+        organizerGroups: [...organizerGroupMap.values()],
+    }
+}
+
+// ─── Filter state ──────────────────────────────────────────────────────────
 
 export interface EventFilterState {
     taxonomyGroup: string | null
@@ -36,143 +88,7 @@ export interface EventFilterState {
 }
 
 export interface EventFeedSections {
-    featured: KvarteretEventDocument[]
-    today: KvarteretEventDocument[]
-    soon: KvarteretEventDocument[]
-    rest: KvarteretEventDocument[]
-}
-
-export const selectEventTranslation = (
-    translations: EventTranslations,
-): EventTranslationSelection | null => {
-    const norwegian = translations.no
-    if (norwegian && norwegian.title.trim().length > 0) {
-        return {
-            language: "no",
-            value: norwegian,
-        }
-    }
-
-    const english = translations.en
-    if (english && english.title.trim().length > 0) {
-        return {
-            language: "en",
-            value: english,
-        }
-    }
-
-    return null
-}
-
-const isEventEnded = (event: KvarteretEventDocument, now: Date): boolean =>
-    new Date(event.ends_at).getTime() < now.getTime()
-
-const hasDisplayableTranslation = (event: KvarteretEventDocument): boolean =>
-    event.title.trim().length > 0
-
-export const pickHomeEvents = (
-    events: KvarteretEventDocument[],
-    options?: {
-        now?: Date
-        maxCount?: number
-    },
-): KvarteretEventDocument[] => {
-    const now = options?.now ?? new Date()
-    const maxCount = options?.maxCount ?? DEFAULT_HOME_EVENTS_MAX_COUNT
-
-    return [...events]
-        .filter(event => !isEventEnded(event, now))
-        .filter(hasDisplayableTranslation)
-        .sort(
-            (left, right) =>
-                new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
-        )
-        .slice(0, maxCount)
-}
-
-const getTaxonomyGroupName = (event: KvarteretEventDocument): string =>
-    event.event_type?.taxonomy_group?.trim() || FALLBACK_TAXONOMY_GROUP
-
-export const getLocalizedTaxonomyGroupName = (groupName: string, language: "no" | "en"): string =>
-    TAXONOMY_GROUP_LABELS[groupName]?.[language] ?? groupName
-
-const getTaxonomyGroupOrder = (taxonomy?: EventTaxonomy): EventTypeGroup[] =>
-    taxonomy?.event_type_groups ?? []
-
-export const splitHomeEventsByTaxonomy = (
-    events: KvarteretEventDocument[],
-    taxonomy: EventTaxonomy | undefined,
-    language: "no" | "en",
-): HomeEventSections => {
-    const internal: KvarteretEventDocument[] = []
-    const groupedEvents = new Map<string, KvarteretEventDocument[]>()
-
-    for (const event of events) {
-        if (event.is_internal) {
-            internal.push(event)
-            continue
-        }
-
-        const groupName = getTaxonomyGroupName(event)
-        groupedEvents.set(groupName, [...(groupedEvents.get(groupName) ?? []), event])
-    }
-
-    const orderedGroupNames = getTaxonomyGroupOrder(taxonomy).map(group => group.name)
-    const fallbackGroupNames = [...groupedEvents.keys()].filter(
-        groupName => !orderedGroupNames.includes(groupName),
-    )
-    const taxonomyGroups = [...orderedGroupNames, ...fallbackGroupNames]
-        .map(groupName => ({
-            key: groupName,
-            title: getLocalizedTaxonomyGroupName(groupName, language),
-            events: groupedEvents.get(groupName) ?? [],
-        }))
-        .filter(group => group.events.length > 0)
-
-    return {
-        internal,
-        taxonomyGroups,
-    }
-}
-
-const osloDateFormatter = new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: OSLO_TIME_ZONE,
-    year: "numeric",
-})
-
-const getOsloCalendarDayNumber = (date: Date): number => {
-    const parts = osloDateFormatter.formatToParts(date)
-    const values = Object.fromEntries(parts.map(part => [part.type, part.value]))
-    const year = Number(values.year)
-    const month = Number(values.month)
-    const day = Number(values.day)
-
-    return Math.floor(Date.UTC(year, month - 1, day) / MS_PER_DAY)
-}
-
-const sortEventsByStart = (events: KvarteretEventDocument[]): KvarteretEventDocument[] =>
-    [...events].sort(
-        (left, right) => new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
-    )
-
-const shuffleEvents = (
-    events: KvarteretEventDocument[],
-    random: () => number,
-): KvarteretEventDocument[] => {
-    const shuffledEvents = [...events]
-
-    for (let index = shuffledEvents.length - 1; index > 0; index -= 1) {
-        const swapIndex = Math.floor(random() * (index + 1))
-        const currentEvent = shuffledEvents[index]
-        const swapEvent = shuffledEvents[swapIndex]
-        if (!currentEvent || !swapEvent) continue
-        shuffledEvents[index] = swapEvent
-        shuffledEvents[swapIndex] = currentEvent
-    }
-
-    return shuffledEvents
+    rest: EventFeedEntry[]
 }
 
 export const createEmptyEventFilterState = (): EventFilterState => ({
@@ -187,10 +103,7 @@ const isStringArray = (value: unknown): value is string[] =>
 const uniqueStrings = (values: string[]): string[] => [...new Set(values)]
 
 export const parsePersistedEventFilterState = (value: unknown): EventFilterState | null => {
-    if (!value || typeof value !== "object") {
-        return null
-    }
-
+    if (!value || typeof value !== "object") return null
     const candidate = value as Record<string, unknown>
     const taxonomyGroup = candidate.taxonomyGroup
     if (
@@ -200,11 +113,9 @@ export const parsePersistedEventFilterState = (value: unknown): EventFilterState
     ) {
         return null
     }
-
     if (!isStringArray(candidate.eventTypeIds) || !isStringArray(candidate.organizerGroupIds)) {
         return null
     }
-
     return {
         eventTypeIds: uniqueStrings(candidate.eventTypeIds),
         organizerGroupIds: uniqueStrings(candidate.organizerGroupIds),
@@ -215,6 +126,16 @@ export const parsePersistedEventFilterState = (value: unknown): EventFilterState
 export const countActiveEventFilters = (filters: EventFilterState): number =>
     (filters.taxonomyGroup ? 1 : 0) + filters.eventTypeIds.length + filters.organizerGroupIds.length
 
+// ─── Taxonomy helpers ──────────────────────────────────────────────────────
+
+const getEventTaxonomyGroupName = (event: KvarteretEventDocument): string =>
+    event.eventType?.taxonomyGroup?.name?.trim() || FALLBACK_TAXONOMY_GROUP
+
+export const getLocalizedTaxonomyGroupName = (groupName: string, language: "no" | "en"): string =>
+    TAXONOMY_GROUP_LABELS[groupName]?.[language] ?? groupName
+
+// ─── Filtering ─────────────────────────────────────────────────────────────
+
 export const filterEvents = (
     events: KvarteretEventDocument[],
     filters: EventFilterState,
@@ -222,61 +143,70 @@ export const filterEvents = (
     const eventTypeIds = new Set(filters.eventTypeIds)
     const organizerGroupIds = new Set(filters.organizerGroupIds)
 
-    return sortEventsByStart(events).filter(event => {
-        if (filters.taxonomyGroup && getTaxonomyGroupName(event) !== filters.taxonomyGroup) {
+    return events.filter(event => {
+        if (filters.taxonomyGroup && getEventTaxonomyGroupName(event) !== filters.taxonomyGroup) {
             return false
         }
-
-        if (eventTypeIds.size > 0 && !eventTypeIds.has(event.event_type_id)) {
+        if (eventTypeIds.size > 0 && !eventTypeIds.has(event.eventType?._id ?? "")) {
             return false
         }
-
-        if (
-            organizerGroupIds.size > 0 &&
-            !event.organizer_groups.some(group => organizerGroupIds.has(group.id))
-        ) {
+        if (organizerGroupIds.size > 0 && !organizerGroupIds.has(event.organizerGroup?._id ?? "")) {
             return false
         }
-
         return true
     })
 }
 
-export const buildEventFeedSections = (
-    events: KvarteretEventDocument[],
-    now = new Date(),
-    random: () => number = Math.random,
-): EventFeedSections => {
-    const sortedEvents = sortEventsByStart(events)
-    const todayDayNumber = getOsloCalendarDayNumber(now)
-    const featured = shuffleEvents(
-        sortedEvents.filter(event => event.is_featured),
-        random,
-    )
-    const featuredEventIds = new Set(featured.map(event => event.id))
-    const today = sortedEvents.filter(
-        event =>
-            !featuredEventIds.has(event.id) &&
-            getOsloCalendarDayNumber(new Date(event.starts_at)) === todayDayNumber,
-    )
-    const soon = sortedEvents.filter(event => {
-        if (featuredEventIds.has(event.id)) {
-            return false
-        }
+// ─── Feed sections ─────────────────────────────────────────────────────────
 
-        const daysUntil = getOsloCalendarDayNumber(new Date(event.starts_at)) - todayDayNumber
-        return daysUntil >= 1 && daysUntil <= 7
-    })
-    const groupedEventIds = new Set([
-        ...featuredEventIds,
-        ...today.map(event => event.id),
-        ...soon.map(event => event.id),
-    ])
+const osloShortDateFormatter = new Intl.DateTimeFormat("nb-NO", {
+    day: "numeric",
+    month: "short",
+    timeZone: OSLO_TIME_ZONE,
+})
 
-    return {
-        featured,
-        rest: sortedEvents.filter(event => !groupedEventIds.has(event.id)),
-        soon,
-        today,
+export const buildUpcomingDateChips = (upcomingDates: Date[]): string[] => {
+    if (upcomingDates.length === 0) return []
+    const chips: string[] = []
+    const [first, second, ...rest] = upcomingDates
+    if (first) chips.push(osloShortDateFormatter.format(first))
+    if (second) chips.push(osloShortDateFormatter.format(second))
+    if (rest.length > 0) chips.push(rest.length >= 9 ? "9+" : `+${rest.length}`)
+    return chips
+}
+
+const getUpcomingDates = (event: KvarteretEventDocument): Date[] => {
+    const first = event.dates[0]
+    if (event.isRecurring && event.rrule && first) {
+        return expandRruleUpcomingDates(first.startDate, first.startTime, event.rrule)
     }
+    return event.dates.slice(1).map(d => toOsloDate(d.startDate, d.startTime))
+}
+
+export const buildEventFeedSections = (events: KvarteretEventDocument[]): EventFeedSections => ({
+    rest: events.map(event => ({
+        event,
+        upcomingDates: getUpcomingDates(event),
+    })),
+})
+
+// ─── Legacy helpers kept for tests ────────────────────────────────────────
+
+export const pickHomeEvents = (
+    events: KvarteretEventDocument[],
+    options?: { now?: Date; maxCount?: number },
+): KvarteretEventDocument[] => {
+    const now = options?.now ?? new Date()
+    const maxCount = options?.maxCount ?? 5
+    return events
+        .filter(event => {
+            const first = event.dates[0]
+            if (!first) return false
+            // Recurring events with an rrule always have upcoming occurrences —
+            // their anchor date may be in the past but the rule generates future ones.
+            if (event.isRecurring && event.rrule) return true
+            return toOsloDate(first.startDate, first.startTime).getTime() >= now.getTime()
+        })
+        .filter(event => event.title.trim().length > 0)
+        .slice(0, maxCount)
 }

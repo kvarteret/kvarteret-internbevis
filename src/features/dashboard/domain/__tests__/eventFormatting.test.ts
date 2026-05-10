@@ -1,3 +1,4 @@
+import { SanityPortableTextBlock } from "@/features/dashboard/domain/types"
 import {
     formatEventStart,
     formatEventStartStopWithDuration,
@@ -6,64 +7,64 @@ import {
     toRenderableHtml,
 } from "../eventFormatting"
 
+const block = (
+    text: string,
+    style: SanityPortableTextBlock["style"] = "normal",
+    marks: string[] = [],
+): SanityPortableTextBlock => ({
+    _key: "k1",
+    _type: "block",
+    style,
+    markDefs: [],
+    children: [{ _key: "s1", _type: "span", text, marks }],
+})
+
 describe("eventFormatting", () => {
     afterEach(() => {
         jest.useRealTimers()
     })
 
-    test("selectPrimaryDetailsHtml uses description", () => {
-        expect(
-            selectPrimaryDetailsHtml("<p>Article body with <strong>rich text</strong></p>"),
-        ).toBe("<p>Article body with <strong>rich text</strong></p>")
+    test("selectPrimaryDetailsHtml serializes blocks to html paragraphs", () => {
+        const result = selectPrimaryDetailsHtml([block("Hello world")])
+        expect(result).toBe("<p>Hello world</p>")
     })
 
-    test("selectPrimaryDetailsHtml returns empty string when description is missing", () => {
+    test("selectPrimaryDetailsHtml returns empty string for null", () => {
         expect(selectPrimaryDetailsHtml(null)).toBe("")
     })
 
-    test("selectPrimaryDetailsHtml returns empty string when description is empty", () => {
-        expect(selectPrimaryDetailsHtml("   ")).toBe("")
+    test("selectPrimaryDetailsHtml returns empty string for empty array", () => {
+        expect(selectPrimaryDetailsHtml([])).toBe("")
     })
 
-    test("selectProjectedDescriptionPreview strips html from description", () => {
-        expect(selectProjectedDescriptionPreview("<p><strong>Hello</strong> world</p>")).toBe(
-            "Hello world",
+    test("selectPrimaryDetailsHtml applies heading styles", () => {
+        expect(selectPrimaryDetailsHtml([block("Title", "h2")])).toBe("<h2>Title</h2>")
+        expect(selectPrimaryDetailsHtml([block("Quote", "blockquote")])).toBe(
+            "<blockquote>Quote</blockquote>",
         )
     })
 
-    test("selectProjectedDescriptionPreview returns description when present", () => {
-        expect(selectProjectedDescriptionPreview("Description fallback")).toBe(
-            "Description fallback",
-        )
+    test("selectProjectedDescriptionPreview returns plain text from blocks", () => {
+        expect(selectProjectedDescriptionPreview([block("Hello world")])).toBe("Hello world")
+    })
+
+    test("selectProjectedDescriptionPreview returns empty string for null", () => {
+        expect(selectProjectedDescriptionPreview(null)).toBe("")
     })
 
     test("selectProjectedDescriptionPreview truncates to 200 chars", () => {
-        expect(selectProjectedDescriptionPreview(`<p>${"a".repeat(240)}</p>`)).toBe(
-            `${"a".repeat(200)}...`,
-        )
+        const longText = "a".repeat(240)
+        const result = selectProjectedDescriptionPreview([block(longText)])
+        expect(result).toBe(`${"a".repeat(200)}...`)
     })
 
-    test("toRenderableHtml keeps existing html untouched", () => {
+    test("toRenderableHtml passes html through unchanged", () => {
         const html = "<p>Already <strong>formatted</strong></p>"
         expect(toRenderableHtml(html)).toBe(html)
     })
 
-    test("toRenderableHtml converts plain text paragraphs and line breaks", () => {
-        const plainText = "First line\nSecond line\n\nThird line"
-        expect(toRenderableHtml(plainText)).toBe(
-            "<p>First line<br/>Second line</p><p>Third line</p>",
-        )
-    })
-
-    test("toRenderableHtml unwraps quoted html payloads", () => {
-        const quotedHtml = '"<p>Hello <strong>world</strong></p>"'
-        expect(toRenderableHtml(quotedHtml)).toBe("<p>Hello <strong>world</strong></p>")
-    })
-
-    test("selectProjectedDescriptionPreview ignores wrapping quotes", () => {
-        expect(selectProjectedDescriptionPreview('"<p><strong>Hello</strong> world</p>"')).toBe(
-            "Hello world",
-        )
+    test("toRenderableHtml passes empty string through", () => {
+        expect(toRenderableHtml("")).toBe("")
     })
 
     test("formatEventStart uses relative phrasing for same-week dates", () => {
@@ -78,24 +79,12 @@ describe("eventFormatting", () => {
     test("formatEventStartStopWithDuration renders Norwegian duration phrasing on separate lines", () => {
         jest.useFakeTimers().setSystemTime(new Date(2026, 2, 1, 12, 0, 0))
 
-        const value = formatEventStartStopWithDuration(
-            new Date(2026, 2, 5, 18, 0, 0),
-            new Date(2026, 2, 5, 19, 0, 0),
-            "no",
-        )
+        const start = new Date(2026, 2, 10, 19, 0, 0)
+        const end = new Date(2026, 2, 10, 21, 30, 0)
+        const value = formatEventStartStopWithDuration(start, end, "no")
 
-        expect(value).toContain("\nvarer i 1 time")
-    })
-
-    test("formatEventStartStopWithDuration renders English duration phrasing on separate lines", () => {
-        jest.useFakeTimers().setSystemTime(new Date(2026, 2, 1, 12, 0, 0))
-
-        const value = formatEventStartStopWithDuration(
-            new Date(2026, 2, 5, 18, 0, 0),
-            new Date(2026, 2, 5, 19, 0, 0),
-            "en",
-        )
-
-        expect(value).toContain("\nlasts 1 hour")
+        expect(value).toContain("varer i")
+        expect(value).toContain("2 timer")
+        expect(value).toContain("30 minutter")
     })
 })

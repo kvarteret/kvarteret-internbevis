@@ -46,7 +46,7 @@ const toNativeMenuItem = (
         destructive: action.attributes?.destructive,
         disabled: action.attributes?.disabled,
         hidden: action.attributes?.hidden,
-        state: action.state,
+        ...(action.state !== undefined ? { state: action.state } : {}),
         onPress: () => onAction(actionId),
     }
 }
@@ -67,12 +67,14 @@ export const useHeaderMenuActions = (): {
     const { user, logout, exitAnonymousMode } = useSession()
     const { changeLanguage } = useLanguage()
     const isLoggedIn = Boolean(user)
+    const isVolunteer = Boolean(user && user.aktiveVerv.length > 0)
 
     const menuActions = useMemo(
         () =>
             buildNativeMenuActions({
                 t,
                 isLoggedIn,
+                isVolunteer,
                 platform: Platform.OS === "android" ? "android" : "ios",
             }),
         [isLoggedIn, t],
@@ -87,8 +89,11 @@ export const useHeaderMenuActions = (): {
                 case NATIVE_MENU_ACTION_ID.about:
                     router.push("/about")
                     return
-                case NATIVE_MENU_ACTION_ID.games:
-                    router.push("/games")
+                case NATIVE_MENU_ACTION_ID.feedback:
+                    router.push("/feedback")
+                    return
+                case NATIVE_MENU_ACTION_ID.benefits:
+                    router.push("/benefits")
                     return
                 case NATIVE_MENU_ACTION_ID.nerdStats:
                     router.push("/nerd-stats")

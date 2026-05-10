@@ -1,246 +1,187 @@
-import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
+import { KvarteretEventDocument, SanityArrangementDate } from "@/features/dashboard/domain/types"
 import {
     buildEventFeedSections,
+    buildUpcomingDateChips,
     createEmptyEventFilterState,
+    deriveTaxonomyFromEvents,
     filterEvents,
     parsePersistedEventFilterState,
     pickHomeEvents,
-    selectEventTranslation,
-    splitHomeEventsByTaxonomy,
 } from "../eventSelection"
+
+function makeDate(isoString: string): SanityArrangementDate {
+    // isoString like "2026-05-01T18:00:00.000Z" — extract Oslo date/time approximately
+    const d = new Date(isoString)
+    const startDate = d.toISOString().split("T")[0]!
+    const startTime = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`
+    return { _key: `d-${isoString}`, startDate, startTime, endTime: null }
+}
 
 function createEvent(
     id: string,
     options?: {
+        dates?: SanityArrangementDate[]
         start?: Date
         end?: Date
-        norwegianTitle?: string | null
-        englishTitle?: string | null
-        eventTypeSlug?: string
+        title?: string
+        eventTypeId?: string
         eventTypeName?: string
         taxonomyGroup?: string
         organizerGroupId?: string
-        featured?: boolean
+        isRecurring?: boolean
+        extraDates?: Date[]
     },
 ): KvarteretEventDocument {
-    const start = options?.start ?? new Date("2026-02-20T12:00:00.000Z")
-    const end = options?.end ?? new Date("2026-02-20T14:00:00.000Z")
-    const norwegianTitle = options?.norwegianTitle
-    const englishTitle = options?.englishTitle
-    const eventTypeSlug = options?.eventTypeSlug
-    const eventTypeName = options?.eventTypeName
-    const title = norwegianTitle ?? englishTitle ?? `Norsk ${id}`
+    const primaryDate = options?.start
+        ? makeDate(options.start.toISOString())
+        : makeDate("2026-02-20T12:00:00.000Z")
+
+    const extraDates = (options?.extraDates ?? []).map(d => makeDate(d.toISOString()))
+
+    const dates = options?.dates ?? [primaryDate, ...extraDates]
 
     return {
-        id,
+        _id: id,
+        title: options?.title ?? `Event ${id}`,
         slug: `event-${id}`,
-        status: "published",
-        starts_at: start.toISOString(),
-        ends_at: end.toISOString(),
-        created_at: start.toISOString(),
-        updated_at: start.toISOString(),
-        ticket_url: null,
-        facebook_url: null,
-        image_url: null,
-        image_caption: null,
-        event_type_id: eventTypeSlug ?? "sosialt",
-        event_type: eventTypeSlug
+        dates,
+        isRecurring: options?.isRecurring ?? null,
+        rrule: null,
+        isFree: null,
+        priceOrdinar: null,
+        priceStudent: null,
+        priceMedlem: null,
+        ticketUrl: null,
+        facebookUrl: null,
+        imageUrl: null,
+        imageCaption: null,
+        room: null,
+        roomText: null,
+        organizerGroup: options?.organizerGroupId
             ? {
-                  id: eventTypeSlug,
-                  slug: eventTypeSlug,
-                  name: eventTypeName ?? eventTypeSlug,
-                  description: null,
-                  sort_order: 0,
-                  is_active: true,
-                  taxonomy_group: options?.taxonomyGroup ?? "Sosialt",
+                  _id: options.organizerGroupId,
+                  name: options.organizerGroupId,
+                  slug: options.organizerGroupId,
               }
             : null,
-        room_id: null,
-        room_text: null,
-        room: null,
-        organizer_groups: options?.organizerGroupId
-            ? [
-                  {
-                      id: options.organizerGroupId,
-                      slug: options.organizerGroupId,
-                      name: options.organizerGroupId,
-                      sort_order: 0,
-                      is_active: true,
-                      default_event_type_id: null,
-                  },
-              ]
-            : [],
-        is_internal: false,
-        is_featured: Boolean(options?.featured),
-        recurring_interval_days: null,
-        price: null,
-        language: norwegianTitle === null ? "en" : "no",
-        title,
+        organizerText: null,
+        eventType: options?.eventTypeId
+            ? {
+                  _id: options.eventTypeId,
+                  name: options.eventTypeName ?? options.eventTypeId,
+                  slug: options.eventTypeId,
+                  taxonomyGroup: options?.taxonomyGroup
+                      ? {
+                            _id: options.taxonomyGroup,
+                            name: options.taxonomyGroup,
+                            slug: options.taxonomyGroup.toLowerCase(),
+                        }
+                      : null,
+              }
+            : null,
         description: null,
-        translations: {
-            no:
-                norwegianTitle === null
-                    ? null
-                    : {
-                          available: true,
-                          title: norwegianTitle ?? `Norsk ${id}`,
-                          description: null,
-                          image_caption: null,
-                      },
-            en:
-                englishTitle === null
-                    ? null
-                    : {
-                          available: true,
-                          title: englishTitle ?? `English ${id}`,
-                          description: null,
-                          image_caption: null,
-                      },
-        },
     }
 }
 
 describe("eventsService", () => {
-    test("selectEventTranslation prefers norwegian, then english", () => {
-        const preferredNo = selectEventTranslation(
-            createEvent("1", {
-                norwegianTitle: "Norsk tittel",
-                englishTitle: "English title",
-            }).translations,
-        )
-
-        expect(preferredNo?.language).toBe("no")
-        expect(preferredNo?.value.title).toBe("Norsk tittel")
-
-        const fallbackEn = selectEventTranslation(
-            createEvent("2", {
-                norwegianTitle: null,
-                englishTitle: "English only",
-            }).translations,
-        )
-
-        expect(fallbackEn?.language).toBe("en")
-        expect(fallbackEn?.value.title).toBe("English only")
-    })
-
-    test("pickHomeEvents excludes ended events", () => {
+    test("pickHomeEvents excludes events whose first date is in the past", () => {
         const now = new Date("2026-02-20T12:00:00.000Z")
-        const ended = createEvent("ended", {
-            start: new Date("2026-02-20T08:00:00.000Z"),
-            end: new Date("2026-02-20T09:00:00.000Z"),
-        })
-        const active = createEvent("active", {
-            start: new Date("2026-02-20T11:00:00.000Z"),
-            end: new Date("2026-02-20T13:00:00.000Z"),
-        })
+        // Past event: startDate before now
+        const ended = createEvent("ended", { start: new Date("2026-02-19T08:00:00.000Z") })
+        const active = createEvent("active", { start: new Date("2026-02-20T14:00:00.000Z") })
 
         const result = pickHomeEvents([ended, active], { now })
-        expect(result.map(event => event.id)).toEqual(["active"])
+        expect(result.map(e => e._id)).toEqual(["active"])
     })
 
-    test("pickHomeEvents returns at most 5 upcoming events", () => {
+    test("pickHomeEvents returns at most 5 events", () => {
         const base = new Date("2026-02-20T12:00:00.000Z")
-        const events = Array.from({ length: 7 }, (_, index) =>
-            createEvent(String(index + 1), {
-                start: new Date(base.getTime() + index * 60 * 60 * 1000),
-                end: new Date(base.getTime() + (index + 1) * 60 * 60 * 1000),
+        const events = Array.from({ length: 7 }, (_, i) =>
+            createEvent(String(i + 1), {
+                start: new Date(base.getTime() + i * 60 * 60 * 1000),
             }),
         )
 
         const result = pickHomeEvents(events, { now: base })
         expect(result).toHaveLength(5)
-        expect(result.map(event => event.id)).toEqual(["1", "2", "3", "4", "5"])
     })
 
-    test("splitHomeEventsByTaxonomy groups by backend taxonomy order", () => {
-        const internal = createEvent("internal", {
-            eventTypeSlug: "internarrangement",
-            eventTypeName: "Internarrangement",
-            taxonomyGroup: "Organisasjon",
-        })
-        internal.is_internal = true
-
+    test("deriveTaxonomyFromEvents groups event types by taxonomy group", () => {
         const music = createEvent("music", {
-            eventTypeSlug: "konsert",
+            eventTypeId: "konsert",
             eventTypeName: "Konsert",
             taxonomyGroup: "Musikk",
         })
-        const academic = createEvent("academic", {
-            eventTypeSlug: "debatt",
+        const debate = createEvent("debate", {
+            eventTypeId: "debatt",
             eventTypeName: "Debatt",
             taxonomyGroup: "Faglig",
         })
-        const fallback = createEvent("fallback", {
-            eventTypeSlug: "unknown",
-            eventTypeName: "Unknown",
-            taxonomyGroup: "Annet",
+        const organizedEvent = createEvent("org", {
+            eventTypeId: "møte",
+            eventTypeName: "Møte",
+            taxonomyGroup: "Faglig",
+            organizerGroupId: "styret",
         })
 
-        const result = splitHomeEventsByTaxonomy(
-            [internal, academic, fallback, music],
-            {
-                event_type_groups: [
-                    {
-                        name: "Musikk",
-                        event_types: [],
-                    },
-                    {
-                        name: "Faglig",
-                        event_types: [],
-                    },
-                    {
-                        name: "Annet",
-                        event_types: [],
-                    },
-                ],
-                organizer_groups: [],
-                rooms: [],
-            },
-            "en",
-        )
+        const taxonomy = deriveTaxonomyFromEvents([music, debate, organizedEvent])
 
-        expect(result.internal.map(event => event.id)).toEqual(["internal"])
-        expect(result.taxonomyGroups.map(group => group.title)).toEqual([
-            "Music",
-            "Talks and debates",
-            "Other events",
-        ])
-        expect(result.taxonomyGroups.map(group => group.events.map(event => event.id))).toEqual([
-            ["music"],
-            ["academic"],
-            ["fallback"],
-        ])
+        const groupNames = taxonomy.taxonomyGroups.map(g => g.name)
+        expect(groupNames).toContain("Musikk")
+        expect(groupNames).toContain("Faglig")
+
+        const faglig = taxonomy.taxonomyGroups.find(g => g.name === "Faglig")
+        expect(faglig?.eventTypes.map(t => t._id).sort()).toEqual(["debatt", "møte"].sort())
+
+        expect(taxonomy.organizerGroups.map(g => g._id)).toEqual(["styret"])
     })
 
-    test("filterEvents applies taxonomy, event type, and organizer filters", () => {
-        const music = createEvent("music", {
-            eventTypeSlug: "konsert",
-            organizerGroupId: "asf",
-            taxonomyGroup: "Musikk",
-        })
-        const debate = createEvent("debate", {
-            eventTypeSlug: "debatt",
-            organizerGroupId: "debatt",
-            taxonomyGroup: "Faglig",
-        })
+    test("deriveTaxonomyFromEvents orders taxonomy groups per TAXONOMY_GROUP_ORDER", () => {
+        const social = createEvent("s", { eventTypeId: "fest", taxonomyGroup: "Sosialt" })
+        const music = createEvent("m", { eventTypeId: "konsert", taxonomyGroup: "Musikk" })
+        const other = createEvent("o", { eventTypeId: "annet", taxonomyGroup: "Annet" })
+
+        const taxonomy = deriveTaxonomyFromEvents([social, other, music])
+        const names = taxonomy.taxonomyGroups.map(g => g.name)
+
+        // Musikk (index 0) should appear before Sosialt (index 3), Annet is fallback last
+        expect(names.indexOf("Musikk")).toBeLessThan(names.indexOf("Sosialt"))
+        expect(names.indexOf("Sosialt")).toBeLessThan(names.indexOf("Annet"))
+    })
+
+    test("filterEvents applies taxonomy group filter", () => {
+        const music = createEvent("music", { eventTypeId: "konsert", taxonomyGroup: "Musikk" })
+        const debate = createEvent("debate", { eventTypeId: "debatt", taxonomyGroup: "Faglig" })
 
         expect(
             filterEvents([music, debate], {
                 ...createEmptyEventFilterState(),
                 taxonomyGroup: "Musikk",
-            }).map(event => event.id),
+            }).map(e => e._id),
         ).toEqual(["music"])
+    })
+
+    test("filterEvents applies event type id filter", () => {
+        const music = createEvent("music", { eventTypeId: "konsert" })
+        const debate = createEvent("debate", { eventTypeId: "debatt" })
+
         expect(
             filterEvents([music, debate], {
                 ...createEmptyEventFilterState(),
                 eventTypeIds: ["debatt"],
-            }).map(event => event.id),
+            }).map(e => e._id),
         ).toEqual(["debate"])
+    })
+
+    test("filterEvents applies organizer group id filter", () => {
+        const music = createEvent("music", { organizerGroupId: "asf" })
+        const debate = createEvent("debate", { organizerGroupId: "debatt-klubben" })
+
         expect(
             filterEvents([music, debate], {
                 ...createEmptyEventFilterState(),
                 organizerGroupIds: ["asf"],
-            }).map(event => event.id),
+            }).map(e => e._id),
         ).toEqual(["music"])
     })
 
@@ -261,35 +202,85 @@ describe("eventsService", () => {
         expect(parsePersistedEventFilterState(null)).toBeNull()
     })
 
-    test("buildEventFeedSections selects all featured, today, soon, and remaining events", () => {
-        const now = new Date("2026-04-22T10:00:00.000Z")
-        const featuredSoon = createEvent("featured-soon", {
-            featured: true,
-            start: new Date("2026-04-23T18:00:00.000Z"),
-        })
-        const featuredLater = createEvent("featured-later", {
-            featured: true,
-            start: new Date("2026-05-10T18:00:00.000Z"),
-        })
-        const today = createEvent("today", {
-            start: new Date("2026-04-22T18:00:00.000Z"),
-        })
-        const soon = createEvent("soon", {
-            start: new Date("2026-04-28T18:00:00.000Z"),
-        })
-        const later = createEvent("later", {
-            start: new Date("2026-05-08T18:00:00.000Z"),
+    test("buildEventFeedSections maps events preserving order", () => {
+        const a = createEvent("a")
+        const b = createEvent("b")
+        const c = createEvent("c")
+
+        const result = buildEventFeedSections([a, b, c])
+
+        expect(result.rest.map(entry => entry.event._id)).toEqual(["a", "b", "c"])
+    })
+
+    test("buildEventFeedSections puts extra dates from dates array into upcomingDates", () => {
+        const quiz = createEvent("quiz", {
+            start: new Date("2026-05-01T18:00:00.000Z"),
+            extraDates: [
+                new Date("2026-05-08T18:00:00.000Z"),
+                new Date("2026-05-15T18:00:00.000Z"),
+            ],
         })
 
-        const result = buildEventFeedSections(
-            [later, soon, featuredSoon, featuredLater, today],
-            now,
-            () => 0,
-        )
+        const result = buildEventFeedSections([quiz])
 
-        expect(result.featured.map(event => event.id)).toEqual(["featured-later", "featured-soon"])
-        expect(result.today.map(event => event.id)).toEqual(["today"])
-        expect(result.soon.map(event => event.id)).toEqual(["soon"])
-        expect(result.rest.map(event => event.id)).toEqual(["later"])
+        expect(result.rest).toHaveLength(1)
+        expect(result.rest[0]!.upcomingDates).toHaveLength(2)
+    })
+
+    test("buildUpcomingDateChips formats first two dates and counts the rest", () => {
+        const d1 = new Date("2026-05-05T18:00:00.000Z")
+        const d2 = new Date("2026-05-12T18:00:00.000Z")
+        const d3 = new Date("2026-05-19T18:00:00.000Z")
+        const d4 = new Date("2026-05-26T18:00:00.000Z")
+
+        expect(buildUpcomingDateChips([])).toEqual([])
+        expect(buildUpcomingDateChips([d1])).toHaveLength(1)
+        expect(buildUpcomingDateChips([d1, d2])).toHaveLength(2)
+        expect(buildUpcomingDateChips([d1, d2, d3])).toEqual([
+            expect.stringMatching(/\d+\. /),
+            expect.stringMatching(/\d+\. /),
+            "+1",
+        ])
+        expect(buildUpcomingDateChips([d1, d2, d3, d4])).toContain("+2")
+    })
+
+    test("buildUpcomingDateChips caps overflow badge at 9+", () => {
+        const dates = Array.from({ length: 12 }, (_, i) => new Date(2026, 4, i + 1))
+        const chips = buildUpcomingDateChips(dates)
+        expect(chips[chips.length - 1]).toBe("9+")
+    })
+
+    test("buildEventFeedSections expands rrule from past anchor into future upcomingDates", () => {
+        // Anchor date is well in the past; rrule is weekly on Tuesdays.
+        // expandRruleUpcomingDates must produce future dates regardless.
+        const weekly: KvarteretEventDocument = {
+            ...createEvent("weekly"),
+            dates: [{ _key: "d1", startDate: "2024-01-09", startTime: "19:00", endTime: "22:00" }],
+            isRecurring: true,
+            rrule: "FREQ=WEEKLY;BYDAY=TU",
+        }
+
+        const result = buildEventFeedSections([weekly])
+
+        expect(result.rest[0]!.upcomingDates.length).toBeGreaterThan(0)
+        // All returned dates must be in the future
+        const now = new Date()
+        for (const d of result.rest[0]!.upcomingDates) {
+            expect(d.getTime()).toBeGreaterThan(now.getTime())
+        }
+    })
+
+    test("pickHomeEvents includes recurring events even when anchor date is in the past", () => {
+        const now = new Date("2026-05-10T12:00:00.000Z")
+        const recurring: KvarteretEventDocument = {
+            ...createEvent("weekly"),
+            dates: [{ _key: "d1", startDate: "2024-01-09", startTime: "19:00", endTime: null }],
+            isRecurring: true,
+            rrule: "FREQ=WEEKLY;BYDAY=TU",
+        }
+
+        const result = pickHomeEvents([recurring], { now })
+
+        expect(result.map(e => e._id)).toContain("weekly")
     })
 })

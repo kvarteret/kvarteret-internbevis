@@ -130,7 +130,8 @@ const RootNavigator = (): React.JSX.Element => {
             />
             <Stack.Screen name="privacy" />
             <Stack.Screen name="about" />
-            <Stack.Screen name="games" />
+            <Stack.Screen name="feedback" />
+            <Stack.Screen name="benefits" />
             <Stack.Screen name="nerd-stats" />
             <Stack.Screen
                 name="event/[eventId]"

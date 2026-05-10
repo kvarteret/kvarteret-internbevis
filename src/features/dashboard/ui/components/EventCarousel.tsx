@@ -15,6 +15,7 @@ interface EventCarouselProps {
     onRetry: () => Promise<unknown>
     onEventPress: (eventId: string) => void
     showTitle?: boolean
+    title?: string
     emptyText?: string
     cardLayout?: EventCardProps["layout"]
 }
@@ -30,6 +31,7 @@ export const EventCarousel = ({
     onRetry,
     onEventPress,
     showTitle = true,
+    title,
     emptyText,
     cardLayout = "carousel",
 }: EventCarouselProps): React.JSX.Element => {
@@ -84,7 +86,7 @@ export const EventCarousel = ({
                 ItemSeparatorComponent={() => <View className="w-3" />}
                 contentContainerClassName="px-0.5"
                 data={events}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item._id}
                 renderItem={renderItem}
                 showsHorizontalScrollIndicator={false}
                 snapToAlignment="start"
@@ -96,7 +98,9 @@ export const EventCarousel = ({
 
     return (
         <View className="w-full gap-2.5">
-            {showTitle ? <Text className="text-lg font-bold">{t("homeEventsTitle")}</Text> : null}
+            {showTitle ? (
+                <Text className="text-lg font-bold">{title ?? t("homeEventsTitle")}</Text>
+            ) : null}
             {content}
         </View>
     )
