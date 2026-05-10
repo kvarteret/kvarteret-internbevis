@@ -1,40 +1,83 @@
-import type { Timestamp } from "firebase/firestore"
-
-export interface FirestoreEventTranslation {
-    available: boolean
-    title: string
-    description: string | null
-    image_caption: string | null
+export type SanityArrangementDate = {
+    _key: string
+    startDate: string
+    startTime: string | null
+    endTime: string | null
 }
 
-export interface FirestoreEventTranslations {
-    no: FirestoreEventTranslation | null
-    en: FirestoreEventTranslation | null
-}
-
-export interface FirestoreEventImage {
-    url: string
-    __typename: "firestore"
-}
-
-export interface FirestoreEventDocument {
-    id: string
+export type SanityRoom = {
+    _id: string
+    name: string
     slug: string
-    status: "published" | "draft" | "archived"
-    event_start: Timestamp
-    event_end: Timestamp
-    created_at: Timestamp
-    updated_at: Timestamp
-    ticket_url: string | null
-    facebook_url: string | null
-    image: FirestoreEventImage | null
-    organizer: { id: number | null; name: string } | null
-    categories: { id: number; name: string }[]
-    price: string | null
-    translations: FirestoreEventTranslations
 }
 
-export interface EventTranslationSelection {
-    language: "no" | "en"
-    value: FirestoreEventTranslation
+export type SanityOrganizerGroup = {
+    _id: string
+    name: string
+    slug: string
+}
+
+export type SanityTaxonomyGroup = {
+    _id: string
+    name: string
+    slug: string
+}
+
+export type SanityEventType = {
+    _id: string
+    name: string
+    slug: string
+    taxonomyGroup: SanityTaxonomyGroup | null
+}
+
+export type SanityPortableTextMarkDef = {
+    _key: string
+    _type: string
+    href?: string
+    target?: string
+}
+
+export type SanityPortableTextSpan = {
+    _key: string
+    _type: "span"
+    text: string
+    marks: string[]
+}
+
+export type SanityPortableTextBlock = {
+    _key: string
+    _type: "block"
+    style: "normal" | "h1" | "h2" | "h3" | "blockquote"
+    children: SanityPortableTextSpan[]
+    markDefs: SanityPortableTextMarkDef[]
+}
+
+export type SanityArrangement = {
+    _id: string
+    title: string
+    slug: string
+    dates: SanityArrangementDate[]
+    isRecurring: boolean | null
+    rrule: string | null
+    isFree: boolean | null
+    priceOrdinar: number | null
+    priceStudent: number | null
+    priceMedlem: number | null
+    ticketUrl: string | null
+    facebookUrl: string | null
+    imageUrl: string | null
+    imageCaption: string | null
+    room: SanityRoom | null
+    roomText: string | null
+    organizerGroup: SanityOrganizerGroup | null
+    organizerText: string | null
+    eventType: SanityEventType | null
+    description: SanityPortableTextBlock[] | null
+}
+
+export type KvarteretEventDocument = SanityArrangement
+
+export interface EventFeedEntry {
+    event: KvarteretEventDocument
+    upcomingDates: Date[]
 }

@@ -1,12 +1,36 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import React, { useLayoutEffect } from "react"
+import { MaterialIcons } from "@expo/vector-icons"
+import { useHeaderHeight } from "@react-navigation/elements"
+import { useFocusEffect, useRouter } from "expo-router"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Pressable, ScrollView, View } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
-import { RootStackParamList } from "@/app/navigation/types"
-import { COMMON_DICE_TYPES, useGamesScreenVM } from "@/features/games/vm/useGamesScreenVM"
-import { StateSurface } from "@/shared/ui/Surface"
+import { Pressable, ScrollView, useWindowDimensions, View } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
+import {
+    applyDraftChessTimeControl,
+    CHESS_TIME_CONTROL_STORAGE_KEY,
+    ChessTimeControl,
+    ChessTimeControlState,
+    formatChessTimeControl,
+    getDefaultChessTimeControl,
+    isChessTimeControlEqual,
+    isChessTimerPristine,
+    parseStoredChessTimeControl,
+    updateDraftChessTimeControlState,
+} from "@/features/games/domain/chessTimeControl"
+import { useChessTimer } from "@/features/games/vm/useChessTimer"
+import { COMMON_DICE_TYPES, useDiceRoll } from "@/features/games/vm/useDiceRoll"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
+import { Button } from "@/shared/ui/Button"
+import { Card } from "@/shared/ui/Card"
+import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
+import { cn } from "@/shared/utils/cn"
+
+type GameMode = "d6" | "chess"
+type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"]
+
+const DEFAULT_CHESS_TIME_CONTROL = getDefaultChessTimeControl()
 
 const formatClock = (milliseconds: number): string => {
     const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000))
@@ -18,108 +42,324 @@ const formatClock = (milliseconds: number): string => {
 const getWinnerLabelKey = (winner: "white" | "black"): "chessWhite" | "chessBlack" =>
     winner === "white" ? "chessWhite" : "chessBlack"
 
-const getClockCardClass = (
-    isActivePlayer: boolean,
-    isRunning: boolean,
-    hasWinner: boolean,
-): string => {
-    if (!isActivePlayer || hasWinner) {
-        return "rounded-xl border border-border bg-surface-muted p-3.5"
-    }
-
-    if (isRunning) {
-        return "rounded-xl border border-state-danger bg-state-danger p-3.5"
-    }
-
-    return "rounded-xl border border-state-danger bg-[#AA000073] p-3.5"
+interface ClockCardProps {
+    accessibilityLabel: string
+    backgroundColor: string
+    borderColor: string
+    disabled?: boolean
+    fontSize: number
+    fill?: boolean
+    inverted?: boolean
+    onPress: () => void
+    timeMs: number
+    textColor: string
+    height?: number
+    hasWinner: boolean
 }
 
-export const GamesScreen = ({
-    navigation,
-}: NativeStackScreenProps<RootStackParamList, "Games">): React.JSX.Element => {
+const ClockCard = ({
+    accessibilityLabel,
+    backgroundColor,
+    borderColor,
+    disabled = false,
+    fontSize,
+    fill = false,
+    inverted = false,
+    onPress,
+    timeMs,
+    textColor,
+    height,
+    hasWinner,
+}: ClockCardProps): React.JSX.Element => {
+    return (
+        <Pressable
+            accessibilityLabel={accessibilityLabel}
+            accessibilityRole="button"
+            accessibilityState={{ disabled }}
+            className={fill ? "flex-1" : undefined}
+            disabled={disabled}
+            onPress={onPress}
+        >
+            {({ pressed }) => (
+                <View
+                    className={cn(
+                        "w-full items-center justify-center rounded-[32px]",
+                        fill ? "flex-1" : null,
+                    )}
+                    style={{
+                        backgroundColor,
+                        borderColor,
+                        borderWidth: 1.5,
+                        boxShadow: "0 8px 22px rgba(0, 0, 0, 0.12)",
+                        height,
+                        opacity: hasWinner ? 0.62 : pressed && !disabled ? 0.92 : 1,
+                    }}
+                >
+                    <View style={inverted ? { transform: [{ rotate: "180deg" }] } : undefined}>
+                        <Text
+                            className="font-medium"
+                            style={{
+                                color: textColor,
+                                fontSize,
+                                fontVariant: ["tabular-nums"],
+                                lineHeight: fontSize * 1.05,
+                            }}
+                        >
+                            {formatClock(timeMs)}
+                        </Text>
+                    </View>
+                </View>
+            )}
+        </Pressable>
+    )
+}
+
+interface ChessControlButtonProps {
+    accessibilityLabel: string
+    iconColor: string
+    iconName: MaterialIconName
+    onPress: () => void
+}
+
+const ChessControlButton = ({
+    accessibilityLabel,
+    iconColor,
+    iconName,
+    onPress,
+}: ChessControlButtonProps): React.JSX.Element => (
+    <Pressable
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+        hitSlop={8}
+        onPress={onPress}
+        style={({ pressed }) => ({
+            opacity: pressed ? 0.65 : 1,
+            transform: [{ scale: pressed ? 0.94 : 1 }],
+        })}
+    >
+        <View className="h-12 w-12 items-center justify-center">
+            <MaterialIcons color={iconColor} name={iconName} size={30} />
+        </View>
+    </Pressable>
+)
+
+interface GameModeTabsProps {
+    mode: GameMode
+    onSelectMode: (mode: GameMode) => void
+    tabs: Array<{ label: string; mode: GameMode }>
+    width: number
+}
+
+const GameModeTabs = ({
+    mode,
+    onSelectMode,
+    tabs,
+    width,
+}: GameModeTabsProps): React.JSX.Element => (
+    <View
+        className="rounded-xl border border-editorial-border bg-text-primary/5 p-1"
+        style={{ width }}
+    >
+        <View className="flex-row rounded-lg">
+            {tabs.map(tab => {
+                const isSelected = tab.mode === mode
+                return (
+                    <Pressable
+                        key={tab.mode}
+                        className={cn(
+                            "flex-1 rounded-lg px-3 py-2",
+                            isSelected ? "bg-editorial-surface" : "bg-transparent",
+                        )}
+                        onPress={() => onSelectMode(tab.mode)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
+                    >
+                        <Text
+                            className={cn(
+                                "text-center text-sm font-semibold",
+                                isSelected ? null : "text-text-secondary",
+                            )}
+                        >
+                            {tab.label}
+                        </Text>
+                    </Pressable>
+                )
+            })}
+        </View>
+    </View>
+)
+
+export const GamesScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
-    const { state, actions } = useGamesScreenVM()
+    const router = useRouter()
+    const headerHeight = useHeaderHeight()
+    const { top: safeTop } = useSafeAreaInsets()
+    const { width: windowWidth } = useWindowDimensions()
+    const { stateDanger, surface, surfaceMuted, textPrimary, textSecondary } =
+        useThemeRuntimeColors()
 
-    useLayoutEffect(() => {
-        navigation.setOptions({ title: t("gamesTitle") })
-    }, [navigation, t])
+    const [mode, setMode] = useState<GameMode>("chess")
+    const { selectedDiceType, diceValue, diceRollCount, isRolling, selectDiceType, rollDice } =
+        useDiceRoll()
+    const [timeControlState, setTimeControlState] = useState<ChessTimeControlState>({
+        appliedTimeControl: DEFAULT_CHESS_TIME_CONTROL,
+        draftTimeControl: DEFAULT_CHESS_TIME_CONTROL,
+    })
+    const [hasHydratedTimeControl, setHasHydratedTimeControl] = useState(false)
 
-    const winnerLabel = state.timerState.winner
-        ? t("chessWinner", { winner: t(getWinnerLabelKey(state.timerState.winner)) })
+    const { timerState, toggleTimer, resetChessTimer, pressCurrentPlayer } = useChessTimer(
+        timeControlState.appliedTimeControl,
+    )
+    const timerStateRef = useRef(timerState)
+
+    useEffect(() => {
+        timerStateRef.current = timerState
+    }, [timerState])
+
+    const syncStoredTimeControl = useCallback((storedTimeControl: ChessTimeControl): void => {
+        setTimeControlState(currentState => {
+            if (isChessTimeControlEqual(currentState.draftTimeControl, storedTimeControl)) {
+                return currentState
+            }
+
+            return updateDraftChessTimeControlState(
+                currentState,
+                timerStateRef.current,
+                storedTimeControl,
+            )
+        })
+    }, [])
+
+    useFocusEffect(
+        useCallback(() => {
+            let isMounted = true
+
+            const hydrateTimeControl = async (): Promise<void> => {
+                try {
+                    const storedTimeControl = parseStoredChessTimeControl(
+                        await getStoredJson<unknown>(CHESS_TIME_CONTROL_STORAGE_KEY),
+                    )
+
+                    if (storedTimeControl && isMounted) {
+                        syncStoredTimeControl(storedTimeControl)
+                    }
+                } catch {
+                    // Fall back to the current in-memory time control if local storage is unavailable.
+                } finally {
+                    if (isMounted) {
+                        setHasHydratedTimeControl(true)
+                    }
+                }
+            }
+
+            void hydrateTimeControl()
+
+            return () => {
+                isMounted = false
+            }
+        }, [syncStoredTimeControl]),
+    )
+
+    useEffect(() => {
+        if (!hasHydratedTimeControl) {
+            return
+        }
+
+        void setStoredJson(CHESS_TIME_CONTROL_STORAGE_KEY, timeControlState.draftTimeControl)
+    }, [hasHydratedTimeControl, timeControlState.draftTimeControl])
+
+    const winnerLabel = timerState.winner
+        ? t("chessWinner", { winner: t(getWinnerLabelKey(timerState.winner)) })
         : null
 
+    const tabs = [
+        { mode: "chess" as const, label: t("gamesChessTimer") },
+        { mode: "d6" as const, label: t("gamesDice") },
+    ]
+
+    const timerIsPristine = isChessTimerPristine(timerState, timeControlState.appliedTimeControl)
+    const hasPendingTimeControl = !isChessTimeControlEqual(
+        timeControlState.appliedTimeControl,
+        timeControlState.draftTimeControl,
+    )
+    const timerFontSize = Math.max(72, Math.min(108, windowWidth * 0.22))
+    const controlAccentColor = hasPendingTimeControl ? stateDanger : textSecondary
+    const blackTimerActive = timerState.activePlayer === "black"
+    const whiteTimerActive = timerState.activePlayer === "white"
+    const inactiveTimerBorderColor = "rgba(0, 0, 0, 0.1)"
+    const pausedActiveTimerColor = "rgba(170, 0, 0, 0.38)"
+    const blackTimerBackgroundColor = blackTimerActive
+        ? timerState.isRunning
+            ? stateDanger
+            : pausedActiveTimerColor
+        : surfaceMuted
+    const whiteTimerBackgroundColor = whiteTimerActive
+        ? timerState.isRunning
+            ? stateDanger
+            : pausedActiveTimerColor
+        : surface
+    const blackTimerTextColor = blackTimerActive ? surface : textPrimary
+    const whiteTimerTextColor = whiteTimerActive ? surface : textPrimary
+    const blackTimerBorderColor = blackTimerActive ? stateDanger : inactiveTimerBorderColor
+    const whiteTimerBorderColor = whiteTimerActive ? stateDanger : inactiveTimerBorderColor
+    const effectiveTop = Math.max(headerHeight, safeTop)
+    const inlineTabsWidth = Math.min(Math.max(windowWidth - 48, 220), 320)
+
+    const handleOpenTimeControl = useCallback((): void => {
+        router.push("/chess-time-control")
+    }, [router])
+
+    const handleReset = useCallback((): void => {
+        if (hasPendingTimeControl) {
+            setTimeControlState(currentState => applyDraftChessTimeControl(currentState))
+            return
+        }
+
+        resetChessTimer()
+    }, [hasPendingTimeControl, resetChessTimer])
+
     return (
-        <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
-            <ScrollView className="flex-1" contentContainerClassName="flex-grow gap-4 p-4">
-                <View className="flex-row gap-2.5">
-                    <Pressable
-                        className={[
-                            "flex-1 items-center justify-center rounded-xl border px-3 py-3",
-                            state.mode === "d6"
-                                ? "border-text-primary bg-text-primary"
-                                : "border-border bg-surface",
-                        ].join(" ")}
-                        onPress={() => actions.setMode("d6")}
-                    >
-                        <Text
-                            className={
-                                state.mode === "d6"
-                                    ? "text-[15px] text-surface font-semibold"
-                                    : "text-[15px] text-text-primary font-semibold"
-                            }
-                        >
-                            {t("gamesDice")}
-                        </Text>
-                    </Pressable>
-
-                    <Pressable
-                        className={[
-                            "flex-1 items-center justify-center rounded-xl border px-3 py-3",
-                            state.mode === "chess"
-                                ? "border-text-primary bg-text-primary"
-                                : "border-border bg-surface",
-                        ].join(" ")}
-                        onPress={() => actions.setMode("chess")}
-                    >
-                        <Text
-                            className={
-                                state.mode === "chess"
-                                    ? "text-[15px] text-surface font-semibold"
-                                    : "text-[15px] text-text-primary font-semibold"
-                            }
-                        >
-                            {t("gamesChessTimer")}
-                        </Text>
-                    </Pressable>
-                </View>
-
-                {state.mode === "d6" ? (
-                    <StateSurface>
-                        <Text className="text-2xl font-bold">{t("gamesDice")}</Text>
+        <View className="flex-1 bg-background">
+            <View className="items-center px-4 pb-1" style={{ paddingTop: effectiveTop + 8 }}>
+                <GameModeTabs
+                    mode={mode}
+                    onSelectMode={setMode}
+                    tabs={tabs}
+                    width={inlineTabsWidth}
+                />
+            </View>
+            {mode === "d6" ? (
+                <ScrollView
+                    className="flex-1"
+                    contentContainerClassName="flex-grow gap-4 p-4"
+                    contentInsetAdjustmentBehavior="automatic"
+                >
+                    <Card className="gap-4 p-4" effect="liquid" variant="grouped">
                         <View className="gap-2">
                             <Text className="text-sm text-text-secondary font-semibold">
                                 {t("gamesSelectDie")}
                             </Text>
                             <View className="flex-row flex-wrap gap-2">
                                 {COMMON_DICE_TYPES.map(diceType => {
-                                    const selected = diceType === state.selectedDiceType
+                                    const selected = diceType === selectedDiceType
                                     return (
                                         <Pressable
                                             key={diceType}
-                                            className={[
-                                                "rounded-lg border px-3 py-2",
-                                                selected
-                                                    ? "border-text-primary bg-text-primary"
-                                                    : "border-border bg-surface",
-                                            ].join(" ")}
-                                            onPress={() => actions.setSelectedDiceType(diceType)}
+                                            className={cn(
+                                                "rounded-full px-3 py-2",
+                                                selected ? "bg-text-primary" : "bg-surface/80",
+                                                isRolling && "opacity-70",
+                                            )}
+                                            disabled={isRolling}
+                                            onPress={() => {
+                                                selectDiceType(diceType)
+                                            }}
                                         >
                                             <Text
-                                                className={
-                                                    selected
-                                                        ? "text-sm text-surface font-semibold"
-                                                        : "text-sm text-text-primary font-semibold"
-                                                }
+                                                className={cn(
+                                                    "text-sm font-semibold",
+                                                    selected ? "text-surface" : null,
+                                                )}
                                             >
                                                 {`d${diceType}`}
                                             </Text>
@@ -128,117 +368,127 @@ export const GamesScreen = ({
                                 })}
                             </View>
                         </View>
-                        <Text className="text-center text-7xl font-bold">{state.diceValue}</Text>
-                        <Text className="text-center text-sm text-text-secondary">
-                            {t("gamesDiceRolls", { count: state.diceRollCount })}
-                        </Text>
-
-                        <Pressable
-                            className="items-center rounded-xl border border-text-primary bg-text-primary py-3"
-                            onPress={actions.rollDice}
+                        <Card
+                            className="items-center gap-1 py-6"
+                            effect="liquid"
+                            variant="elevated"
                         >
-                            <Text className="text-base text-surface font-bold">
-                                {t("gamesRollDie", { die: `d${state.selectedDiceType}` })}
+                            <Text className="text-center text-7xl font-bold">{diceValue}</Text>
+                            <Text className="text-center text-sm text-text-secondary">
+                                {t("gamesDiceRolls", { count: diceRollCount })}
                             </Text>
-                        </Pressable>
-                    </StateSurface>
-                ) : (
-                    <StateSurface>
-                        <Text className="text-2xl font-bold">{t("gamesChessTimer")}</Text>
+                        </Card>
 
-                        <Pressable className="gap-3" onPress={actions.pressCurrentPlayer}>
-                            <View className="flex-row items-center justify-between">
-                                <Text className="text-base text-text-secondary font-semibold">
-                                    {t("chessTimeControl")}
-                                </Text>
-                                <Text className="text-base text-text-secondary font-semibold">
-                                    {t("chessMoves", { count: state.timerState.moveCount })}
-                                </Text>
+                        <Button onPress={rollDice}>
+                            <Text className="text-base leading-5 font-semibold text-surface">
+                                {t("gamesRollDie", { die: `d${selectedDiceType}` })}
+                            </Text>
+                        </Button>
+                    </Card>
+                    <EtjenestenFooter />
+                </ScrollView>
+            ) : (
+                <View className="flex-1 gap-4 px-4 pb-4 pt-2">
+                    <View className="flex-1 gap-5 px-1 py-2">
+                        <View className="flex-1">
+                            <ClockCard
+                                accessibilityLabel={t("chessBlack")}
+                                backgroundColor={blackTimerBackgroundColor}
+                                borderColor={blackTimerBorderColor}
+                                disabled={!blackTimerActive || Boolean(timerState.winner)}
+                                fill
+                                fontSize={timerFontSize}
+                                hasWinner={Boolean(timerState.winner)}
+                                inverted
+                                onPress={pressCurrentPlayer}
+                                textColor={blackTimerTextColor}
+                                timeMs={timerState.blackMs}
+                            />
+                        </View>
+
+                        <View className="items-center gap-2 py-1">
+                            <View className="flex-row items-center justify-center gap-4">
+                                <ChessControlButton
+                                    accessibilityLabel={
+                                        timerState.isRunning ? t("chessPause") : t("chessStart")
+                                    }
+                                    iconColor={textPrimary}
+                                    iconName={timerState.isRunning ? "pause" : "play-arrow"}
+                                    onPress={toggleTimer}
+                                />
+
+                                <ChessControlButton
+                                    accessibilityLabel={t("chessReset")}
+                                    iconColor={controlAccentColor}
+                                    iconName="sync"
+                                    onPress={handleReset}
+                                />
+
+                                <ChessControlButton
+                                    accessibilityLabel={`${t("chessTimeControlPickerTitle")}: ${formatChessTimeControl(timeControlState.draftTimeControl)}`}
+                                    iconColor={controlAccentColor}
+                                    iconName="settings"
+                                    onPress={handleOpenTimeControl}
+                                />
+
+                                <View
+                                    accessibilityLabel={t("chessMoves", {
+                                        count: timerState.moveCount,
+                                    })}
+                                    accessible
+                                    className="h-12 items-center justify-center"
+                                >
+                                    <Text
+                                        className="text-3xl font-medium"
+                                        style={{
+                                            color: textSecondary,
+                                            fontVariant: ["tabular-nums"],
+                                            minWidth: 28,
+                                            textAlign: "center",
+                                            transform: [{ rotate: "90deg" }],
+                                        }}
+                                    >
+                                        {timerState.moveCount}
+                                    </Text>
+                                </View>
                             </View>
 
-                            <View
-                                className={getClockCardClass(
-                                    state.timerState.activePlayer === "white",
-                                    state.timerState.isRunning,
-                                    Boolean(state.timerState.winner),
-                                )}
-                            >
+                            {hasPendingTimeControl && !timerIsPristine ? (
                                 <Text
-                                    className={
-                                        state.timerState.activePlayer === "white"
-                                            ? "mb-1.5 text-sm text-surface font-semibold"
-                                            : "mb-1.5 text-sm text-text-secondary font-semibold"
-                                    }
+                                    className="text-center text-xs font-medium"
+                                    style={{ color: textSecondary }}
                                 >
-                                    {t("chessWhite")}
+                                    {t("chessPendingTimeControl")}
                                 </Text>
-                                <Text
-                                    className={
-                                        state.timerState.activePlayer === "white"
-                                            ? "text-5xl text-surface font-bold"
-                                            : "text-5xl text-text-primary font-bold"
-                                    }
-                                >
-                                    {formatClock(state.timerState.whiteMs)}
-                                </Text>
-                            </View>
-
-                            <View
-                                className={getClockCardClass(
-                                    state.timerState.activePlayer === "black",
-                                    state.timerState.isRunning,
-                                    Boolean(state.timerState.winner),
-                                )}
-                            >
-                                <Text
-                                    className={
-                                        state.timerState.activePlayer === "black"
-                                            ? "mb-1.5 text-sm text-surface font-semibold"
-                                            : "mb-1.5 text-sm text-text-secondary font-semibold"
-                                    }
-                                >
-                                    {t("chessBlack")}
-                                </Text>
-                                <Text
-                                    className={
-                                        state.timerState.activePlayer === "black"
-                                            ? "text-5xl text-surface font-bold"
-                                            : "text-5xl text-text-primary font-bold"
-                                    }
-                                >
-                                    {formatClock(state.timerState.blackMs)}
-                                </Text>
-                            </View>
+                            ) : null}
 
                             {winnerLabel ? (
-                                <Text className="text-base text-[#0F766E] font-bold">
+                                <Text
+                                    className="text-sm font-semibold"
+                                    style={{ color: stateDanger }}
+                                >
                                     {winnerLabel}
                                 </Text>
                             ) : null}
-                        </Pressable>
-
-                        <View className="mt-1 gap-2.5">
-                            <Pressable
-                                className="items-center rounded-xl border border-text-primary bg-text-primary py-3"
-                                onPress={actions.toggleTimer}
-                            >
-                                <Text className="text-base text-surface font-bold">
-                                    {state.timerState.isRunning ? t("chessPause") : t("chessStart")}
-                                </Text>
-                            </Pressable>
-
-                            <Pressable
-                                className="items-center rounded-xl border border-border bg-surface py-3"
-                                onPress={actions.resetTimer}
-                            >
-                                <Text className="text-base text-text-primary font-semibold">
-                                    {t("chessReset")}
-                                </Text>
-                            </Pressable>
                         </View>
-                    </StateSurface>
-                )}
-            </ScrollView>
-        </SafeAreaView>
+
+                        <View className="flex-1">
+                            <ClockCard
+                                accessibilityLabel={t("chessWhite")}
+                                backgroundColor={whiteTimerBackgroundColor}
+                                borderColor={whiteTimerBorderColor}
+                                disabled={!whiteTimerActive || Boolean(timerState.winner)}
+                                fill
+                                fontSize={timerFontSize}
+                                hasWinner={Boolean(timerState.winner)}
+                                onPress={pressCurrentPlayer}
+                                textColor={whiteTimerTextColor}
+                                timeMs={timerState.whiteMs}
+                            />
+                        </View>
+                    </View>
+                </View>
+            )}
+        </View>
     )
 }

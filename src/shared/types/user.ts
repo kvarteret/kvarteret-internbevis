@@ -5,6 +5,15 @@ export interface InternKortVerv {
     gruppe: string
     signertKontrakt: boolean
     rabattTrinn: RabattTrinn
+    pingvinPoeng: number
+}
+
+export interface InternKortVervHistorikk extends InternKortVerv {
+    startet: string | null
+    sluttet: string | null
+    ar: number | null
+    semester: string | null
+    aktiv: boolean
 }
 
 export interface User {
@@ -17,6 +26,7 @@ export interface User {
     bildeUrl?: string
     pingvinPoengSum: number
     aktiveVerv: InternKortVerv[]
+    vervHistorikk: InternKortVervHistorikk[]
     dagensOrd: string
 }
 
@@ -38,34 +48,29 @@ const cloneVerv = (verv: InternKortVerv): InternKortVerv => ({
     gruppe: verv.gruppe,
     signertKontrakt: verv.signertKontrakt,
     rabattTrinn: verv.rabattTrinn,
+    pingvinPoeng: verv.pingvinPoeng,
+})
+
+const createPingvinRole = (): InternKortVerv => ({
+    navn: "Pingvin",
+    gruppe: "Pingvin Ordenen",
+    signertKontrakt: true,
+    rabattTrinn: 3,
+    pingvinPoeng: Number.MAX_SAFE_INTEGER,
 })
 
 const getHighestTierVervInternal = (user: User): InternKortVerv | null => {
+    // Pingvin should always be treated as highest tier with at least tier 3.
+    if (user.pingvinPoengSum >= 14) {
+        return createPingvinRole()
+    }
+
     const activeVerv = user.aktiveVerv.map(cloneVerv)
 
     let highest: InternKortVerv | null = null
     for (const verv of activeVerv) {
         if (!highest || mapTier(verv.rabattTrinn) > mapTier(highest.rabattTrinn)) {
             highest = cloneVerv(verv)
-        }
-    }
-
-    if (user.pingvinPoengSum >= 14) {
-        if (activeVerv.length === 0) {
-            highest = {
-                navn: "Pingvin",
-                gruppe: "Pingvin Ordenen",
-                signertKontrakt: true,
-                rabattTrinn: 3,
-            }
-        } else if (highest) {
-            if ((highest.rabattTrinn ?? 0) < 3) {
-                highest.rabattTrinn = 3
-            }
-
-            if (!highest.navn.toLowerCase().includes("pingvin")) {
-                highest.navn = `${highest.navn} (Pingvin)`
-            }
         }
     }
 
@@ -95,20 +100,42 @@ export const getHighestTierName = (user: User): string => {
 
 export const createDemoUser = (): User => ({
     id: 0,
-    fornavn: "Bar",
-    etternavn: "Pingvin",
+    fornavn: "Sir Nils Olav",
+    etternavn: "III",
     fodselsdato: new Date(2000, 0, 1),
     opprettet: new Date(),
     gyldigTil: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
     pingvinPoengSum: 42,
     aktiveVerv: [
         {
+            navn: "Utvikler",
+            gruppe: "E-Tjenesten",
+            signertKontrakt: true,
+            rabattTrinn: 3,
+            pingvinPoeng: 12,
+        },
+        {
             navn: "Medlem",
             gruppe: "PR-Etaten",
-            signertKontrakt: true,
+            signertKontrakt: false,
             rabattTrinn: 2,
+            pingvinPoeng: 6,
+        },
+    ],
+    vervHistorikk: [
+        {
+            navn: "Utvikler",
+            gruppe: "E-Tjenesten",
+            signertKontrakt: true,
+            rabattTrinn: 3,
+            pingvinPoeng: 12,
+            startet: null,
+            sluttet: null,
+            ar: new Date().getFullYear(),
+            semester: "Høst",
+            aktiv: true,
         },
     ],
     dagensOrd: "eplepingvin",
-    bildeUrl: "assets/images/demopingvin.png",
+    bildeUrl: "assets/images/nils.jpg",
 })

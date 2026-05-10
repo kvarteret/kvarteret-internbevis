@@ -1,4 +1,5 @@
 import { ZodError } from "zod"
+import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import {
     getSessionValue,
     removeSessionValue,
@@ -7,17 +8,26 @@ import {
 } from "@/core/storage/sessionStorage"
 import { createAuthServiceError, toAuthServiceError } from "@/features/auth/domain/authError"
 import {
-    digitalInternKortRequestSchema,
+    mobileCardSessionRequestSchema,
     parseInternkortInformation,
+    parseMobileCardSession,
 } from "@/features/auth/domain/internkortSchema"
 import { User } from "@/shared/types/user"
 
-const DEFAULT_INTERNKORT_BASE_URL = "https://api.kvarteret.no/api/DigitalInternkort"
+const DEFAULT_INTERNKORT_BASE_URL = "https://personal.kvarteret.no/api/v1/mobile-card"
+const INCLUDE_ROLE_HISTORY_QUERY = "?include_role_history=true"
+const SESSION_CACHE_USER_KEY = "session_cached_user"
+const SESSION_LOGIN_MARKER_KEY = "session_login_marker"
 
 export interface AuthResult {
     success: boolean
     message?: string
     status?: number
+}
+
+export interface SavedLoginMarker {
+    loggedInAt: string
+    userId: number
 }
 
 const getInternkortBaseUrl = (): string => {
@@ -34,12 +44,124 @@ const postAuthJson = async (path: string, body: Record<string, unknown>): Promis
     })
 }
 
+const getAuthJson = async (path: string, sessionToken: string): Promise<Response> => {
+    return fetch(`${getInternkortBaseUrl()}/${path}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${sessionToken}` },
+    })
+}
+
+const mapCachedUser = (payload: unknown): User | null => {
+    if (!payload || typeof payload !== "object") {
+        return null
+    }
+
+    const candidate = payload as Partial<User> & Record<string, unknown>
+    if (typeof candidate.id !== "number") {
+        return null
+    }
+
+    const gyldigTilRaw = candidate.gyldigTil
+    const gyldigTil = new Date(
+        gyldigTilRaw instanceof Date ? gyldigTilRaw.getTime() : String(gyldigTilRaw ?? ""),
+    )
+    if (Number.isNaN(gyldigTil.getTime())) {
+        return null
+    }
+
+    const toOptionalDate = (raw: unknown): Date | null => {
+        if (!raw) {
+            return null
+        }
+
+        const parsed = new Date(raw instanceof Date ? raw.getTime() : String(raw))
+        return Number.isNaN(parsed.getTime()) ? null : parsed
+    }
+
+    const mapCachedRole = (entry: Record<string, unknown>): User["aktiveVerv"][number] => ({
+        navn: typeof entry.navn === "string" ? entry.navn : "",
+        gruppe: typeof entry.gruppe === "string" ? entry.gruppe : "",
+        signertKontrakt: Boolean(entry.signertKontrakt),
+        rabattTrinn:
+            typeof entry.rabattTrinn === "number" && Number.isInteger(entry.rabattTrinn)
+                ? entry.rabattTrinn
+                : null,
+        pingvinPoeng:
+            typeof entry.pingvinPoeng === "number" && Number.isInteger(entry.pingvinPoeng)
+                ? entry.pingvinPoeng
+                : 0,
+    })
+    const cachedActiveRoles = Array.isArray(candidate.aktiveVerv)
+        ? (candidate.aktiveVerv as unknown[])
+        : []
+    const cachedRoleHistory = Array.isArray(candidate.vervHistorikk)
+        ? (candidate.vervHistorikk as unknown[])
+        : []
+
+    return {
+        id: candidate.id,
+        fornavn: typeof candidate.fornavn === "string" ? candidate.fornavn : "",
+        etternavn: typeof candidate.etternavn === "string" ? candidate.etternavn : "",
+        fodselsdato: toOptionalDate(candidate.fodselsdato),
+        opprettet: toOptionalDate(candidate.opprettet),
+        gyldigTil,
+        bildeUrl: typeof candidate.bildeUrl === "string" ? candidate.bildeUrl : undefined,
+        pingvinPoengSum:
+            typeof candidate.pingvinPoengSum === "number" ? candidate.pingvinPoengSum : 0,
+        aktiveVerv: cachedActiveRoles
+            .filter(
+                (entry): entry is Record<string, unknown> =>
+                    Boolean(entry) && typeof entry === "object",
+            )
+            .map(entry => mapCachedRole(entry)),
+        vervHistorikk: cachedRoleHistory
+            .filter(
+                (entry): entry is Record<string, unknown> =>
+                    Boolean(entry) && typeof entry === "object",
+            )
+            .map(entry => ({
+                ...mapCachedRole(entry),
+                startet: typeof entry.startet === "string" ? entry.startet : null,
+                sluttet: typeof entry.sluttet === "string" ? entry.sluttet : null,
+                ar: typeof entry.ar === "number" && Number.isInteger(entry.ar) ? entry.ar : null,
+                semester: typeof entry.semester === "string" ? entry.semester : null,
+                aktiv: Boolean(entry.aktiv),
+            })),
+        dagensOrd: typeof candidate.dagensOrd === "string" ? candidate.dagensOrd : "",
+    }
+}
+
+const readResponseMessage = async (response: Response): Promise<string> => {
+    try {
+        const contentType = response.headers.get("content-type")?.toLowerCase() ?? ""
+        if (contentType.includes("application/json")) {
+            const payload = (await response.json()) as unknown
+            if (payload && typeof payload === "object") {
+                const detail = (payload as { detail?: unknown }).detail
+                if (typeof detail === "string" && detail.trim().length > 0) {
+                    return detail.trim()
+                }
+
+                const message = (payload as { message?: unknown }).message
+                if (typeof message === "string" && message.trim().length > 0) {
+                    return message.trim()
+                }
+            }
+            return ""
+        }
+
+        return (await response.text()).trim()
+    } catch {
+        return ""
+    }
+}
+
 export const requestAccessToken = async (email: string): Promise<boolean> => {
-    const requestBody = digitalInternKortRequestSchema.parse({ email })
+    const requestBody = { email: mobileCardSessionRequestSchema.parse({ email }).email }
 
     let response: Response
     try {
-        response = await postAuthJson("RequestAccessTokenOnEmail", requestBody)
+        response = await postAuthJson("access-codes", requestBody)
     } catch (error) {
         throw createAuthServiceError({
             code: "NETWORK_ERROR",
@@ -48,15 +170,25 @@ export const requestAccessToken = async (email: string): Promise<boolean> => {
         })
     }
 
-    if (response.status === 200) {
+    if (response.status === 200 || response.status === 202) {
         return true
     }
 
-    if (response.status === 404) {
+    const responseText = await readResponseMessage(response)
+
+    if (response.status >= 500) {
         throw createAuthServiceError({
-            code: "EMAIL_NOT_FOUND",
-            message: "Email not found in the database",
-            status: 404,
+            code: "SERVER_ERROR",
+            message: "The server could not send a code right now. Please try again later.",
+            status: response.status,
+        })
+    }
+
+    if (responseText) {
+        throw createAuthServiceError({
+            code: "REQUEST_FAILED",
+            message: responseText,
+            status: response.status,
         })
     }
 
@@ -67,15 +199,21 @@ export const requestAccessToken = async (email: string): Promise<boolean> => {
     })
 }
 
-export const getInternkortInformation = async (
+export const createMobileCardSession = async (
     email: string,
     accessToken: string,
-): Promise<User> => {
-    const requestBody = digitalInternKortRequestSchema.parse({ email, accessToken })
+): Promise<{
+    sessionToken: string
+    user: User
+}> => {
+    const requestBody = mobileCardSessionRequestSchema.parse({ email, accessCode: accessToken })
 
     let response: Response
     try {
-        response = await postAuthJson("GetInternkortInformation", requestBody)
+        response = await postAuthJson(`sessions${INCLUDE_ROLE_HISTORY_QUERY}`, {
+            email: requestBody.email,
+            access_code: requestBody.accessCode,
+        })
     } catch (error) {
         throw createAuthServiceError({
             code: "NETWORK_ERROR",
@@ -99,7 +237,7 @@ export const getInternkortInformation = async (
         }
 
         try {
-            return parseInternkortInformation(payload)
+            return parseMobileCardSession(payload)
         } catch (error) {
             if (error instanceof ZodError) {
                 throw createAuthServiceError({
@@ -119,23 +257,112 @@ export const getInternkortInformation = async (
         }
     }
 
-    if (response.status === 401 || response.status === 404) {
+    if (response.status === 401) {
         throw createAuthServiceError({
             code: "INVALID_AUTH",
-            message: response.status === 401 ? "Invalid or expired access token" : "User not found",
+            message: "Invalid email or access code.",
+            status: response.status,
+        })
+    }
+
+    const responseText = await readResponseMessage(response)
+
+    if (response.status === 429 && responseText) {
+        throw createAuthServiceError({
+            code: "REQUEST_FAILED",
+            message: responseText,
             status: response.status,
         })
     }
 
     throw createAuthServiceError({
-        code: "REQUEST_FAILED",
-        message: `Failed to fetch user information: ${response.status}`,
+        code: response.status >= 500 ? "SERVER_ERROR" : "REQUEST_FAILED",
+        message: responseText || `Failed to create session: ${response.status}`,
+        status: response.status,
+    })
+}
+
+export const getInternkortInformation = async (sessionToken: string): Promise<User> => {
+    let response: Response
+    try {
+        response = await getAuthJson(`me${INCLUDE_ROLE_HISTORY_QUERY}`, sessionToken)
+    } catch (error) {
+        throw createAuthServiceError({
+            code: "NETWORK_ERROR",
+            message: "Network error. Please check your connection and try again.",
+            cause: error,
+        })
+    }
+
+    if (response.status === 200) {
+        let payload: unknown
+
+        try {
+            payload = await response.json()
+        } catch (error) {
+            throw createAuthServiceError({
+                code: "UNEXPECTED_RESPONSE",
+                message: "Server returned an unreadable response.",
+                status: response.status,
+                cause: error,
+            })
+        }
+
+        try {
+            const user = parseInternkortInformation(payload)
+            const renewedSessionToken =
+                response.headers.get("x-mobile-card-session-token")?.trim() ?? ""
+
+            if (renewedSessionToken.length > 0 && renewedSessionToken !== sessionToken) {
+                try {
+                    await saveSessionToken(renewedSessionToken)
+                } catch {
+                    // Keep the current session usable even if renewal persistence fails.
+                }
+            }
+
+            return user
+        } catch (error) {
+            if (error instanceof ZodError) {
+                throw createAuthServiceError({
+                    code: "UNEXPECTED_RESPONSE",
+                    message: "Server response format was invalid.",
+                    status: response.status,
+                    cause: error,
+                })
+            }
+
+            throw createAuthServiceError({
+                code: "UNEXPECTED_RESPONSE",
+                message: "Could not parse server response.",
+                status: response.status,
+                cause: error,
+            })
+        }
+    }
+
+    if (response.status === 401) {
+        throw createAuthServiceError({
+            code: "INVALID_AUTH",
+            message: "Session expired. Please sign in again.",
+            status: response.status,
+        })
+    }
+
+    const responseText = await readResponseMessage(response)
+    throw createAuthServiceError({
+        code: response.status >= 500 ? "SERVER_ERROR" : "REQUEST_FAILED",
+        message: responseText || `Failed to fetch user information: ${response.status}`,
         status: response.status,
     })
 }
 
 export const saveCredentials = async (email: string, accessToken: string): Promise<void> => {
     await setSessionValue(SESSION_STORAGE_KEYS.email, email)
+    await setSessionValue(SESSION_STORAGE_KEYS.accessToken, accessToken)
+}
+
+export const saveSessionToken = async (accessToken: string): Promise<void> => {
     await setSessionValue(SESSION_STORAGE_KEYS.accessToken, accessToken)
 }
 
@@ -156,6 +383,49 @@ export const clearCredentials = async (): Promise<void> => {
         removeSessionValue(SESSION_STORAGE_KEYS.email),
         removeSessionValue(SESSION_STORAGE_KEYS.accessToken),
     ])
+}
+
+export const saveCachedUser = async (user: User): Promise<void> => {
+    await setStoredJson(SESSION_CACHE_USER_KEY, user)
+}
+
+export const getCachedUser = async (): Promise<User | null> => {
+    const cached = await getStoredJson<unknown>(SESSION_CACHE_USER_KEY)
+    return mapCachedUser(cached)
+}
+
+export const clearCachedUser = async (): Promise<void> => {
+    await removeStoredValue(SESSION_CACHE_USER_KEY)
+}
+
+export const saveLoginMarker = async (userId: number): Promise<void> => {
+    await setStoredJson(SESSION_LOGIN_MARKER_KEY, {
+        loggedInAt: new Date().toISOString(),
+        userId,
+    })
+}
+
+export const getSavedLoginMarker = async (): Promise<SavedLoginMarker | null> => {
+    const marker = await getStoredJson<unknown>(SESSION_LOGIN_MARKER_KEY)
+
+    if (!marker || typeof marker !== "object") {
+        return null
+    }
+
+    const candidate = marker as Partial<SavedLoginMarker>
+
+    if (typeof candidate.userId !== "number" || typeof candidate.loggedInAt !== "string") {
+        return null
+    }
+
+    return {
+        loggedInAt: candidate.loggedInAt,
+        userId: candidate.userId,
+    }
+}
+
+export const clearLoginMarker = async (): Promise<void> => {
+    await removeStoredValue(SESSION_LOGIN_MARKER_KEY)
 }
 
 export const saveDeepLinkToken = async (token: string): Promise<void> => {

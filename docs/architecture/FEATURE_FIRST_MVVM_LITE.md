@@ -54,11 +54,31 @@ Use **MVVM pattern** when screen logic is non-trivial:
 
 ### 5) Styling
 
-- Use NativeWind `className`.
-- Prefer semantic tokens (`state-danger`, `state-success`, etc.).
-- Avoid slash opacity utility classes in app code.
+- **Everywhere (`src/shared`, `src/features`, `src/routes`) is Uniwind `className` first.**
+- `style` is an escape hatch only for:
+  - computed runtime values (measured dimensions, animation values, interpolation output)
+  - native-only style APIs not expressible with utility classes
+  - third-party component contracts requiring style objects
+- **Design-system components must expose `className` as the primary styling API.**
+- `global.css` is the only design-token source.
+- Use `useThemeRuntimeColors` when a native prop needs a concrete runtime color value.
+- Prefer inherited defaults from layout shells (`bg-background`, default text from shared `Text`) and only override colors for semantic exceptions.
+- Prefer semantic token classes (`state-danger`, `state-success`, etc.) from `global.css`.
+- Avoid introducing new hard-coded color values outside token source files.
+- For stack/tab screens with native navigation chrome, prefer the first `ScrollView`/`FlatList` with `contentInsetAdjustmentBehavior="automatic"` over route-level `SafeAreaView` wrappers.
+- Treat `SafeAreaView` as exception-only for hidden-header or non-scroll layouts.
 
-### 6) Imports
+### 6) Style exception annotation
+
+When `style` is required, annotate the local constant/block with:
+
+`// Style escape hatch: <reason>`
+
+Examples:
+- `// Style escape hatch: Animated interpolation output`
+- `// Style escape hatch: third-party contentStyle prop`
+
+### 7) Imports
 
 - Prefer alias imports (`@/*`).
 - Avoid deep relative imports (`../../..`) in production code.
@@ -72,6 +92,7 @@ For a new screen or refactor:
 3. Data access is not embedded in presentational shared components.
 4. No cross-feature imports were introduced.
 5. Tests cover new business logic or state transitions.
+6. No new `StyleSheet.create` usage unless explicitly approved as a style exception.
 
 ## 30-day transition target
 

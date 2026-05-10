@@ -1,6 +1,6 @@
-import { MaterialIcons } from "@expo/vector-icons"
 import React, { useEffect, useMemo, useRef } from "react"
-import { Animated, Easing, Image, useWindowDimensions, View } from "react-native"
+import { Animated, Easing, useWindowDimensions, View } from "react-native"
+import { ProfileAvatar } from "@/features/dashboard/ui/components/ProfileAvatar"
 import { Text } from "@/shared/ui/Text"
 
 interface MemberHeaderProps {
@@ -10,11 +10,7 @@ interface MemberHeaderProps {
     lastName: string
     roleGroup: string
     roleTitle: string
-    wordOfTheDay: string
-}
-
-const localImageMap: Record<string, number> = {
-    "assets/images/demopingvin.png": require("@assets/images/demopingvin.png"),
+    wordOfTheDay?: string
 }
 
 export const MemberHeader = ({
@@ -28,7 +24,8 @@ export const MemberHeader = ({
 }: MemberHeaderProps): React.JSX.Element => {
     const { width } = useWindowDimensions()
     const avatarSize = useMemo(() => Math.min(92, Math.max(64, width * 0.22)), [width])
-    const roleText = `${roleGroup} ${roleTitle}`.trim() || "-"
+    const normalizedRoleGroup = roleGroup.trim()
+    const normalizedRoleTitle = roleTitle.trim()
     const displayName = `${firstName} ${lastName}`.trim() || "-"
 
     const scaleAnim = useRef(new Animated.Value(1)).current
@@ -85,9 +82,6 @@ export const MemberHeader = ({
         ]).start()
     }, [animationTrigger, rotationAnim, scaleAnim])
 
-    const localImageSource = imageUrl ? localImageMap[imageUrl] : undefined
-    const hasRemoteImage = Boolean(imageUrl && !localImageSource)
-
     return (
         <View className="w-full rounded-card px-3 py-3">
             <View className="w-full flex-row items-center">
@@ -105,40 +99,11 @@ export const MemberHeader = ({
                             ],
                         }}
                     >
-                        <View
-                            className="overflow-hidden bg-surface-muted"
-                            style={{
-                                width: avatarSize,
-                                height: avatarSize,
-                                borderRadius: avatarSize / 2,
-                            }}
-                        >
-                            {localImageSource ? (
-                                <Image
-                                    className="h-full w-full"
-                                    resizeMode="cover"
-                                    source={localImageSource}
-                                />
-                            ) : null}
-
-                            {!localImageSource && hasRemoteImage ? (
-                                <Image
-                                    className="h-full w-full"
-                                    resizeMode="cover"
-                                    source={{ uri: imageUrl }}
-                                />
-                            ) : null}
-
-                            {!localImageSource && !hasRemoteImage ? (
-                                <View className="h-full w-full items-center justify-center">
-                                    <MaterialIcons
-                                        color="#4B5563"
-                                        name="person"
-                                        size={avatarSize * 0.54}
-                                    />
-                                </View>
-                            ) : null}
-                        </View>
+                        <ProfileAvatar
+                            iconSize={avatarSize * 0.54}
+                            imageUrl={imageUrl}
+                            size={avatarSize}
+                        />
                     </Animated.View>
                 </View>
 
@@ -155,15 +120,24 @@ export const MemberHeader = ({
                         ellipsizeMode="tail"
                         numberOfLines={1}
                     >
-                        {roleText}
+                        {normalizedRoleGroup ? (
+                            <Text className="text-base leading-6 text-text-secondary font-bold">
+                                {normalizedRoleGroup}
+                            </Text>
+                        ) : null}
+                        {normalizedRoleGroup && normalizedRoleTitle ? " " : ""}
+                        {normalizedRoleTitle ||
+                            (!normalizedRoleGroup && !normalizedRoleTitle ? "-" : "")}
                     </Text>
-                    <Text
-                        className="text-lg leading-6 italic font-semibold"
-                        ellipsizeMode="tail"
-                        numberOfLines={1}
-                    >
-                        {wordOfTheDay}
-                    </Text>
+                    {wordOfTheDay ? (
+                        <Text
+                            className="text-lg leading-6 italic font-semibold"
+                            ellipsizeMode="tail"
+                            numberOfLines={1}
+                        >
+                            {wordOfTheDay}
+                        </Text>
+                    ) : null}
                 </View>
             </View>
         </View>

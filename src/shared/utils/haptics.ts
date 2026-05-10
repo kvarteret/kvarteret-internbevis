@@ -1,15 +1,11 @@
 import * as Haptics from "expo-haptics"
-import { AccessibilityInfo, Platform } from "react-native"
+import { AccessibilityInfo } from "react-native"
 
 let reduceMotionCache = false
 let lastCheckedAtMs = 0
 const REDUCE_MOTION_CACHE_TTL_MS = 15_000
 
 const shouldSkipHaptics = async (): Promise<boolean> => {
-    if (Platform.OS === "web") {
-        return true
-    }
-
     const now = Date.now()
     if (now - lastCheckedAtMs > REDUCE_MOTION_CACHE_TTL_MS) {
         lastCheckedAtMs = now

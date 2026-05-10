@@ -1,6 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons"
 import React from "react"
 import { View } from "react-native"
+import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Text } from "@/shared/ui/Text"
 import { TextField } from "@/shared/ui/TextField"
 import { cn } from "@/shared/utils/cn"
@@ -22,6 +23,8 @@ export const IconTextField = ({
     className,
     ...props
 }: IconTextFieldProps): React.JSX.Element => {
+    const { textSecondary } = useThemeRuntimeColors()
+
     return (
         <View>
             <View
@@ -31,7 +34,7 @@ export const IconTextField = ({
                     containerClassName,
                 )}
             >
-                <MaterialIcons name={iconName} size={20} color="#4B5563" />
+                <MaterialIcons name={iconName} size={20} color={textSecondary} />
                 <TextField
                     className={cn(
                         "flex-1 border-0 bg-transparent px-0 py-3 text-base text-text-primary",

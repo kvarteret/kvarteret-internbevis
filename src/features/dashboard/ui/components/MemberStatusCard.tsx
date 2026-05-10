@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Animated, Image, Pressable, View } from "react-native"
+import { isIdVerificationValid } from "@/features/dashboard/domain/idVerification"
 import { getHighestTier, User } from "@/shared/types/user"
 import { Text } from "@/shared/ui/Text"
+import { cn } from "@/shared/utils/cn"
 
 interface MemberStatusCardProps {
     user: User
@@ -18,7 +20,7 @@ export const MemberStatusCard = ({
     const [showPenguin, setShowPenguin] = useState(false)
     const opacityAnim = useRef(new Animated.Value(0)).current
 
-    const active = user.aktiveVerv.length > 0
+    const active = isIdVerificationValid(user)
 
     useEffect(() => {
         Animated.timing(opacityAnim, {
@@ -51,29 +53,29 @@ export const MemberStatusCard = ({
     } else {
         switch (tier) {
             case 1:
-                tierClass = "bg-[#16A34A]"
+                tierClass = "bg-state-success"
                 break
             case 2:
-                tierClass = "bg-[#C2410C]"
+                tierClass = "bg-state-warning"
                 break
             case 3:
-                tierClass = "bg-[#0F766E]"
+                tierClass = "bg-editorial-valid"
                 break
             case 4:
-                tierClass = "bg-[#1D4ED8]"
+                tierClass = "bg-state-info"
                 break
             default:
-                tierClass = "bg-[#334155]"
+                tierClass = "bg-text-secondary"
         }
     }
 
     return (
         <View className="w-full gap-2.5">
             <Pressable
-                className={[
-                    "w-full flex-row items-center justify-between rounded-2xl border border-[#FFFFFF33] px-5 py-3.5",
+                className={cn(
+                    "w-full flex-row items-center justify-between rounded-2xl border border-surface/20 px-5 py-3.5",
                     tierClass,
-                ].join(" ")}
+                )}
                 onPress={handleTap}
             >
                 <Text className="text-lg leading-6 text-surface font-bold">

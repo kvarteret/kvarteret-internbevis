@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { RootStackParamList } from "@/app/navigation/types"
 import { Text } from "@/shared/ui/Text"
 import { Button } from "@/shared/ui/Button"
-import { StateSurface } from "@/shared/ui/Surface"
+import { Card } from "@/shared/ui/Card"
 import { use__SCREEN_NAME__VM } from "@/features/__FEATURE_NAME__/vm/use__SCREEN_NAME__VM"
 
 type Props = NativeStackScreenProps<RootStackParamList, "__ROUTE_NAME__">
@@ -20,7 +20,7 @@ export const __SCREEN_NAME__ = ({ navigation, route }: Props): React.JSX.Element
 
     if (state.isPending) {
         return (
-            <View className="flex-1 items-center justify-center bg-background">
+            <View className="flex-1 items-center justify-center">
                 <Text>{t("status")}</Text>
             </View>
         )
@@ -28,19 +28,19 @@ export const __SCREEN_NAME__ = ({ navigation, route }: Props): React.JSX.Element
 
     if (state.isError) {
         return (
-            <View className="flex-1 bg-background p-4">
-                <StateSurface>
+            <View className="flex-1 p-4">
+                <Card className="gap-3 p-4">
                     <Text className="text-base">{t("__ERROR_KEY__")}</Text>
                     <Button variant="secondary" onPress={() => void actions.retry()}>
                         <Text className="text-text-primary font-semibold">{t("nowPlayingRetry")}</Text>
                     </Button>
-                </StateSurface>
+                </Card>
             </View>
         )
     }
 
     return (
-        <ScrollView className="flex-1 bg-background" contentContainerClassName="p-4 gap-4">
+        <ScrollView className="flex-1" contentContainerClassName="p-4 gap-4">
             <Text className="text-xl font-bold">{t("__TITLE_KEY__")}</Text>
 
             <View className="gap-2">

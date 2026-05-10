@@ -1,3 +1,41 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "uniwind";
+@source "./src";
+
+@theme static {
+    --color-background: #FFF7E4;
+    --color-brand-primary: #F54B4B;
+    --color-surface: #FFFFFF;
+    --color-surface-soft: #F8F7F4;
+    --color-surface-muted: #FAFAFA;
+    --color-border: #D1D5DB;
+    --color-border-soft: #E5E7EB;
+    --color-text-primary: #000000;
+    --color-text-secondary: #4B5563;
+    --color-text-muted: #6B7280;
+    --color-state-danger: #AA0000;
+    --color-state-warning: #C2410C;
+    --color-state-success: #16A34A;
+    --color-state-info: #2563EB;
+    --color-link: #2563EB;
+    --color-editorial-ink: #111827;
+    --color-editorial-ink-soft: #5B6270;
+    --color-editorial-surface: #F9F5EC;
+    --color-editorial-border: #0000001A;
+    --color-editorial-valid: #2F5E3D;
+    --color-editorial-invalid: #7F2E2E;
+    --color-tab-active: #7F2E2E;
+    --color-overlay: #00000033;
+    --color-overlay-strong: #00000059;
+    --color-android-header-surface: #FFF7E4;
+    --color-android-card-grouped-surface: #FFF7E4;
+    --color-android-card-elevated-surface: #FFF4E7;
+    --color-android-surface-outline: #0000001F;
+    --color-android-action-surface: #FFFFFFCC;
+
+    --radius-card: 14px;
+    --radius-sheet: 18px;
+    --radius-panel: 22px;
+
+    --shadow-card: 0 6px 18px rgba(0,0,0,0.08);
+}

@@ -21,6 +21,16 @@ describe("shouldClearCredentialsOnHydrationError", () => {
         expect(shouldClearCredentialsOnHydrationError(error)).toBe(false)
     })
 
+    it("returns false for unexpected response errors", () => {
+        const error = createAuthServiceError({
+            code: "UNEXPECTED_RESPONSE",
+            message: "Server response format was invalid.",
+            status: 200,
+        })
+
+        expect(shouldClearCredentialsOnHydrationError(error)).toBe(false)
+    })
+
     it("returns false for unknown errors", () => {
         expect(shouldClearCredentialsOnHydrationError(new Error("boom"))).toBe(false)
     })

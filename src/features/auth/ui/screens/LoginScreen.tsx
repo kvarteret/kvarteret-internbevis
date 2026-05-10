@@ -1,73 +1,151 @@
-import { MaterialIcons } from "@expo/vector-icons"
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import React from "react"
-import { Image, KeyboardAvoidingView, TouchableOpacity, View } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
-import { RootStackParamList } from "@/app/navigation/types"
+import { useRouter } from "expo-router"
+import React, { useEffect } from "react"
+import {
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    useWindowDimensions,
+    View,
+    ViewStyle,
+} from "react-native"
+import { useSession } from "@/app/providers/SessionProvider"
 import { LoginForm } from "@/features/auth/ui/components/LoginForm"
 import { VerifyCodeForm } from "@/features/auth/ui/components/VerifyCodeForm"
-import { useLoginScreenVM } from "@/features/auth/vm/useLoginScreenVM"
-import { LanguageSelectorModal } from "@/shared/ui/LanguageSelectorModal"
+import { useDeepLinkLogin } from "@/features/auth/vm/useDeepLinkLogin"
+import { useLoginForm } from "@/features/auth/vm/useLoginForm"
+import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
+import { SafeAreaView, useSafeAreaInsets } from "@/shared/ui/interop"
+import { Text } from "@/shared/ui/Text"
 
-export const LoginScreen = ({
-    navigation,
-}: NativeStackScreenProps<RootStackParamList, "Login">): React.JSX.Element => {
-    const { state, actions } = useLoginScreenVM()
+const BRUTAL_HERO_STYLE: ViewStyle = {
+    boxShadow: "8px 8px 0px #111827",
+}
+
+export const LoginScreen = (): React.JSX.Element => {
+    const router = useRouter()
+    const { user, isAnonymous } = useSession()
+    const insets = useSafeAreaInsets()
+    const { width } = useWindowDimensions()
+    const form = useLoginForm()
+    const isCompactWidth = width < 390
+    useDeepLinkLogin(form.mode, form.performTokenLogin)
+
+    useEffect(() => {
+        if (user || isAnonymous) {
+            router.replace("/(tabs)/kontroll")
+        }
+    }, [isAnonymous, router, user])
 
     return (
-        <SafeAreaView className="flex-1 bg-black">
-            <Image
-                className="absolute inset-0 h-full w-full"
-                resizeMode="cover"
-                source={require("@assets/images/bg-image.png")}
-            />
-
-            <TouchableOpacity
-                accessibilityLabel="Change language"
-                className="absolute right-3 top-6 z-10 p-2"
-                onPress={actions.openLanguageSelector}
-            >
-                <MaterialIcons color="#FFFFFF" name="language" size={28} />
-            </TouchableOpacity>
-
+        <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
             <KeyboardAvoidingView
-                behavior="padding"
-                className="flex-1 justify-center"
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                className="flex-1"
                 keyboardVerticalOffset={12}
             >
-                <View className="w-full items-center justify-center">
-                    {state.mode === "email" ? (
+                <ScrollView
+                    automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+                    className="flex-1"
+                    contentContainerClassName="items-center px-4"
+                    contentContainerStyle={{
+                        flexGrow: 1,
+                        gap: isCompactWidth ? 20 : 28,
+                        paddingTop: Math.max(insets.top + 10, isCompactWidth ? 24 : 40),
+                        paddingBottom: Math.max(insets.bottom + 16, 24),
+                    }}
+                    contentInsetAdjustmentBehavior="automatic"
+                    keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View
+                        className="w-full max-w-xl overflow-hidden border-2 border-editorial-ink bg-brand-primary"
+                        style={[
+                            BRUTAL_HERO_STYLE,
+                            {
+                                paddingHorizontal: isCompactWidth ? 18 : 20,
+                                paddingVertical: isCompactWidth ? 18 : 20,
+                            },
+                        ]}
+                    >
+                        <View className={isCompactWidth ? "gap-3" : "gap-2.5"}>
+                            <Text
+                                className={`font-black uppercase text-editorial-ink ${isCompactWidth ? "text-lg leading-6" : "text-xl"}`}
+                            >
+                                Det er os en Glæde at byde Dem velkommen til
+                            </Text>
+                            <View
+                                className={`flex-row items-center ${isCompactWidth ? "gap-3" : "gap-4"}`}
+                            >
+                                <View
+                                    className="shrink-0 items-center justify-center"
+                                    style={{
+                                        width: isCompactWidth ? 86 : 112,
+                                    }}
+                                >
+                                    <Image
+                                        accessible={false}
+                                        resizeMode="contain"
+                                        source={require("@assets/images/nobg.png")}
+                                        style={{
+                                            height: isCompactWidth ? 86 : 112,
+                                            width: isCompactWidth ? 86 : 112,
+                                        }}
+                                    />
+                                </View>
+                                <View className="flex-1 justify-center gap-0.5">
+                                    <Text
+                                        className={`font-black uppercase tracking-wider text-editorial-ink ${isCompactWidth ? "text-xl leading-6" : "text-2xl leading-none"}`}
+                                    >
+                                        DET
+                                    </Text>
+                                    <Text
+                                        className={`font-black uppercase tracking-wider text-editorial-ink ${isCompactWidth ? "text-xl leading-6" : "text-2xl leading-none"}`}
+                                    >
+                                        AKADEMISKE
+                                    </Text>
+                                    <Text
+                                        className={`font-black uppercase tracking-wider text-editorial-ink ${isCompactWidth ? "text-xl leading-6" : "text-2xl leading-none"}`}
+                                    >
+                                        KVARTER
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+
+                    {form.mode === "email" ? (
                         <LoginForm
-                            email={state.email}
-                            emailErrorText={state.emailErrorText}
-                            privacyPolicyChecked={state.privacyPolicyChecked}
-                            sendingOtp={state.sendingOtp}
-                            onChangeEmail={actions.setEmail}
-                            onTogglePrivacy={actions.togglePrivacy}
-                            onPrivacyPress={() => navigation.navigate("Privacy")}
-                            onSubmitEmail={actions.submitEmail}
-                            onDemoLogin={actions.loginDemo}
+                            email={form.email}
+                            emailErrorText={form.emailErrorText}
+                            privacyPolicyChecked={form.privacyPolicyChecked}
+                            sendingOtp={form.sendingOtp}
+                            onChangeEmail={form.setEmail}
+                            onTogglePrivacy={form.togglePrivacy}
+                            onPrivacyPress={() => router.push("/privacy")}
+                            onSubmitEmail={form.submitEmail}
+                            onDemoLogin={form.loginDemo}
+                            onContinueAnonymous={form.continueAnonymous}
+                            showDemoButton={form.showDemoButton}
                         />
                     ) : (
                         <VerifyCodeForm
-                            otpCode={state.otpCode}
-                            otpFieldErrorText={state.otpFieldErrorText}
-                            globalErrorText={state.globalErrorText}
-                            isExpoGo={state.isExpoGo}
-                            onChangeOtpCode={actions.setOtpCode}
-                            onVerifyCode={actions.submitOtp}
-                            onSendOtp={actions.resendOtp}
-                            onUseClipboardLink={actions.useClipboardLink}
-                            onBack={actions.backToEmail}
+                            otpCode={form.otpCode}
+                            otpFieldErrorText={form.otpFieldErrorText}
+                            globalErrorText={form.globalErrorText}
+                            isExpoGo={form.isExpoGo}
+                            onChangeOtpCode={form.setOtpCode}
+                            onVerifyCode={form.submitOtp}
+                            onSendOtp={form.resendOtp}
+                            onUseClipboardLink={form.useClipboardLink}
+                            onBack={form.backToEmail}
                         />
                     )}
-                </View>
-            </KeyboardAvoidingView>
 
-            <LanguageSelectorModal
-                visible={state.languageSelectorVisible}
-                onClose={actions.closeLanguageSelector}
-            />
+                    <EtjenestenFooter />
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     )
 }

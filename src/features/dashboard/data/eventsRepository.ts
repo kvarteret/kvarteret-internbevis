@@ -1,45 +1,85 @@
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore"
-import { db } from "@/core/api/firebase"
-import { pickHomeEvents, selectEventTranslation } from "@/features/dashboard/domain/eventSelection"
-import { FirestoreEventDocument } from "@/features/dashboard/domain/types"
+import { sanityFetch } from "@/core/sanity/client"
+import { ARRANGEMENT_BY_ID_QUERY, PUBLISHED_ARRANGEMENTS_QUERY } from "@/core/sanity/queries"
+import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
+import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
 
-const HOME_EVENTS_QUERY_LIMIT = 30
+const EVENTS_CACHE_KEY = "events_sanity_cache:home"
+const EVENT_CACHE_KEY_PREFIX = "events_sanity_cache:event"
+const EVENTS_CACHE_TTL_MS = 15 * 60 * 1000
 
-const mapEventDocument = (id: string, data: Record<string, unknown>): FirestoreEventDocument => {
-    return {
-        id,
-        ...(data as Omit<FirestoreEventDocument, "id">),
+interface CachedPayload<T> {
+    cachedAt: number
+    value: T
+}
+
+const toOsloDateString = (): string =>
+    new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Oslo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).format(new Date())
+
+const readCachedValue = async <T>(key: string, maxAgeMs: number): Promise<T | null> => {
+    try {
+        const payload = await getStoredJson<CachedPayload<T>>(key)
+        if (!payload) return null
+        if (Date.now() - payload.cachedAt > maxAgeMs) return null
+        return payload.value
+    } catch {
+        return null
     }
 }
 
-export const fetchHomeEvents = async (_signal?: AbortSignal): Promise<FirestoreEventDocument[]> => {
-    const eventsQuery = query(
-        collection(db, "events"),
-        where("status", "==", "published"),
-        orderBy("event_start", "asc"),
-        limit(HOME_EVENTS_QUERY_LIMIT),
-    )
+const writeCachedValue = async <T>(key: string, value: T): Promise<void> => {
+    try {
+        await setStoredJson(key, { cachedAt: Date.now(), value })
+    } catch {
+        // Ignore cache write failures — network response stays authoritative.
+    }
+}
 
-    const snapshot = await getDocs(eventsQuery)
-    const events = snapshot.docs.map(docSnapshot =>
-        mapEventDocument(docSnapshot.id, docSnapshot.data() as Record<string, unknown>),
-    )
-
-    return pickHomeEvents(events)
+export const fetchHomeEvents = async (
+    _options: { includeInternal: boolean; language: "no" | "en" },
+    signal?: AbortSignal,
+): Promise<KvarteretEventDocument[]> => {
+    try {
+        const events = await sanityFetch<KvarteretEventDocument[]>(PUBLISHED_ARRANGEMENTS_QUERY, {
+            params: { today: toOsloDateString() },
+            signal,
+        })
+        await writeCachedValue(EVENTS_CACHE_KEY, events)
+        return events
+    } catch (error) {
+        const cached = await readCachedValue<KvarteretEventDocument[]>(
+            EVENTS_CACHE_KEY,
+            EVENTS_CACHE_TTL_MS,
+        )
+        if (cached) return cached
+        throw error
+    }
 }
 
 export const fetchEventById = async (
     eventId: string,
-    _signal?: AbortSignal,
-): Promise<FirestoreEventDocument> => {
-    const eventRef = doc(db, "events", eventId)
-    const snapshot = await getDoc(eventRef)
-
-    if (!snapshot.exists()) {
-        throw new Error("Event not found.")
+    _options: { includeInternal: boolean; language: "no" | "en" },
+    signal?: AbortSignal,
+): Promise<KvarteretEventDocument> => {
+    const cacheKey = `${EVENT_CACHE_KEY_PREFIX}:${eventId}`
+    try {
+        const event = await sanityFetch<KvarteretEventDocument | null>(ARRANGEMENT_BY_ID_QUERY, {
+            params: { id: eventId },
+            signal,
+        })
+        if (!event) throw new Error(`Event not found: ${eventId}`)
+        await writeCachedValue(cacheKey, event)
+        return event
+    } catch (error) {
+        const cached = await readCachedValue<KvarteretEventDocument>(
+            cacheKey,
+            EVENTS_CACHE_TTL_MS,
+        )
+        if (cached) return cached
+        throw error
     }
-
-    return mapEventDocument(snapshot.id, snapshot.data() as Record<string, unknown>)
 }
-
-export { pickHomeEvents, selectEventTranslation }

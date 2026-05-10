@@ -16,7 +16,7 @@ export const __SCREEN_NAME__ = ({ navigation, route }: Props): React.JSX.Element
     }, [navigation, t])
 
     return (
-        <ScrollView className="flex-1 bg-background" contentContainerClassName="p-4 gap-4">
+        <ScrollView className="flex-1" contentContainerClassName="p-4 gap-4">
             <Text className="text-xl font-bold">{t("__TITLE_KEY__")}</Text>
 
             <View className="gap-2">

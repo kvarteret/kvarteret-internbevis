@@ -1,8 +1,8 @@
 {
     "expo": {
-        "name": "Samfunnet i Bergen",
+        "name": "Kvarteret",
         "slug": "studentersamfunnet-app",
-        "version": "1.0.0",
+        "version": "2026.2.0",
         "runtimeVersion": {
             "policy": "appVersion"
         },
@@ -10,6 +10,7 @@
             "url": "https://u.expo.dev/8e46104c-a94c-4205-9884-4f813b6371c3"
         },
         "orientation": "portrait",
+        "platforms": ["ios", "android"],
         "icon": "./assets/icons/app-icon-square.png",
         "scheme": "internbeviskvarteret",
         "userInterfaceStyle": "light",
@@ -19,12 +20,13 @@
             "backgroundColor": "#000000"
         },
         "ios": {
-            "supportsTablet": false,
+            "supportsTablet": true,
             "icon": "./assets/icons/ios-icon-square.png",
             "bundleIdentifier": "com.kvarteret.internbevis.internBevisKvarteret",
             "infoPlist": {
                 "ITSAppUsesNonExemptEncryption": false
-            }
+            },
+            "buildNumber": "8"
         },
         "android": {
             "icon": "./assets/icons/android-icon-square.png",
@@ -32,18 +34,33 @@
                 "foregroundImage": "./assets/icons/android-adaptive-foreground-square.png",
                 "backgroundColor": "#000000"
             },
-            "package": "com.kvarteret.internbevis.internBevisKvarteret",
-            "predictiveBackGestureEnabled": false
+            "package": "com.kvarteret.internbevis.intern_bevis_kvarteret",
+            "blockedPermissions": ["android.permission.ACTIVITY_RECOGNITION"],
+            "predictiveBackGestureEnabled": false,
+            "versionCode": 2026022605
         },
-        "web": {
-            "favicon": "./assets/favicon.png"
-        },
-        "plugins": ["expo-localization", "expo-secure-store"],
+        "plugins": [
+            "./plugins/with-android-gradle-memory",
+            "expo-localization",
+            "expo-secure-store",
+            [
+                "expo-router",
+                {
+                    "root": "./src/routes"
+                }
+            ],
+            "expo-font",
+            "expo-sqlite",
+            "expo-image"
+        ],
         "extra": {
             "eas": {
                 "projectId": "8e46104c-a94c-4205-9884-4f813b6371c3"
             }
         },
-        "owner": "studentersamfunnet-bergen"
+        "owner": "studentersamfunnet-bergen",
+        "experiments": {
+            "reactCompiler": true
+        }
     }
 }

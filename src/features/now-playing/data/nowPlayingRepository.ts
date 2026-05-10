@@ -1,3 +1,5 @@
+import { appEnv } from "@/app/config/env"
+
 export interface NowPlayingState {
     authorized: boolean
     hasTrack: boolean
@@ -12,13 +14,19 @@ export interface NowPlayingState {
     connectUrl: string
 }
 
-const DEFAULT_KVARTERET_SKJERM_BASE_URL = "https://kvarteret-skjerm.fly.dev"
+const MOBILE_CARD_API_PREFIXES = ["/api/v1/mobile-card", "/api/DigitalInternkort"] as const
 
-const getKvarteretSkjermBaseUrl = (): string => {
-    const configured = process.env.EXPO_PUBLIC_KVARTERET_SKJERM_BASE_URL?.trim()
-    const base =
-        configured && configured.length > 0 ? configured : DEFAULT_KVARTERET_SKJERM_BASE_URL
-    return base.endsWith("/") ? base.slice(0, -1) : base
+const getPersonalBaseUrl = (): string => {
+    const configured = appEnv.internkortBaseUrl.trim()
+    const base = configured.endsWith("/") ? configured.slice(0, -1) : configured
+
+    for (const prefix of MOBILE_CARD_API_PREFIXES) {
+        if (base.endsWith(prefix)) {
+            return base.slice(0, -prefix.length)
+        }
+    }
+
+    return base
 }
 
 const getSpotifyConnectUrl = (connectUrl?: string | null): string => {
@@ -27,7 +35,7 @@ const getSpotifyConnectUrl = (connectUrl?: string | null): string => {
         return trimmed
     }
 
-    return `${getKvarteretSkjermBaseUrl()}/login`
+    return `${getPersonalBaseUrl()}/login`
 }
 
 const parseRequiredBoolean = (value: unknown, field: string): boolean => {
@@ -81,7 +89,7 @@ const parseNowPlayingResponse = (payload: unknown): NowPlayingState => {
 }
 
 export const fetchNowPlaying = async (signal?: AbortSignal): Promise<NowPlayingState> => {
-    const response = await fetch(`${getKvarteretSkjermBaseUrl()}/api/now-playing`, {
+    const response = await fetch(`${getPersonalBaseUrl()}/api/now-playing`, {
         method: "GET",
         headers: {
             Accept: "application/json",
