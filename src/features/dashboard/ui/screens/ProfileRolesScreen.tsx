@@ -340,14 +340,6 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                             />
                         </Card>
 
-                        <VolunteerHistorySection
-                            emptyLabel={t("profileNoRoleHistory")}
-                            getPeriodLabel={getVolunteerHistoryPeriod}
-                            rows={volunteerHistoryRows}
-                            tierLabel={tier => t("tierLabel", { tier })}
-                            title={t("profileRoleHistory")}
-                        />
-
                         <Text className="px-1 pt-1 text-lg font-bold">
                             {t("profileActiveRoles")}
                         </Text>
@@ -361,7 +353,14 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
                     </Card>
                 }
                 ListFooterComponent={
-                    <View className="pt-4">
+                    <View className="gap-3 pt-4">
+                        <VolunteerHistorySection
+                            emptyLabel={t("profileNoRoleHistory")}
+                            getPeriodLabel={getVolunteerHistoryPeriod}
+                            rows={volunteerHistoryRows}
+                            tierLabel={tier => t("tierLabel", { tier })}
+                            title={t("profileRoleHistory")}
+                        />
                         <EtjenestenFooter />
                     </View>
                 }

@@ -71,7 +71,9 @@ export const BenefitsScreen = (): React.JSX.Element => {
     }, [])
 
     const visibleTabs = ALL_TIERS.filter(tier => TIER_TO_NUMBER[tier] <= Math.max(userTier, 1))
-    const selectedItems = benefits.filter(b => b.minimumTier === selectedTier)
+    const selectedItems = benefits.filter(
+        b => TIER_TO_NUMBER[b.minimumTier] <= TIER_TO_NUMBER[selectedTier],
+    )
 
     return (
         <View className="flex-1 bg-background">

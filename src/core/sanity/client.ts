@@ -6,9 +6,7 @@ export const sanityFetch = async <T>(
     query: string,
     options?: { params?: Record<string, string>; signal?: AbortSignal },
 ): Promise<T> => {
-    const url = new URL(
-        `https://${PROJECT_ID}.api.sanity.io/v${API_VERSION}/data/query/${DATASET}`,
-    )
+    const url = new URL(`https://${PROJECT_ID}.api.sanity.io/v${API_VERSION}/data/query/${DATASET}`)
     url.searchParams.set("query", query)
     for (const [key, value] of Object.entries(options?.params ?? {})) {
         url.searchParams.set(`$${key}`, JSON.stringify(value))
