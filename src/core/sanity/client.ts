@@ -1,5 +1,5 @@
-const PROJECT_ID = "mkjoahvv"
-const DATASET = "production"
+const PROJECT_ID = process.env.EXPO_PUBLIC_SANITY_PROJECT_ID ?? "mkjoahvv"
+const DATASET = process.env.EXPO_PUBLIC_SANITY_DATASET ?? "production"
 const API_VERSION = "2024-01-01"
 
 export const sanityFetch = async <T>(
