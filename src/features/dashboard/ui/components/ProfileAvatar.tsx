@@ -24,6 +24,11 @@ export const ProfileAvatar = ({
     const { textSecondary } = useThemeRuntimeColors()
     const localImageSource = imageUrl ? localImageMap[imageUrl] : undefined
     const hasRemoteImage = Boolean(imageUrl && !localImageSource)
+    // Use stable cache key (path without query string) so disk cache survives
+    // token rotation across sessions.
+    const stableKey = hasRemoteImage
+        ? imageUrl!.split("?")[0]
+        : undefined
 
     return (
         <View
@@ -34,20 +39,14 @@ export const ProfileAvatar = ({
                 <Image className="h-full w-full" resizeMode="cover" source={localImageSource} />
             ) : null}
 
-            {!localImageSource && hasRemoteImage ? (
+            {hasRemoteImage ? (
                 <CachedImage
-                    cachePolicy="memory"
+                    cachePolicy="memory-disk"
                     className="h-full w-full"
                     contentFit="cover"
-                    recyclingKey={imageUrl}
+                    recyclingKey={stableKey}
                     source={imageUrl}
                 />
-            ) : null}
-
-            {!localImageSource && !hasRemoteImage ? (
-                <View className="h-full w-full items-center justify-center">
-                    <MaterialIcons color={textSecondary} name="person" size={iconSize} />
-                </View>
             ) : null}
         </View>
     )
