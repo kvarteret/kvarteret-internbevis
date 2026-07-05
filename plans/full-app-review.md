@@ -1,0 +1,380 @@
+# Full application review and remediation: make CI honest, purge the dead Firebase/OpenAPI layers, unify the membership-tier domain, fix localization and Oslo-time correctness, consolidate benefits into one source of truth, and harden session/PII handling
+
+This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
+
+This document must be maintained in accordance with `/PLANS.md` at the repository root (copied from `kvarteret-personal` on 2026-07-05; the same authoring rules apply here).
+
+## Purpose / Big Picture
+
+`kvarteret-internbevis-rn` is the Expo (React Native) app for Det Akademiske Kvarter in Bergen. Members ("frivillige", volunteers) log in with an e-mail one-time code against the `kvarteret-personal` backend (`https://personal.kvarteret.no/api/v1/mobile-card`) and get a digital membership card ("internbevis") that bartenders visually inspect: name, photo, a colored validity badge with a discount tier, and a daily code word ("dagens ord") that makes screenshots useless. Around the card the app carries an events feed from Sanity CMS, a Sanity-driven benefits list, a now-playing widget for the Grøndahls bar Spotify, small games (dice, chess clock), feedback, and diagnostics screens.
+
+This plan is the app-side counterpart of the deep restructure completed in `kvarteret-personal` (`plans/legacy-restructure.md` in that repository). That effort left the backend with an English schema, a hardened mobile-card API, and CI that proves its claims. The app has not had the same pass: its only CI gate is a linter with all rules disabled, `tsc --noEmit` currently fails, an entire Firebase/Firestore stack and a 6,000-line generated OpenAPI client ship in the source tree with zero consumers, membership-tier business rules are duplicated in three files, benefits exist in two competing sources of truth, and several small correctness bugs (first-launch language override, DST approximation, a stale header-menu memo) are live.
+
+After this plan is complete:
+
+- CI fails when types, tests, or style rules fail. `npx tsc --noEmit`, `npx jest`, and the style-exception check run on every push, and Biome enforces a real rule set.
+- The repository contains no dead subsystems: no Firebase SDK, no unused generated API client, no orphaned components, no retired `/api/DigitalInternkort` references, and no unused dependencies that survive verification.
+- One module owns the membership-tier rules (Pingvin threshold, tier ordering, tier labels), and the cached card is parsed by the same Zod schema as the network response, so cache and network can never drift.
+- The app shows correct times around DST transitions, respects the device language on first launch, and has no hard-coded Norwegian strings outside the translations file.
+- Benefits have a single source of truth (Sanity), rendered by a screen that follows the repo's own architecture policy (TanStack Query, error states, i18n).
+- Feedback is submitted through the backend instead of a webhook URL baked into the public JS bundle, and the decision on PII-at-rest for the cached card is made and recorded.
+
+A reader can verify the end state by running `npm run lint:ci && npx tsc --noEmit && npx jest` (all green), `grep -r "firebase" src package.json` (no hits), `grep -rn "pingvinPoengSum >= 14" src` (exactly one hit, in the single membership module), and by switching an English-language device to a fresh install and seeing English on first launch.
+
+## Progress
+
+- [x] (2026-07-05 12:30Z) Copied `PLANS.md` from `kvarteret-personal` into the repository root.
+- [x] (2026-07-05 13:10Z) Full code survey completed: all 130+ source files inventoried, every screen/provider/repository read, dependency usage counted, CI workflows and EAS config reviewed, validation battery executed (`jest`: 18 suites / 116 tests green in ~1s; `tsc --noEmit`: 4 errors; CI runs neither).
+- [x] (2026-07-05 13:20Z) Findings written up in `Context and Orientation` below; milestones M0–M7 defined.
+- [x] (2026-07-05 14:00Z) Design-pattern pass added (see "Recurring implementation patterns" in `Context and Orientation`): quantified the rewrite-and-abandon meta-smell, hand-rolled parsing vs Zod split, default-smearing, silent catches, provider memoization defeat, and bilingual ternaries.
+- [x] (2026-07-05 14:40Z) Cross-repository reuse investigation against `../samfunnetibergen` completed; ten shared/duplicated surfaces inventoried (see "Cross-repository reuse inventory" section).
+- [x] (2026-07-05 15:10Z) Architecture assessment recorded (see "Architecture assessment" in `Context and Orientation`): layout family confirmed as correct; four refinements flagged — retire MVVM framing (god-hook cap), collapse core/shared ambiguity, mechanical boundary enforcement, state-shape policy — and wired into M0/M2/M5/M6 plus a policy-doc update.
+- [x] (2026-07-05 15:40Z) Prescriptive "Recommendations and directions" section added: execution order and PR sizing, four this-week quick wins, per-PR definition of done, copyable target shapes (catch policy, session status union, hook decomposition, storage-key registry, dependency-cruiser rules, boundary validation, Oslo-time helper), and the three outstanding product-owner confirmations with recommended defaults.
+- [ ] M0 — Make CI honest (typecheck + tests + style check in CI, fix the 4 `tsc` errors, enable a real Biome rule set).
+- [ ] M1 — Dead code and dependency purge (Firebase, generated OpenAPI client, orphaned components, duplicate route, retired API prefixes, unused deps).
+- [ ] M2 — Single source of truth for membership-tier domain; cached card parsed by the Zod schema.
+- [ ] M3 — Localization and Oslo-time correctness.
+- [ ] M4 — Benefits consolidation and BenefitsScreen rewrite to policy.
+- [ ] M5 — Session and privacy hardening (feedback proxy, PII-at-rest decision, env unification, SessionProvider extraction + tests).
+- [ ] M6 — Screen decomposition and consistency fixes (KvarteretScreen split, header-menu memo bug, data-fetch policy sweep).
+- [ ] M7 — Test and release hygiene (component tests, `.test.tsx` support, versioning source of truth).
+
+## Surprises & Discoveries
+
+- Observation: The entire Firebase dependency (`firebase` ^12.9.0, a large JS SDK) is dead code. `src/core/api/firebase.ts` initializes an app and exports `db`, but nothing imports it.
+  Evidence: `grep -rn "core/api/firebase\|firebase/firestore\|firebase/app" src --include="*.ts*" | grep -v "src/core/api/firebase.ts"` returns nothing. The events feed moved to Sanity in commit `c6371c9` ("feat: Sanity events feed…") and the Firestore path was never deleted. The README still documents `EXPO_PUBLIC_FIREBASE_*` overrides.
+- Observation: The generated OpenAPI client (`src/core/api/kvarteret-personal/`, ~6,000 lines across `sdk.gen.ts`/`types.gen.ts` plus a runtime core) has zero consumers; auth uses a hand-rolled `fetch` repository validated with Zod instead.
+  Evidence: `grep -rln "core/api/kvarteret-personal" src | grep -v core/api` returns nothing. Commit `8a21670` ("feat: adopt events OpenAPI client (#25)") introduced it; the Sanity migration orphaned it.
+- Observation: CI enforces almost nothing. `.github/workflows/code-quality.yml` runs only `npx biome ci .`, and `biome.json` sets `"recommended": false` with exactly one rule (`useArrowFunction: warn`). Neither `tsc` nor `jest` nor `check:style-exceptions` runs in CI, and `tsc --noEmit` currently fails.
+  Evidence: `npx tsc --noEmit` on 2026-07-05:
+
+      src/features/dashboard/ui/components/__tests__/MembershipBenefitsCard.test.ts(3,35): error TS7016: Could not find a declaration file for module 'react-test-renderer'.
+      src/features/dashboard/ui/components/__tests__/MembershipBenefitsCard.test.ts(71,18): error TS7006: Parameter 'node' implicitly has an 'any' type.
+      src/features/dashboard/ui/components/__tests__/MembershipBenefitsCard.test.ts(97,18): error TS7006: Parameter 'node' implicitly has an 'any' type.
+      src/features/feedback/domain/__tests__/feedback.test.ts(89,61): error TS2339: Property 'text' does not exist on type 'SlackPayloadSection | SlackPayloadHeader | SlackPayloadDivider'.
+
+  Meanwhile `npx jest`: `Test Suites: 18 passed, 18 total. Tests: 116 passed, 116 total. Time: ~1.0 s`.
+- Observation: Several UI components are orphaned: `MemberStatusCard` (superseded by an inline near-copy `VerificationStatusCard` inside `ProfileScreen.tsx`, including the same 10-tap penguin easter egg), `MembershipBenefitsCard` (only referenced by its own test), `NotRegisteredCard`, `ErrorState`, and the domain helper `pickHomeEvents` (comment admits "Legacy helpers kept for tests"). `src/routes/games.tsx` duplicates `src/routes/(tabs)/games.tsx`.
+- Observation: The membership rules are triplicated. `pingvinPoengSum >= 14` appears in `src/shared/types/user.ts`, `src/features/dashboard/domain/idVerification.ts`, and `src/features/dashboard/domain/profileRoles.ts`; the `"Pingvin"` / `"Pingvin Ordenen"` virtual-role constants are duplicated in `user.ts` and `profileRoles.ts`; and `user.ts` carries an undocumented legacy tier-ordering map (`null→0, "1"→1, "0"→2, "2"→3, "3"→4`) whose semantics nobody wrote down.
+- Observation: Benefits exist twice: ~80 hard-coded translation keys per tier in `src/features/dashboard/domain/membershipBenefits.ts` (whose only consumer, `MembershipBenefitsCard`, is dead) and Sanity `internbevisBenefit` documents fetched by `src/features/benefits/data/benefitsRepository.ts` (the live path).
+- Observation: `fetchHomeEvents` accepts `{ includeInternal, language }` but ignores both (`_options`), while the TanStack Query key varies on them — the "internal events" feature added in commit `cbbcd47` silently vanished in the Sanity migration, and the cache is keyed on inputs that do not affect the result.
+- Observation: First-launch language detection is dead on arrival. `LanguageProvider` seeds state from the device locale, then the hydration effect runs `stored === "en" ? "en" : "no"` — with nothing stored it force-resets an English device to Norwegian.
+- Observation: Oslo-time handling is approximated. `getOsloUtcOffset` in `eventFormatting.ts` assumes CEST for April–October by month number, which is wrong for up to a week around each DST transition, and `grondahlsOpening.ts` uses device-local `getHours()` rather than Oslo time.
+- Observation: `useHeaderMenuActions` computes `isVolunteer` and passes it to `buildNativeMenuActions`, but the `useMemo` dependency array is `[isLoggedIn, t]` — the Benefits menu item can go stale when role state changes without a login transition.
+- Observation: The feedback feature posts directly from the client to a webhook URL supplied via `EXPO_PUBLIC_FEEDBACK_WEBHOOK_URL`. Anything `EXPO_PUBLIC_*` is baked into the shipped JS bundle, so the webhook (the payload shape in `feedback.ts` is Slack Block Kit) is extractable and spammable by anyone who unzips the app.
+- Observation: `ios/GoogleService-Info.plist` is tracked in git even though `/ios` is gitignored (tracked files survive later ignore rules). It is a leftover from the pre-Sanity Firebase era.
+- Observation: Dependency usage counts flag more candidates for removal: `expo-sqlite` (configured as a plugin, zero imports), `expo-insights` (zero imports; it does auto-collect by being installed, so removal is a product decision), `react-native-svg` (zero imports), and two overlapping rich-text renderers (`react-native-markdown-display` and `react-native-render-html`, one call site each). `react-native-paper` is imported in three files, mostly for `PaperProvider` theming.
+- Observation: `appEnv.kvarteretPersonalApiBaseUrl` in `src/app/config/env.ts` is unused, and `authRepository.ts` bypasses `env.ts` by re-reading `process.env.EXPO_PUBLIC_INTERNKORT_BASE_URL` itself with its own default handling.
+- Observation: Two files still special-case the retired legacy API prefix `/api/DigitalInternkort` (`authDiagnosticsRepository.ts`, `nowPlayingRepository.ts`). The backend removed that API in its M4 (kvarteret-personal legacy-restructure); the app-side tolerance is now dead logic.
+
+## Decision Log
+
+- Decision: Author this review as a PLANS.md-conformant ExecPlan in `plans/full-app-review.md`, mirroring the depth of `kvarteret-personal/plans/legacy-restructure.md`, and copy `PLANS.md` into this repo.
+  Rationale: The user asked for the same analysis rigor as the kvarteret-personal effort and for ExecPlan to be the working document; keeping the authoring spec in-repo makes the plan self-maintaining.
+  Date/Author: 2026-07-05 / Claude (review session with Martin Kleiven).
+- Decision: Recommend deleting the generated OpenAPI client (`src/core/api/kvarteret-personal/`) and its generator scripts rather than adopting it.
+  Rationale: The hand-rolled `authRepository` + Zod schema path is the one actually shipped, tested (18 suites cover its domain), and tolerant of the backend's field evolution. The generated client duplicates ~6,000 lines for endpoints the app does not call. If the app later needs more of the Personal API surface, `scripts/generate-kvarteret-personal-client.mjs` is one `git revert` away. This is a recommendation — confirm before deleting, since the sibling repo's OpenAPI workflow was adopted deliberately in PR #25.
+  Date/Author: 2026-07-05 / Claude.
+- Decision: Benefits' single source of truth is Sanity (`internbevisBenefit` documents); the hard-coded `membershipBenefitKeysByTier` translation keys and their ~80 `tierBenefit*` strings are removed together with the dead `MembershipBenefitsCard`.
+  Rationale: The Sanity path is the live one (BenefitsScreen), is editable by non-developers, and the hard-coded path's only consumer is already dead code. Two sources of truth for a price-relevant list is how bartender disputes happen.
+  Date/Author: 2026-07-05 / Claude.
+- Decision: Feedback submissions should be proxied through the `kvarteret-personal` backend (new endpoint) instead of posting to a client-embedded webhook.
+  Rationale: `EXPO_PUBLIC_*` values ship in plaintext inside the bundle; a Slack webhook URL is a bearer credential. The backend already has rate limiting in Postgres and a Slack/SMTP integration surface. Requires a small backend change tracked in that repo.
+  Date/Author: 2026-07-05 / Claude.
+- Decision: Keep the feature-first architecture; do not adopt hexagonal/Clean Architecture, route-first colocation, or a layer-first layout. Refine in place instead (four refinements in the architecture assessment: composed hooks over MVVM framing, collapse core/shared ambiguity, mechanical boundary enforcement via dependency-cruiser, and an explicit state-modeling rule).
+  Rationale: The layout family is already correct for a ~10k-line app with a junior-heavy rotating team, and its pure `domain/` convention is what makes the fast test suite possible. The review's real defects are dialect problems (god-hooks, boolean state machines, unenforced boundaries), all fixable without a restructure; alternatives add ceremony without addressing any observed defect.
+  Date/Author: 2026-07-05 / Claude, prompted by Martin's "is this architecture actually good?" review question.
+- Decision: Keep the cached card user in AsyncStorage for now, but record the trade-off and revisit in M5.
+  Rationale: The cached card holds PII (name, birth date, photo URL, role history) so the card renders offline and instantly. SecureStore on Android caps values at ~2 KB and role history can exceed it; encrypting requires a key-management story. The session token — the actually dangerous artifact — is already in SecureStore. M5 decides: either move the cached card to SecureStore with size-guarded trimming, or document acceptance.
+  Date/Author: 2026-07-05 / Claude.
+
+## Outcomes & Retrospective
+
+(To be written as milestones complete. As of 2026-07-05 the review is complete and no remediation has been implemented.)
+
+## Context and Orientation
+
+This section describes the repository as found on 2026-07-05, branch `development`, so a novice can navigate and judge the findings.
+
+The app is Expo SDK 55 / React Native 0.83 / React 19.2 with the React Compiler experiment on, file-based routing via `expo-router` (routes live in `src/routes`, configured in `app.json` under `plugins`), styling via Uniwind (Tailwind-style `className` on native components, tokens in `global.css`), TanStack Query for server state, i18next with an inline `translations.ts` (Norwegian and English), Zod for validation, Biome for lint/format, and Jest (`jest-expo`) for tests. There is no state-management library; two React contexts (`SessionProvider`, `LanguageProvider`) carry global state. Native projects (`/ios`, `/android`) are generated (gitignored except one stale tracked plist); builds/OTA go through EAS (`eas.json`, `.eas/workflows/`) and GitHub Actions (`.github/workflows/`: `code-quality`, `preview-update`, `preview-build-distribute`, `release-submit`, `release-promote-checklist`).
+
+The layout follows a documented "Feature-first + selective MVVM" policy (`docs/architecture/FEATURE_FIRST_MVVM_LITE.md`): `src/app` (bootstrap/providers/config/i18n), `src/core` (infra: `sanity/`, `storage/`, `linking/`, `api/`), `src/features/<feature>` (auth, dashboard, benefits, games, feedback, about, privacy, now-playing) with `data`/`domain`/`ui`/`vm` subfolders, `src/shared` (UI primitives, theme, types), `src/routes` (thin route wrappers). The policy is mostly followed; the notable violators are called out below.
+
+Key domain terms: an *internbevis* is the volunteer membership proof. A *verv* is a volunteer role in a group (e.g. bartender in Grøndahls); `aktiveVerv` are current roles, `vervHistorikk` the history. *rabattTrinn* (discount tier) is a small integer on each role; the user's overall tier drives drink discounts and the badge color. *Pingvin* is an honorary order: 14+ *pingvinPoeng* (penguin points) grants a permanent virtual top-tier role even with no active verv. *Dagens ord* (word of the day) is the anti-screenshot code word shown on the card. The *mobile-card session* is the backend session created from an e-mailed one-time code; the session token is stored in `expo-secure-store` and silently renewed via the `x-mobile-card-session-token` response header (`authRepository.getInternkortInformation`).
+
+The auth flow, the most safety-critical path: `LoginScreen` (`useLoginForm`) validates e-mail + privacy consent, calls `POST /access-codes`; the user receives a code or a deep link (`internbeviskvarteret://…?accessToken=…`). `DeepLinkProvider` stashes tokens from cold/warm starts into a module-global (`core/linking/pendingToken.ts`); `useDeepLinkLogin` handles links while on the verify screen; Expo Go users can paste the link from the clipboard. `POST /sessions?include_role_history=true` returns `{ session_token, card }`, parsed by `internkortSchema.ts` (Zod, deliberately tolerant: accepts both `start_date`/`started_at`, `group`/`group_name`, etc.). `SessionProvider` persists credentials (SecureStore), a cached `User` (AsyncStorage, key `session_cached_user`), and a login marker; on launch it hydrates cached-user-first then refreshes from `/me`, clearing credentials on definitive auth errors and keeping the cached card on transient network errors, reporting anomalies to an unauthenticated best-effort diagnostics endpoint (`client-events/session-logout`).
+
+### Findings inventory (severity-ordered)
+
+Correctness defects (live bugs):
+
+1. `tsc --noEmit` fails with 4 errors (evidence above) and no CI step would notice; the `code-quality` workflow runs only a de-fanged Biome.
+2. `LanguageProvider.hydrateLanguage` overrides device-locale English with Norwegian on first launch (`stored === "en" ? "en" : "no"` when `stored` is `null`).
+3. `useHeaderMenuActions`: `menuActions` memo omits `isVolunteer` from its dependency array, so the Benefits item can be stale.
+4. `getOsloUtcOffset` month-based DST rule mis-times events around the March/October transitions; `grondahlsOpening.ts` uses device-local time, so travelers see the bar-status card at the wrong hours.
+5. `getPriceText` returns hard-coded `"Gratis"`; tab label `"Spill"` and all BenefitsScreen labels are hard-coded Norwegian.
+6. `fetchHomeEvents` ignores its `includeInternal`/`language` options while the query key varies on them (misleading cache identity; internal-events feature silently dropped).
+7. `mapCachedUser` in `authRepository.ts` is a ~80-line hand-rolled duplicate of the Zod schema for cache rehydration; the two can drift (a new field parsed by the schema is silently dropped by the cache mapper).
+
+Security and privacy:
+
+8. Feedback webhook URL ships in the public bundle (see Decision Log); the Slack Block Kit payload confirms it is a Slack webhook.
+9. Cached card PII sits in plaintext AsyncStorage (accepted for now; M5 decision point). Session token handling is correct (SecureStore, renewal, cleared on auth errors).
+10. `ios/GoogleService-Info.plist` tracked in git; stale Firebase artifact.
+
+Dead code and dependency bloat:
+
+11. `firebase` dependency and `src/core/api/firebase.ts` — zero consumers.
+12. Generated OpenAPI client `src/core/api/kvarteret-personal/` (~6,000 lines) — zero consumers; `api:generate`/`api:check` scripts maintained for it.
+13. Orphaned components/helpers: `MemberStatusCard`, `MembershipBenefitsCard` (+ its test — the only component test in the repo tests dead code), `NotRegisteredCard`, `ErrorState`, `pickHomeEvents`; duplicate route `src/routes/games.tsx`; unused `appEnv.kvarteretPersonalApiBaseUrl`; `/api/DigitalInternkort` prefix tolerance in two files.
+14. Unused-dependency candidates (each needs build verification, see M1): `expo-sqlite`, `react-native-svg`, `expo-insights` (product decision — it is telemetry-by-presence), plus the markdown/HTML renderer overlap and the `markdown-it` 12.3.2 override that exists only for `react-native-markdown-display`.
+
+Duplication and architecture drift:
+
+15. Membership rules triplicated (threshold 14, Pingvin constants, tier map — see Surprises).
+16. Benefits duplicated across hard-coded translation keys and Sanity (see Decision Log).
+17. `VerificationStatusCard` (inline in ProfileScreen) duplicates dead `MemberStatusCard`.
+18. Validation is inconsistent per feature: Zod (auth), hand-rolled parser (now-playing), unvalidated `as T` casts (Sanity events and benefits).
+19. `BenefitsScreen` violates the repo's own policy: `useEffect`+`useState` fetching instead of TanStack Query, `.catch(() => {})` silent failure with no error state, hard-coded strings.
+20. `KvarteretScreen.tsx` is 551 lines holding six embedded components; policy prefers 200–400-line files.
+21. The domain model still speaks legacy Norwegian (`fornavn`, `aktiveVerv`, `rabattTrinn`) while the backend it mirrors was just renamed to English — acceptable (it is the app's UI language domain), but the tolerant dual-key Zod schema (`start_date` vs `started_at`) should be tightened now that the backend contract is stable in `../kvarteret-personal/openapi.json`.
+
+### Recurring implementation patterns (meta-smells)
+
+Beyond the individual findings above, six patterns repeat across unrelated files. They matter more than any single bug because they are habits — likely carried over from the Flutter-era codebase this app rewrites — and they will keep producing new instances until named and gated.
+
+1. Rewrite-and-abandon. Every migration left the superseded path in the tree: Firestore → Sanity left `firebase.ts` + the dependency; OpenAPI-client adoption → hand-rolled repo left 6,000 generated lines; `MemberStatusCard` → inline `VerificationStatusCard` copy (easter egg and all) left the original; hard-coded benefits → Sanity benefits left both; the internal-events feature left parameters that are accepted and ignored; the retired DigitalInternkort API left tolerance branches in two files. Root cause: no dead-code gate — Biome rules are off and nothing like `knip` runs. M0/M1 fix the instances; the gate prevents recurrence.
+2. Hand-rolled defensive parsing beside Zod. Zod is a dependency and used well in three modules (`internkortSchema`, `chessTimeControl`, auth request bodies), yet five other files hand-roll `as Record<string, unknown>` type guards (`authRepository.mapCachedUser`, `authError`, `eventSelection.parsePersistedRoleSelections`, `profileRoles.isPersistedRoleSelection`, `nowPlayingRepository.parseNowPlayingResponse`), and the Sanity responses are unvalidated `as T` casts. Failure semantics differ per file (return null / throw / silently default). This is the Dart `fromJson`-factory habit transplanted; the codebase should commit to Zod at every boundary (M2 removes the worst duplicate; M4/M6 sweep the rest).
+3. Default-smearing. 37 non-test occurrences of `?? ""` / `?? 0` / `?? false` in mapping code, then `normalizeText` maps `""` to `"-"`, then screens fall back to `"-"` again. Missing data is indistinguishable from empty data, three layers apart. On a membership card this is correctness-relevant: a missing `signed_contract` silently renders as "not signed", a missing `pingvin_points` as 0 — instead of surfacing a parse problem.
+4. Silent `catch` as reflex. 24 bare `catch {` blocks outside tests. Cache-write best-effort catches are fine; swallowing benefit-list load failures (`.catch(() => {})`, no error state) or storage-read failures is not — and the app has no crash/telemetry sink at all, so "best effort" means "invisible forever". Policy needed: every catch either rethrows, surfaces UI state, or reports to diagnostics.
+5. God-context with defeated memoization. `SessionProvider` owns auth state, anonymous mode, diagnostics, and a dashboard UI preference (front-page role selections); it uses zero `useCallback`, so the functions in its `useMemo` dependency array are new every render and the context value identity changes every render — the memo is decorative and every consumer re-renders whenever the provider does. Six overlapping state fields (`user`/`isAnonymous`/`hasStoredCredentials`/`isHydrating`/`isLoading`/`error`) encode what should be one discriminated status union — Flutter `setState`-style state modeling. M5's extraction addresses the logic; the memoization and state-shape fix ride along.
+6. Bilingual ternaries beside i18next. Nine `language === "en" ? … : …` branches in domain files (`eventFormatting`, `getRecurringBadgeText`, duration labels) plus hard-coded Norwegian in screens — a second, parallel i18n system next to i18next. Domain code should return keys/values and let `t()` own words (M3).
+
+Smaller copy-paste drift in the same spirit: base-URL trimming/prefix-stripping is implemented three times (`authRepository`, `authDiagnosticsRepository`, `nowPlayingRepository`); `TAXONOMY_GROUP_ORDER` is defined identically in `KvarteretScreen.tsx` and `eventSelection.ts`; Oslo-date helpers exist in both `eventsRepository` and `eventFormatting`; AsyncStorage keys are declared ad hoc in seven files with only one versioned (`:v1`) and no central registry; and a hand-rolled TTL cache sits under TanStack Query (global `staleTime: 0` vs per-query 30 s), where a query persister would be the idiomatic single layer.
+
+### Architecture assessment: is "Feature-first + selective MVVM" the right architecture?
+
+Verdict (2026-07-05): yes at the level of layout family — feature-first vertical slices with pure domain modules is the consensus choice for a ~10k-line app maintained by a small junior-heavy rotating team, and the alternatives considered (layer-first à la classic Flutter `screens/`/`services/`/`widgets/`; route-first colocation under `src/routes`; full hexagonal/Clean Architecture) are each strictly worse for this codebase: layer-first scatters every change across three directories, route-first couples domain logic to navigation structure, and hexagonal adds ceremony whose only real benefit (testable pure domain) the current `domain/` convention already delivers — it is why the repo has 116 tests running in one second. The load-bearing parts to defend are the pure `domain/` modules, the thin route wrappers, and the no-cross-feature-imports rule. The architecture does not need replacing; it needs four refinements, detailed below, because each is currently producing real defects or real drift.
+
+Refinement 1 — retire the MVVM framing; state the rule as composed hooks with a size cap. "ViewModel" is Flutter/Android vocabulary; React's unit of screen logic is the hook, and hooks compose. Framing complex screens as "make a VM" pushes contributors toward the Flutter idiom of one state object that owns the whole screen, and the codebase shows the result: `src/features/auth/vm/useLoginForm.ts` returns a 25-field object (mode, email, otpCode, three separate error strings, flags, and 14 callbacks) — a `ChangeNotifier` wearing a hook costume. Consequences: every consumer re-renders on any field change (the returned object is rebuilt each render), the hook cannot be tested or reused in parts, and the "is this screen complex enough for a VM?" judgment call is exactly the kind juniors get wrong in both directions. Concrete change: rewrite the policy rule to "complex screens compose several focused hooks (e.g. `useOtpRequest`, `useDeepLinkToken`, `usePrivacyConsent`); no hook returns more than ~8 members; if it does, split it." The `vm/` folder can stay as a name, but the doc should stop saying MVVM and the god-hook should be decomposed when M6 touches auth screens.
+
+Refinement 2 — collapse the `core/` vs `shared/` ambiguity; make domain a first-class home. The two buckets are defined as "infrastructure" vs "reusable primitives", but the boundary is fuzzy enough that the codebase itself disagrees with it: `src/shared/types/user.ts` holds the membership-tier business rules — the most important domain logic in the app — inside a *types* folder in the *UI primitives* bucket; `src/core/api/` holds a feature-specific backend client (auth's, and formerly the whole generated Personal client); `src/core/linking/` is infrastructure whose consuming logic is smeared across `src/app/providers` and `features/auth`. Every contribution now includes a core-or-shared judgment call with no feedback when it lands wrong. Concrete change: adopt the sibling repo's simpler shape — one `lib/`-style location for genuinely cross-cutting pure utilities, feature-owned infra moved into the feature that owns it (auth's HTTP client into `features/auth/data`), and business rules in a real domain module (M2 already moves the tier rules). Do the renames opportunistically as milestones touch the files rather than as a big-bang move.
+
+Refinement 3 — the architecture is prose, not law; enforce boundaries mechanically. Every rule in `FEATURE_FIRST_MVVM_LITE.md` (features must not import features; views must not fetch; shared must not reach into features; domain stays pure) is enforced only by reviewer vigilance — the scarcest resource on this team. `kvarteret-personal` learned this exact lesson and ended its restructure with four import-linter contracts in CI. The JS equivalent is `dependency-cruiser` (or `eslint-plugin-boundaries`) with four rules: `features/* → features/*` forbidden; `*/domain/** → */ui/**|*/data/**|react-native` forbidden (keeps domain pure); `shared/** → features/**|app/**` forbidden; `routes/** → only features/*/ui and app/*`. This is an afternoon of setup, runs in the M0 pipeline, and converts the architecture document from advice into a failing check. Without it the layout will degrade one convenient import at a time — the cross-repo history (this app, the .NET-era backend) shows that is the default trajectory.
+
+Refinement 4 — the policy is silent about state shape, which is where the actual bugs live. The document governs where files go but says nothing about how state is modeled, and the two worst defects found in this review are state-shape defects, not layout defects: `SessionProvider` encodes one lifecycle as six overlapping fields (`user`/`isAnonymous`/`hasStoredCredentials`/`isHydrating`/`isLoading`/`error` — Flutter `setState` style, admitting impossible combinations like `isHydrating && user`), and both providers defeat their own memoization (`SessionProvider` has zero `useCallback`, so the functions listed in its `value` `useMemo` dependency array are new every render and every consumer re-renders whenever the provider does). Concrete change: add a state-modeling paragraph to the policy — "model mutually exclusive states as one discriminated union (`status: 'hydrating' | 'authenticated' | 'anonymous' | 'signedOut'` with payload), never as parallel booleans; server state lives in TanStack Query and is never mirrored into context; context values must be referentially stable (`useCallback` on every function in the value, or a stable reducer/store)". Apply it to `SessionProvider` during M5's extraction and to `LanguageProvider` in passing.
+
+These four refinements are wired into the existing milestones (boundary linting → M0, domain relocation → M2, provider state shape → M5, hook decomposition → M6) plus one documentation task: update `docs/architecture/FEATURE_FIRST_MVVM_LITE.md` to reflect the composed-hooks rule, the simplified bucket structure, the state-modeling paragraph, and a pointer to the mechanical enforcement config, so the policy document and the CI checks describe the same architecture.
+
+Testing and release hygiene:
+
+22. 116 tests are all domain-level; `SessionProvider` (the most intricate state machine in the app) and `LanguageProvider` have no direct tests; `jest.config.js` `testMatch` only matches `.test.ts`, structurally excluding `.test.tsx` component tests.
+23. Versioning has two sources of truth: `app.json` carries manual `version: 2026.2.0` / iOS `buildNumber: "8"` / Android `versionCode: 2026022605`, while `release-submit.yml` computes date-driven versions and timestamp build numbers; `runtimeVersion.policy: appVersion` couples OTA-update compatibility to whichever wins.
+
+## Plan of Work
+
+The milestones are ordered so that each is independently shippable and the earlier ones make the later ones safe. M0 must land first; M1–M4 are largely independent of each other; M5–M7 build on the cleaned base.
+
+### M0 — Make CI honest
+
+Fix the four `tsc` errors: add `@types/react-test-renderer` as a devDependency and type the two `node` lambda parameters in `MembershipBenefitsCard.test.ts` (or delete that test now if M1's removal decision is already confirmed — do not do both), and in `feedback.test.ts` narrow the Slack block union before accessing `.text` (a type guard `isSectionBlock(block)` on `block.type === "section"` is enough). Then extend `.github/workflows/code-quality.yml` with three steps after Biome: `npx tsc --noEmit`, `npx jest --ci`, and `npm run check:style-exceptions` (note: the script uses `rg`, which is preinstalled on `ubuntu-latest`; verify or switch to `grep -rn`). Finally, raise Biome from its current single rule to `"recommended": true` under `linter.rules`, run `npx biome check .`, and either fix or explicitly configure away each violation class in `biome.json` so the choice is documented rather than implicit. Add mechanical architecture enforcement (Refinement 3 in the architecture assessment): install `dependency-cruiser` as a devDependency with the four boundary rules (no feature→feature imports; domain imports nothing from ui/data/react-native; shared imports nothing from features/app; routes import only feature ui and app), add `npm run lint:architecture`, and run it in the workflow. Acceptance: a PR that introduces a type error, a failing test, a `StyleSheet.create` call, or a cross-feature import turns the `code-quality` check red.
+
+### M1 — Dead code and dependency purge
+
+Remove in this order, running `npx tsc --noEmit && npx jest && npx expo-doctor` and booting the app in a dev client after each group. First the pure-JS dead weight: `src/core/api/firebase.ts`, the `firebase` dependency, the README's Firebase env-override section, and `git rm --cached ios/GoogleService-Info.plist`. Second, pending confirmation of the Decision Log entry: `src/core/api/kvarteret-personal/`, `scripts/generate-kvarteret-personal-client.mjs`, the `api:generate`/`api:check` npm scripts, and the `@hey-api/openapi-ts` devDependency. Third, orphaned UI/domain code: `MemberStatusCard.tsx`, `MembershipBenefitsCard.tsx` and its test, `NotRegisteredCard.tsx`, `ErrorState.tsx`, `pickHomeEvents` (+ its test cases), `src/routes/games.tsx`, the unused `kvarteretPersonalApiBaseUrl` from `env.ts`, and the `/api/DigitalInternkort` branches in `authDiagnosticsRepository.ts` and `nowPlayingRepository.ts`. Fourth, dependencies: drop `expo-sqlite` (also from `app.json` plugins) and `react-native-svg` if `npx expo-doctor` and a clean EAS development build agree they are unreferenced; ask the product owner about `expo-insights` before touching it; consolidate on one rich-text renderer (prefer keeping `react-native-render-html` for event descriptions and rendering the privacy policy — the sole `markdown-display` call site — through it or as plain formatted text, which also releases the `markdown-it` override). Acceptance: `grep -r firebase src package.json` is empty, `npm ls` shows none of the removed packages, and a fresh EAS development build installs and logs in.
+
+### M2 — One membership-tier module, one card parser
+
+Create `src/features/dashboard/domain/membership.ts` (name final at implementation) that exports the constants and functions currently scattered: `PINGVIN_POINT_THRESHOLD = 14`, the Pingvin virtual-role constants, the tier-ordering map with a prose comment finally documenting the legacy `rabattTrinn` semantics (the ordering `null < 1 < 0 < 2 < 3` exists because tier "0" historically meant a mid-tier legacy value — confirm the story with the backend's `discount_level` docs in `../kvarteret-personal` and write down what is confirmed), `getHighestTier*`, `isIdVerificationValid`, and the virtual-Pingvin construction used by `profileRoles.buildDisplayRoles`. `user.ts` shrinks back to types plus `createDemoUser`. Then delete `mapCachedUser` from `authRepository.ts`: persist the cached card as the raw API payload (the exact JSON that passed `mobileCardResponseApiSchema`) and rehydrate it through `parseInternkortInformation` — cache and network then share one parser by construction. A stored-cache migration is unnecessary if `getCachedUser` treats a schema-parse failure as cache-miss (it already clears/re-fetches on failure paths). Also tighten `mobileCardRoleHistoryApiSchema` to the single field set the backend actually emits per `../kvarteret-personal/openapi.json`, keeping `.passthrough()` for forward-compatibility. Acceptance: `grep -rn ">= 14" src` hits exactly one file; all tests green; a logged-in user's card renders identically before/after (manual check of profile, roles sheet, history).
+
+### M3 — Localization and Oslo-time correctness
+
+Fix `LanguageProvider`: when nothing is stored, keep the device-derived initial language instead of forcing `"no"` (`const nextLanguage = stored === "en" || stored === "no" ? stored : getInitialLanguage()`), and add a test. Move every hard-coded string into `translations.ts`: the `"Spill"` tab label (key exists already: `tabSpill`), `"Gratis"` in `getPriceText` (thread the `language` parameter it already receives in sibling functions), the BenefitsScreen labels (`Trinn n`, the three sublabels, the empty-state), and audit with `grep -rn '"[A-ZÆØÅa-zæøå].*"' src/features src/routes` for stragglers. Replace `getOsloUtcOffset` with a real Europe/Oslo conversion: derive the offset via `Intl.DateTimeFormat("en-US", { timeZone: "Europe/Oslo", timeZoneName: "longOffset" })` on the target date (Hermes supports this; verify on device in the nerd-stats screen or a unit test run under Hermes in CI is not possible — verify manually once and pin with unit tests against known DST-boundary dates such as 2026-03-29 and 2026-10-25). Reuse the same helper in `grondahlsOpening.ts` so opening hours are evaluated in Oslo time. Acceptance: unit tests for the two DST boundary dates pass; a device set to English shows English on first launch; no Norwegian literals outside `translations.ts` (style-check grep can be extended to enforce this if desired).
+
+### M4 — Benefits consolidation and screen rewrite
+
+Delete `membershipBenefits.ts` and the ~80 `tierBenefit*` translation keys (both languages) once M1 removed their dead consumer. Rewrite `BenefitsScreen` to policy: fetch through `useQuery` with a Zod schema for the Sanity response (`benefitSchema` in `benefitsRepository.ts`), a visible error state with retry (mirror the events feed's pattern), and translated labels from M3. Confirm with the product owner that the Sanity `internbevisBenefit` dataset is complete relative to the deleted hard-coded lists before deleting — diff the two lists and file missing items into Sanity first. Acceptance: benefits render from Sanity with pull-to-retry on airplane mode; `grep -rn tierBenefit src` is empty.
+
+### M5 — Session and privacy hardening
+
+Three parts. (a) Feedback proxy: add `POST /api/v1/mobile-card/feedback` (or similar) to `kvarteret-personal` that accepts the message + optional contact e-mail, applies the existing Postgres rate limiting, and forwards to Slack server-side; the app's `feedbackRepository` then posts there (authenticated when a session exists, anonymous otherwise per product decision) and `EXPO_PUBLIC_FEEDBACK_WEBHOOK_URL` is deleted. This is a cross-repo milestone: the backend change is a prerequisite and should be its own small ExecPlan or PR in that repository. (b) PII-at-rest: execute the Decision Log item — measure a worst-case cached card size; if it fits SecureStore's Android limit with headroom, move `session_cached_user` there via `sessionStorage.ts`; otherwise write the acceptance rationale into this plan and the README. (c) Extract `SessionProvider`'s hydration decision logic (the cached-user/credentials/marker matrix, lines ~121–226) into a pure domain function `resolveHydrationOutcome(inputs) -> actions` in `features/auth/domain/`, and cover the matrix with unit tests (credentials+cache, credentials only, cache only + marker → diagnostic + clear, transient error + cache, definitive error). While in the file, apply Refinement 4 from the architecture assessment: replace the six overlapping state fields with one discriminated `status` union, wrap every function placed in the context value in `useCallback` (restoring the `useMemo`'s effect and stopping whole-app re-renders), give `LanguageProvider` the same referential-stability pass, and move the front-page role-selection persistence out of `SessionProvider` into the dashboard feature where it belongs. Unify env access so `authRepository` reads `appEnv` instead of `process.env` directly. Acceptance: backend endpoint live and app feedback works end-to-end; no webhook URL in the bundle (`npx expo export` and grep the output); hydration tests cover all branches.
+
+### M6 — Screen decomposition and consistency
+
+Split `KvarteretScreen.tsx` (551 lines) into feature components under `features/dashboard/ui/components/` (`OpeningStatusHero`, `EventGrid`, `EventFilterBar`, `EventFiltersModal`, `NowPlayingWidget` already exist as inline components — move them to files, keeping props as-is). Fix the `useHeaderMenuActions` memo (add `isVolunteer`; consider `useMemo(() => …, [isLoggedIn, isVolunteer, t])` and remove the `as any` in `toNativeMenuIcon` with a typed SF Symbol union or a cast-once helper). Make `fetchHomeEvents` honest: either implement `includeInternal`/`language` against Sanity (if internal events are still wanted — ask; commit `cbbcd47` says they were) or remove the parameters and simplify the query key to `["home-events"]`. Sweep remaining `useEffect`-fetch patterns (BenefitsScreen handled in M4; check `NerdStatsScreen` sensors are fine as-is). Apply Refinements 1 and 2 from the architecture assessment where this milestone already touches the files: decompose `useLoginForm` (25 returned members) into focused hooks (`useOtpRequest`, `useDeepLinkToken`, consent/local state left in the screen), move auth's HTTP helpers from the implicit core position into `features/auth/data`, and update `docs/architecture/FEATURE_FIRST_MVVM_LITE.md` to state the composed-hooks rule (~8-member cap), the simplified core/shared guidance, the state-modeling paragraph from Refinement 4, and a pointer to the dependency-cruiser config from M0. Acceptance: no file in `src/features` exceeds ~400 lines except where annotated; no hook returns more than ~8 members; menu updates when a demo user with/without verv toggles; the policy doc and the CI checks describe the same rules.
+
+### M7 — Test and release hygiene
+
+Change `jest.config.js` `testMatch` to include `.test.tsx?`, add component tests for the login form flow (e-mail → code → error surfaces) and the rewritten BenefitsScreen using `react-test-renderer` or `@testing-library/react-native` (prefer the latter; add as devDependency). Add the DST/locale tests from M3 if not already present. Resolve the versioning dual source of truth: since `release-submit.yml` computes versions, either adopt EAS `appVersionSource: remote`-style flow or document that `app.json` values are only for local/dev builds and must not be bumped manually for releases; write the outcome into `DEPLOYMENT_MANUAL_STEPS.txt` and the README. Acceptance: `npx jest` runs the new `.tsx` tests in CI; a release dry-run produces the expected version string and the docs describe exactly one bump procedure.
+
+## Cross-repository reuse inventory (samfunnetibergen ↔ this app)
+
+Investigated 2026-07-05. `../samfunnetibergen` is the Next.js 16 public site and — critically — the **owner of the Sanity Studio schema** this app consumes (`src/studio/schemaTypes/documents/`: `arrangement`, `eventType`, `eventTaxonomyGroup`, `internbevisBenefit`, `room`, `studentGroup`). Both repos consume the same Sanity dataset and the same `kvarteret-personal` backend, and both are TypeScript, so all duplication below is platform-neutral pure TS that could live in one place. The app even admits one instance in a comment ("Mirrors the approach in samfunnetibergen/ArrangementCard.tsx" in `eventFormatting.ts`).
+
+Confirmed duplicates (app file ↔ web file, with drift noted):
+
+1. RRule expansion — `eventFormatting.expandRruleUpcomingDates` ↔ `features/events/domain/dates.ts:expandRRuleDates`. Same `T12:00:00Z` anchor, same +2-year ceiling, same count 14, same swallow-to-`[]`. Different return shapes (`Date[]` vs `EventDateEntry[]`).
+2. Recurring-frequency label — `getRecurringBadgeText` ↔ `dates.ts:getRecurringLabel`. Same `FREQ=` regex; the web version takes labels as parameters (i18n-clean — adopt that shape when M3 removes the app's bilingual ternaries).
+3. Taxonomy derivation and filtering — `eventSelection.deriveTaxonomyFromEvents`/`filterEvents`/`EventFilterState` ↔ `features/events/domain/eventUtils.ts:buildTaxonomyFromEvents`/`filterEvents`/`EventFilters`. Same `"Annet"` fallback, same Set-based filter; the app hard-codes `TAXONOMY_GROUP_ORDER` (twice) while the web orders by the CMS's `orderRank` — the CMS-driven ordering should win everywhere.
+4. GROQ arrangement projection — app `src/core/sanity/queries.ts:ARRANGEMENT_PROJECTION` is a trimmed fork of web `src/lib/sanity/queries/events.ts:eventProjection`, already drifting (app aliases room `"name": coalesce(title,"")`, web keeps `title`; web adds `coalesce()` guards and SEO fields).
+5. Now-playing client — app `nowPlayingRepository.ts` ↔ web `src/lib/integrations/kvarteret-personal/now-playing.ts`. `NowPlayingState` and the hand-rolled parser are nearly line-for-line; even the connect-URL fallback differs only in path (`/login` vs `/spotify/login` — one of these is probably wrong; check which).
+6. `Result` type — app `src/shared/types/result.ts` (`{ok,data,error:null}`, `OK`/`ERR`) ↔ web `src/lib/result.ts` (`{ok,value}`/`{ok,error}`, `ok`/`err`). Incompatible twins of the same idea.
+7. Oslo-time handling — web formats via `Intl.DateTimeFormat(..., timeZone: "Europe/Oslo")` and has `lib/time.ts` (minutes-from-midnight, range overlap); the app hand-rolls the buggy month-based DST offset (M3 finding). Reusing the web approach fixes the app bug.
+8. Opening hours — web `lib/opening-hours.ts` (339 lines) evaluates CMS-modeled opening hours; the app hard-codes Grøndahls hours in `grondahlsOpening.ts`. Consolidation: model Grøndahls hours in Sanity and evaluate with the shared module.
+9. Sanity types — web runs `sanity typegen` (`src/lib/sanity/sanity.types.ts`) from the schema it owns; the app hand-writes `KvarteretEventDocument` and an untyped benefits shape. Publishing/sharing the generated types (or query fragments + types together) would make the app's Sanity contract machine-checked instead of guessed.
+10. Personal API contract — web vendors `openapi/kvarteret-personal.json`; the app has `scripts/generate-kvarteret-personal-client.mjs` fetching the same spec. Two consumption mechanisms for one contract (moot for the app if M1's client deletion is confirmed, but the spec-sourcing convention should be one pattern).
+
+Sharing mechanism (decision deferred, options in order of increasing commitment): (a) *copy-with-provenance* — keep duplication but add a header comment naming the counterpart file, and fix drift opportunistically (cheapest, status quo made honest); (b) a small `@kvarteret/shared` package (pure TS: events domain, taxonomy, rrule, now-playing parser, Result, Oslo-time; plus optionally generated Sanity types) consumed as a git/GitHub-registry dependency by both repos; (c) monorepo consolidation (not justified today). The highest-value single move is (b) scoped to the **events domain + generated Sanity types**, because that is where three of the app's live bugs (DST offset, hard-coded group order, unvalidated Sanity casts) coincide with already-better web implementations. Any extraction must be pure TS with no React/Next/RN imports so Hermes and server components both consume it.
+
+## Recommendations and directions
+
+This section turns the review into marching orders. It is written for whoever picks up the work next — including a contributor with no context beyond this file — and states what to do first, what "done" means for every PR, the exact target shapes for the recurring problems, and the three confirmations still owed by the product owner. Milestones M0–M7 remain the authoritative scope; this section is the prescriptive companion.
+
+### Order of execution and PR sizing
+
+Work the milestones in numeric order, but ship them as small PRs, one concern each — this team reviews small diffs well and big diffs badly. M0 is two PRs (fix the four `tsc` errors + extend the workflow; then the Biome/dependency-cruiser rule set). M1 is three or four PRs, one per removal group, each independently revertable. M2–M6 are one to two PRs each. Never mix a removal PR with a behavior-change PR: reviewers must be able to say "this diff deletes dead things and nothing else."
+
+Do the quick wins first — all of these are shippable this week, independently, before any milestone formally "starts":
+
+1. Add `@types/react-test-renderer`, fix the two implicit-`any` lambdas and the Slack-union narrowing; add `npx tsc --noEmit` and `npx jest --ci` steps to `code-quality.yml`. (M0, ~1 hour, unblocks everything.)
+2. One-line fix in `LanguageProvider`: `const nextLanguage = stored === "en" || stored === "no" ? stored : getInitialLanguage()`. Add the regression test. (M3 item, but it is a live user-facing bug — do not wait.)
+3. Add `isVolunteer` to the `menuActions` dependency array in `useHeaderMenuActions.ts`. (M6 item, one line.)
+4. Delete `src/core/api/firebase.ts`, the `firebase` dependency, the README Firebase section, and `git rm --cached ios/GoogleService-Info.plist`. (M1 group 1 — needs no confirmation, the grep evidence is conclusive.)
+
+### Definition of done for every PR in this plan
+
+Before requesting review: `npx tsc --noEmit && npx jest --ci && npm run lint:ci` green locally; no new hard-coded Norwegian/English strings outside `translations.ts`; no new `?? ""` / `?? 0` / `?? false` in mapping code (fail loudly instead); no new bare `catch {}` (see catch policy below); no new AsyncStorage key outside the registry (below); this ExecPlan's `Progress` section updated in the same PR.
+
+### Target shapes (copy these, do not improvise)
+
+Catch policy — every `catch` must be one of exactly three forms; anything else is a review rejection:
+
+    // 1. Surface: convert to UI state the user can see
+    catch (error) { setLoadState({ status: "error", message: toFriendlyMessage(error) }) }
+
+    // 2. Report: best-effort side path, but observable
+    catch (error) { reportDiagnostic("cache_write_failed", error) }   // never silently empty
+
+    // 3. Rethrow with context
+    catch (error) { throw new AppError("Sanity fetch failed", { cause: error }) }
+
+Session state — one discriminated union replaces the six booleans in `SessionProvider` (M5):
+
+    type SessionState =
+        | { status: "hydrating" }
+        | { status: "authenticated"; user: User; staleFromCache: boolean }
+        | { status: "anonymous" }
+        | { status: "signedOut"; error: string | null }
+
+    // Every function placed in the context value is wrapped in useCallback.
+    // Front-page role selections move out of this provider entirely (dashboard concern).
+
+Hook decomposition — the composed-hooks rule applied to `useLoginForm` (M6): three focused hooks, each independently testable, each returning ≤8 members; the screen owns trivial local state itself:
+
+    useOtpRequest(email)      // → { requestCode, isSending, error }
+    useTokenLogin()           // → { loginWithToken, isLoggingIn, error }
+    useDeepLinkToken(enabled) // → { consumePendingToken }   (wraps pendingToken + Linking)
+
+Storage-key registry — one module, `src/core/storage/keys.ts`, exporting every key with a version suffix; all `getStoredJson`/`setStoredJson` call sites import from it. Adding a key elsewhere fails review; bumping a version is the migration story:
+
+    export const STORAGE_KEYS = {
+        cachedCard: "session_cached_user:v2",       // v2 = raw API payload (M2)
+        loginMarker: "session_login_marker:v1",
+        language: "selected_language:v1",
+        eventFilters: "kvarteret_event_filters_sanity:v1",
+        frontpageRoles: (userId: number) => `selected_frontpage_role:v1:${userId}`,
+        chessTimeControl: "games_chess_time_control:v1",
+        anonymousMode: "anonymous_mode:v1",
+    } as const
+
+Boundary enforcement — `.dependency-cruiser.cjs` with these four rules, run as `npm run lint:architecture` in CI (M0):
+
+    { name: "no-cross-feature",   from: { path: "^src/features/([^/]+)/" }, to: { path: "^src/features/(?!$1)[^/]+/" }, severity: "error" }
+    { name: "domain-stays-pure",  from: { path: "^src/(features/[^/]+|shared)/domain/" }, to: { path: "(^src/.*/(ui|data)/|^react-native$)" }, severity: "error" }
+    { name: "shared-is-a-leaf",   from: { path: "^src/shared/" }, to: { path: "^src/(features|app)/" }, severity: "error" }
+    { name: "routes-are-thin",    from: { path: "^src/routes/" }, to: { path: "^src/(features/[^/]+/(data|domain)|core)/" }, severity: "error" }
+
+Boundary validation — every network payload crosses exactly one Zod parse at the repository layer; components and domain code never see `unknown` or `as T` casts. Sanity responses get schemas next to their queries (start with `benefitSchema` in M4 and an `arrangementSchema` when M6 touches events). Delete a hand-rolled parser every time you touch its file; never add a new one.
+
+Oslo time — one helper module (M3), used by events, opening hours, and formatting; the only place in the app allowed to say "Europe/Oslo":
+
+    osloWallClock(date: Date): { year, month, day, hour, minute, weekday }   // via Intl.DateTimeFormat parts
+    toOsloDate(dateStr: string, time: string | null): Date                    // replaces the month-based offset guess
+
+### Confirmations owed before the dependent PRs (recommended defaults stated)
+
+1. Delete the generated OpenAPI client and its scripts? Recommended: yes (Decision Log has the rationale); blocking M1 group 2 only.
+2. Keep `expo-insights`? It is telemetry-by-presence with zero code references. Recommended: keep only if someone actually reads the EAS insights dashboard; otherwise delete. Blocks part of M1 group 4.
+3. Benefits content diff: someone with Sanity access confirms every item from the hard-coded `tierBenefit*` lists exists as an `internbevisBenefit` document (or files the missing ones) before M4 deletes the hard-coded lists. Recommended owner: whoever curates Sanity content today.
+
+### Direction for anything this plan does not cover
+
+When a change does not fit an existing milestone, the standing directions are: follow the architecture policy as amended by the four refinements (composed hooks, no new core/shared ambiguity, boundaries stay green, discriminated-union state); prefer deleting over deprecating; prefer the samfunnetibergen implementation when both repos have one (it is Oslo-time-correct and i18n-parameterized where this app is not); and record any deviation as a Decision Log entry in this file rather than in a commit message where it will be lost.
+
+## Deferred Work
+
+- Executing the cross-repository sharing mechanism (see "Cross-repository reuse inventory") — pick option (a)/(b) after M1–M4 land, since those milestones change which app-side implementations survive.
+- Adopting the generated OpenAPI client across auth/now-playing (revisit only if the app grows to consume more Personal endpoints).
+- End-to-end tests (Maestro or similar) for login and card display — valuable but heavy for a three-person rotating team; reconsider after M7.
+- Dark mode / `userInterfaceStyle` (currently forced `light`), accessibility audit of the card screens, and the `react-native-paper` dependency question (three call sites) — fold into a future design pass.
+- Backend contract tightening beyond role-history fields (dual-key tolerance elsewhere) — coordinate with kvarteret-personal releases.
+
+## Concrete Steps
+
+All commands run from the repository root `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn` unless noted.
+
+Validation battery (run before and after every milestone):
+
+    npm ci                      # once per checkout
+    npx tsc --noEmit            # must be green from M0 onward
+    npx jest --ci               # 18 suites / 116 tests green today; counts change as tests are added/removed
+    npm run lint:ci             # style-exception grep + biome
+    npx expo-doctor             # after dependency changes
+
+Local run for manual verification: `npm run start` (Expo Go; login links via the clipboard button) or a dev client via `npm run build:dev:ios-simulator` + `npm run start:dev-client`. Local backend, if needed: the `infra` stack exposes `http://localhost:5001/api/v1/mobile-card`; set `EXPO_PUBLIC_INTERNKORT_BASE_URL` in `.env.local` (LAN IP on physical devices).
+
+Dead-code confirmation greps (M1 gate — each must return nothing before the corresponding delete is final):
+
+    grep -rn "core/api/firebase" src --include="*.ts*" | grep -v "src/core/api/firebase.ts"
+    grep -rln "core/api/kvarteret-personal" src | grep -v core/api
+    grep -rn "MemberStatusCard\|MembershipBenefitsCard\|NotRegisteredCard\|ErrorState" src | grep -v __tests__ | grep -v "ui/\(components\)\?.*\.tsx:"
+
+Backend contract reference for M2: `../kvarteret-personal/openapi.json` (or `git -C ../kvarteret-personal show origin/develop:openapi.json`), path `/api/v1/mobile-card/me`.
+
+## Validation and Acceptance
+
+The plan is done when, on a fresh clone with only this file and the repo:
+
+1. `npm ci && npx tsc --noEmit && npx jest --ci && npm run lint:ci` all exit 0, and the same battery runs (and gates) in `.github/workflows/code-quality.yml` on every push.
+2. `grep -r "firebase" src package.json` and `grep -rn "tierBenefit" src` return nothing; `ls src/core/api` contains no `kvarteret-personal` directory (or the Decision Log records the reversal).
+3. `grep -rn "pingvinPoengSum >= 14\|>= 14" src` matches only the single membership module.
+4. A device set to English shows English on first launch; an event on 2026-10-25 (DST boundary) shows the same wall-clock time as Sanity Studio does.
+5. Benefits load from Sanity with a visible retry on network failure, in the UI language.
+6. `npx expo export --platform ios && grep -r "hooks.slack.com" dist` (or the equivalent webhook host) returns nothing; feedback still arrives in Slack via the backend.
+7. Logging in, killing the network, and relaunching still shows the cached card with the correct tier badge and dagens ord (regression guard for the M2 cache-parser swap).
+
+## Idempotence and Recovery
+
+Every milestone is a set of additive-then-subtractive source edits gated by the validation battery; nothing touches user data or production infrastructure except M5(a), which adds a backend endpoint before the app switches to it (the webhook path keeps working until the app-side change ships, and OTA rollback via `eas update --channel production` to the previous update recovers the client). The M2 cache format change is self-healing: unknown/old cache shapes parse-fail and fall back to a network refresh, which rewrites the cache in the new format. Dependency removals are recoverable with `git revert`; each removal group should be its own commit so partial rollback is cheap. If an EAS build fails after a dependency removal, restore the dependency, run `npx expo-doctor`, and record the finding in `Surprises & Discoveries` before retrying.
+
+## Artifacts and Notes
+
+Evidence captured during the 2026-07-05 review session:
+
+    npx jest --silent
+      Test Suites: 18 passed, 18 total
+      Tests:       116 passed, 116 total
+      Time:        1.012 s
+
+    npx tsc --noEmit  → 4 errors (listed in Surprises & Discoveries)
+
+    dependency usage counts (grep -rl in src/, App.tsx, index.ts):
+      firebase: 1 (only its own init file)   expo-sqlite: 0    react-native-svg: 0
+      expo-insights: 0                        react-native-markdown-display: 1
+      react-native-render-html: 1             react-native-paper: 3
+
+Reference documents: `/PLANS.md` (authoring spec), `docs/architecture/FEATURE_FIRST_MVVM_LITE.md` (in-repo architecture policy), `docs/skills/new-screen/SKILL.md` (screen workflow), `DEPLOYMENT_MANUAL_STEPS.txt` and `README.md` (release pipeline), and `../kvarteret-personal/plans/legacy-restructure.md` (the sibling ExecPlan whose backend decisions this plan assumes: English schema, retired DigitalInternkort API, Postgres rate limiting, hashed access codes).
+
+## Interfaces and Dependencies
+
+External surfaces this app consumes, as of this review: the Personal mobile-card API (`POST /access-codes`, `POST /sessions?include_role_history=true`, `GET /me?include_role_history=true` with session renewal header, `POST client-events/session-logout`), the Personal now-playing endpoint (`GET /api/now-playing` on the API host root), the Sanity Content Lake (project `mkjoahvv`, dataset `production`, GROQ queries in `src/core/sanity/queries.ts` for `arrangement` and `internbevisBenefit` types), and — until M5 — a Slack incoming webhook. Deep links use the `internbeviskvarteret://` scheme with an `accessToken` query parameter. Build/distribution: EAS project `8e46104c-a94c-4205-9884-4f813b6371c3` (owner `studentersamfunnet-bergen`), OTA channels `production`/`preview`, GitHub Actions secrets enumerated in the README. Changes to any of these surfaces must be coordinated with `kvarteret-personal` (API), the Sanity studio owners (schema), and the release owner (EAS/stores).
