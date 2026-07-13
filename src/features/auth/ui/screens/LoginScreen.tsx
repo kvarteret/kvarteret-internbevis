@@ -1,41 +1,136 @@
+import * as Clipboard from "expo-clipboard"
+import Constants from "expo-constants"
 import { useRouter } from "expo-router"
-import React, { useEffect } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import {
-    Image,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
     useWindowDimensions,
-    View,
-    ViewStyle,
 } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
+import { extractAccessTokenFromManualInput } from "@/core/linking/deepLinkParser"
+import { consumePendingDeepLinkToken } from "@/core/linking/pendingToken"
+import { isEmailValid, normalizeEmail } from "@/features/auth/domain/authValidation"
 import { LoginForm } from "@/features/auth/ui/components/LoginForm"
+import { LoginHero } from "@/features/auth/ui/components/LoginHero"
 import { VerifyCodeForm } from "@/features/auth/ui/components/VerifyCodeForm"
 import { useDeepLinkLogin } from "@/features/auth/vm/useDeepLinkLogin"
-import { useLoginForm } from "@/features/auth/vm/useLoginForm"
+import { useOtpRequest } from "@/features/auth/vm/useOtpRequest"
+import { useTokenLogin } from "@/features/auth/vm/useTokenLogin"
+import { createDemoUser } from "@/shared/types/user"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { SafeAreaView, useSafeAreaInsets } from "@/shared/ui/interop"
-import { Text } from "@/shared/ui/Text"
 
-const BRUTAL_HERO_STYLE: ViewStyle = {
-    boxShadow: "8px 8px 0px #111827",
-}
+type LoginMode = "email" | "verify"
 
 export const LoginScreen = (): React.JSX.Element => {
+    const { t } = useTranslation()
     const router = useRouter()
-    const { user, isAnonymous } = useSession()
+    const { user, isAnonymous, setUser, continueAnonymously } = useSession()
     const insets = useSafeAreaInsets()
     const { width } = useWindowDimensions()
-    const form = useLoginForm()
     const isCompactWidth = width < 390
-    useDeepLinkLogin(form.mode, form.performTokenLogin)
+    const isExpoGo = Constants.executionEnvironment === "storeClient"
+
+    // Trivial form state lives in the screen; async concerns live in the
+    // focused hooks below (composed-hooks rule, architecture Refinement 1).
+    const [mode, setMode] = useState<LoginMode>("email")
+    const [email, setEmail] = useState("")
+    const [otpCode, setOtpCode] = useState("")
+    const [emailValidationError, setEmailValidationError] = useState<string | null>(null)
+    const [otpFieldErrorText, setOtpFieldErrorText] = useState<string | null>(null)
+    const [manualTokenError, setManualTokenError] = useState<string | null>(null)
+    const [privacyPolicyChecked, setPrivacyPolicyChecked] = useState(false)
+
+    const normalizedEmail = useMemo(() => normalizeEmail(email), [email])
+    const { requestCode, isSending, requestError, clearRequestError } = useOtpRequest()
+    const { performTokenLogin, loginError, clearLoginError } = useTokenLogin()
+
+    const resetVerifyErrors = useCallback((): void => {
+        setOtpFieldErrorText(null)
+        setManualTokenError(null)
+        clearLoginError()
+        clearRequestError()
+    }, [clearLoginError, clearRequestError])
+
+    const loginWithCurrentEmail = useCallback(
+        (token: string): Promise<boolean> => performTokenLogin(normalizedEmail, token),
+        [normalizedEmail, performTokenLogin],
+    )
+
+    useDeepLinkLogin(mode, loginWithCurrentEmail)
 
     useEffect(() => {
         if (user || isAnonymous) {
             router.replace("/(tabs)/kontroll")
         }
     }, [isAnonymous, router, user])
+
+    const submitEmail = async (): Promise<void> => {
+        setEmailValidationError(null)
+
+        if (!privacyPolicyChecked) {
+            Alert.alert(t("privacyPolicyConsentAlertHeader"), t("privacyPolicyConsentAlert"))
+            return
+        }
+
+        if (!isEmailValid(normalizedEmail)) {
+            setEmailValidationError(t("invalidEmail"))
+            return
+        }
+
+        const deepLinkToken = consumePendingDeepLinkToken()
+        if (deepLinkToken && (await loginWithCurrentEmail(deepLinkToken))) {
+            return
+        }
+
+        if (await requestCode(normalizedEmail)) {
+            clearLoginError()
+            setMode("verify")
+        }
+    }
+
+    const submitOtp = async (): Promise<void> => {
+        resetVerifyErrors()
+
+        if (!otpCode.trim()) {
+            setOtpFieldErrorText(t("pleaseEnterCode"))
+            return
+        }
+
+        await loginWithCurrentEmail(otpCode.trim())
+    }
+
+    const resendOtp = async (): Promise<void> => {
+        resetVerifyErrors()
+
+        if (await requestCode(normalizedEmail)) {
+            Alert.alert(t("status"), t("newCodeSent"))
+        }
+    }
+
+    const useClipboardLink = async (): Promise<void> => {
+        resetVerifyErrors()
+
+        const clipboardText = await Clipboard.getStringAsync()
+        const accessToken = extractAccessTokenFromManualInput(clipboardText)
+
+        if (!accessToken) {
+            setManualTokenError(t("expoGoClipboardNoToken"))
+            return
+        }
+
+        await loginWithCurrentEmail(accessToken)
+    }
+
+    const backToEmail = (): void => {
+        setMode("email")
+        setOtpCode("")
+        resetVerifyErrors()
+    }
 
     return (
         <SafeAreaView className="flex-1 bg-background" edges={["left", "right", "bottom"]}>
@@ -59,87 +154,39 @@ export const LoginScreen = (): React.JSX.Element => {
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    <View
-                        className="w-full max-w-xl overflow-hidden border-2 border-editorial-ink bg-brand-primary"
-                        style={[
-                            BRUTAL_HERO_STYLE,
-                            {
-                                paddingHorizontal: isCompactWidth ? 18 : 20,
-                                paddingVertical: isCompactWidth ? 18 : 20,
-                            },
-                        ]}
-                    >
-                        <View className={isCompactWidth ? "gap-3" : "gap-2.5"}>
-                            <Text
-                                className={`font-black uppercase text-editorial-ink ${isCompactWidth ? "text-lg leading-6" : "text-xl"}`}
-                            >
-                                Det er os en Glæde at byde Dem velkommen til
-                            </Text>
-                            <View
-                                className={`flex-row items-center ${isCompactWidth ? "gap-3" : "gap-4"}`}
-                            >
-                                <View
-                                    className="shrink-0 items-center justify-center"
-                                    style={{
-                                        width: isCompactWidth ? 86 : 112,
-                                    }}
-                                >
-                                    <Image
-                                        accessible={false}
-                                        resizeMode="contain"
-                                        source={require("@assets/images/nobg.png")}
-                                        style={{
-                                            height: isCompactWidth ? 86 : 112,
-                                            width: isCompactWidth ? 86 : 112,
-                                        }}
-                                    />
-                                </View>
-                                <View className="flex-1 justify-center gap-0.5">
-                                    <Text
-                                        className={`font-black uppercase tracking-wider text-editorial-ink ${isCompactWidth ? "text-xl leading-6" : "text-2xl leading-none"}`}
-                                    >
-                                        DET
-                                    </Text>
-                                    <Text
-                                        className={`font-black uppercase tracking-wider text-editorial-ink ${isCompactWidth ? "text-xl leading-6" : "text-2xl leading-none"}`}
-                                    >
-                                        AKADEMISKE
-                                    </Text>
-                                    <Text
-                                        className={`font-black uppercase tracking-wider text-editorial-ink ${isCompactWidth ? "text-xl leading-6" : "text-2xl leading-none"}`}
-                                    >
-                                        KVARTER
-                                    </Text>
-                                </View>
-                            </View>
-                        </View>
-                    </View>
+                    <LoginHero isCompactWidth={isCompactWidth} />
 
-                    {form.mode === "email" ? (
+                    {mode === "email" ? (
                         <LoginForm
-                            email={form.email}
-                            emailErrorText={form.emailErrorText}
-                            privacyPolicyChecked={form.privacyPolicyChecked}
-                            sendingOtp={form.sendingOtp}
-                            onChangeEmail={form.setEmail}
-                            onTogglePrivacy={form.togglePrivacy}
+                            email={email}
+                            emailErrorText={emailValidationError ?? requestError}
+                            privacyPolicyChecked={privacyPolicyChecked}
+                            sendingOtp={isSending}
+                            onChangeEmail={setEmail}
+                            onTogglePrivacy={() => setPrivacyPolicyChecked(previous => !previous)}
                             onPrivacyPress={() => router.push("/privacy")}
-                            onSubmitEmail={form.submitEmail}
-                            onDemoLogin={form.loginDemo}
-                            onContinueAnonymous={form.continueAnonymous}
-                            showDemoButton={form.showDemoButton}
+                            onSubmitEmail={submitEmail}
+                            onDemoLogin={() => {
+                                if (__DEV__) {
+                                    setUser(createDemoUser())
+                                }
+                            }}
+                            onContinueAnonymous={() => {
+                                void continueAnonymously()
+                            }}
+                            showDemoButton={__DEV__}
                         />
                     ) : (
                         <VerifyCodeForm
-                            otpCode={form.otpCode}
-                            otpFieldErrorText={form.otpFieldErrorText}
-                            globalErrorText={form.globalErrorText}
-                            isExpoGo={form.isExpoGo}
-                            onChangeOtpCode={form.setOtpCode}
-                            onVerifyCode={form.submitOtp}
-                            onSendOtp={form.resendOtp}
-                            onUseClipboardLink={form.useClipboardLink}
-                            onBack={form.backToEmail}
+                            otpCode={otpCode}
+                            otpFieldErrorText={otpFieldErrorText}
+                            globalErrorText={loginError ?? requestError ?? manualTokenError}
+                            isExpoGo={isExpoGo}
+                            onChangeOtpCode={setOtpCode}
+                            onVerifyCode={submitOtp}
+                            onSendOtp={resendOtp}
+                            onUseClipboardLink={useClipboardLink}
+                            onBack={backToEmail}
                         />
                     )}
 
