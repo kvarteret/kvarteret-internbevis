@@ -30,10 +30,6 @@ describe("submitFeedback", () => {
             message: "Hei fra test",
             page: "/(tabs)/feedback",
             platform: "ios",
-            user: {
-                id: 7,
-                fullName: "Test Person",
-            },
         })
 
         expect(global.fetch).toHaveBeenCalledTimes(1)
@@ -51,14 +47,14 @@ describe("submitFeedback", () => {
         const body = JSON.parse(String(options.body)) as {
             message: string
             source: string
-            user_id: number | null
             contact_email: string | null
         }
 
         expect(body.message).toBe("Hei fra test")
         expect(body.source).toBe("internbevis-rn")
-        expect(body.user_id).toBe(7)
         expect(body.contact_email).toBe("test@example.com")
+        expect(body).not.toHaveProperty("user_id")
+        expect(body).not.toHaveProperty("user_full_name")
     })
 
     it("throws when the endpoint returns a non-2xx status", async () => {

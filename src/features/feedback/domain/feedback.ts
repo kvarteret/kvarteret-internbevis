@@ -1,5 +1,4 @@
 import { isEmailValid, normalizeEmail } from "@/shared/domain/emailValidation"
-import { User } from "@/shared/types/user"
 
 export const FEEDBACK_PAGE = "/(tabs)/feedback"
 export const MAX_FEEDBACK_MESSAGE_LENGTH = 2_000
@@ -23,18 +22,12 @@ export class FeedbackValidationError extends Error {
     }
 }
 
-export interface FeedbackUserContext {
-    id: number
-    fullName: string | null
-}
-
 export interface FeedbackSubmissionInput {
     contactAllowed: boolean
     contactEmail?: string | null
     message: string
     page: string
     platform: string
-    user?: FeedbackUserContext | null
 }
 
 // Field-for-field match of the backend's FeedbackRequest model
@@ -45,22 +38,7 @@ export interface FeedbackRequestBody {
     platform: string
     contact_allowed: boolean
     contact_email: string | null
-    user_id: number | null
-    user_full_name: string | null
     source: string
-}
-
-export const buildFeedbackUserContext = (user: User | null): FeedbackUserContext | null => {
-    if (!user) {
-        return null
-    }
-
-    const fullName = `${user.fornavn} ${user.etternavn}`.trim()
-
-    return {
-        id: user.id,
-        fullName: fullName.length > 0 ? fullName : null,
-    }
 }
 
 export const normalizeFeedbackMessage = (value: string): string => {
@@ -106,8 +84,6 @@ export const buildFeedbackRequestBody = (
         platform: submission.platform.trim() || "unknown",
         contact_allowed: submission.contactAllowed,
         contact_email: submission.contactAllowed ? normalizedContactEmail : null,
-        user_id: submission.user?.id ?? null,
-        user_full_name: submission.user?.fullName ?? null,
         source: FEEDBACK_SOURCE,
     }
 }

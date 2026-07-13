@@ -6,7 +6,6 @@ import { useSession } from "@/app/providers/SessionProvider"
 import { getSavedCredentials } from "@/features/auth/data/authRepository"
 import { submitFeedback } from "@/features/feedback/data/feedbackRepository"
 import {
-    buildFeedbackUserContext,
     FEEDBACK_PAGE,
     FeedbackValidationError,
     MAX_FEEDBACK_MESSAGE_LENGTH,
@@ -67,7 +66,6 @@ export const FeedbackScreen = (): React.JSX.Element => {
                 message: rawMessage,
                 page: FEEDBACK_PAGE,
                 platform: Platform.OS,
-                user: buildFeedbackUserContext(user),
             })
         },
         onSuccess: () => {

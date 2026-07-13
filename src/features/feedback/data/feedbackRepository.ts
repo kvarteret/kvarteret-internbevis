@@ -1,9 +1,6 @@
 import { z } from "zod"
 import { appEnv } from "@/app/config/env"
-import {
-    buildFeedbackRequestBody,
-    type FeedbackUserContext,
-} from "@/features/feedback/domain/feedback"
+import { buildFeedbackRequestBody } from "@/features/feedback/domain/feedback"
 
 export interface SubmitFeedbackInput {
     contactAllowed: boolean
@@ -11,7 +8,6 @@ export interface SubmitFeedbackInput {
     message: string
     page: string
     platform: string
-    user?: FeedbackUserContext | null
 }
 
 const feedbackApiResponseSchema = z.object({

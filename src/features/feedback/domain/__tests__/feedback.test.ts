@@ -34,14 +34,13 @@ describe("feedback validation", () => {
 })
 
 describe("buildFeedbackRequestBody", () => {
-    it("omits user and contact fields for anonymous submissions", () => {
+    it("builds the anonymous API contract without unverified identity fields", () => {
         const body = buildFeedbackRequestBody({
             contactAllowed: false,
             contactEmail: null,
             message: "Hei",
             page: "/(tabs)/feedback",
             platform: "ios",
-            user: null,
         })
 
         expect(body).toEqual({
@@ -50,29 +49,23 @@ describe("buildFeedbackRequestBody", () => {
             platform: "ios",
             contact_allowed: false,
             contact_email: null,
-            user_id: null,
-            user_full_name: null,
             source: FEEDBACK_SOURCE,
         })
     })
 
-    it("includes logged-in user metadata and contact email when allowed", () => {
+    it("includes the contact email when allowed", () => {
         const body = buildFeedbackRequestBody({
             contactAllowed: true,
             contactEmail: "sample.person@example.com",
             message: "Hei",
             page: "/(tabs)/feedback",
             platform: "android",
-            user: {
-                id: 12,
-                fullName: "Sample Person",
-            },
         })
 
-        expect(body.user_id).toBe(12)
-        expect(body.user_full_name).toBe("Sample Person")
         expect(body.contact_allowed).toBe(true)
         expect(body.contact_email).toBe("sample.person@example.com")
+        expect(body).not.toHaveProperty("user_id")
+        expect(body).not.toHaveProperty("user_full_name")
     })
 
     it("omits the contact email when contact is not allowed, even if one was typed", () => {
@@ -82,7 +75,6 @@ describe("buildFeedbackRequestBody", () => {
             message: "Hei",
             page: "/(tabs)/feedback",
             platform: "ios",
-            user: null,
         })
 
         expect(body.contact_email).toBeNull()
@@ -95,7 +87,6 @@ describe("buildFeedbackRequestBody", () => {
             message: "Hei",
             page: "  ",
             platform: "  ",
-            user: null,
         })
 
         expect(body.page).toBe("/(tabs)/feedback")
@@ -110,7 +101,6 @@ describe("buildFeedbackRequestBody", () => {
                 message: "Hei",
                 page: "/(tabs)/feedback",
                 platform: "ios",
-                user: null,
             }),
         ).toThrow(FeedbackValidationError)
     })
