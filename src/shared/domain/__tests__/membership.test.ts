@@ -1,5 +1,10 @@
-import { User } from "@/shared/types/user"
-import { getHighestTier, getHighestTierGroup, getHighestTierName } from "../membership"
+import type { User } from "@/shared/types/user"
+import {
+    getEffectiveActiveRoles,
+    getHighestTier,
+    getHighestTierGroup,
+    getHighestTierName,
+} from "../membership"
 
 const createUser = (overrides: Partial<User> = {}): User => ({
     id: 1,
@@ -91,5 +96,28 @@ describe("user tier helpers", () => {
         expect(getHighestTier(user)).toBe(0)
         expect(getHighestTierName(user)).toBe("")
         expect(getHighestTierGroup(user)).toBe("")
+    })
+
+    it("uses the previous semester roles as effective active roles during grace", () => {
+        const user = createUser({
+            vervHistorikk: [
+                {
+                    navn: "Medlem",
+                    gruppe: "PR-Etaten",
+                    signertKontrakt: true,
+                    rabattTrinn: 2,
+                    pingvinPoeng: 8,
+                    startet: null,
+                    sluttet: null,
+                    ar: 2026,
+                    semester: "Vår",
+                    aktiv: false,
+                },
+            ],
+        })
+
+        expect(getEffectiveActiveRoles(user, new Date("2026-08-31T12:00:00+02:00"))).toHaveLength(1)
+        expect(getHighestTier(user, new Date("2026-08-31T12:00:00+02:00"))).toBe(2)
+        expect(getHighestTier(user, new Date("2026-09-01T00:00:00+02:00"))).toBe(0)
     })
 })

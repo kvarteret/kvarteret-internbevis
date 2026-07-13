@@ -1,10 +1,11 @@
 import {
+    getEffectiveActiveRoles,
     hasPingvinValidity,
     PINGVIN_DISCOUNT_TIER,
     PINGVIN_GROUP_NAME,
     PINGVIN_ROLE_NAME,
 } from "@/shared/domain/membership"
-import { InternKortVerv, InternKortVervHistorikk, User } from "@/shared/types/user"
+import type { InternKortVerv, InternKortVervHistorikk, User } from "@/shared/types/user"
 
 export const MAX_FRONT_PAGE_ROLE_SELECTIONS = 3
 
@@ -312,8 +313,10 @@ export const toggleFrontPageRoleSelection = (
     }
 }
 
-export const buildDisplayRoles = (user: User): DisplayRoleRow[] => {
-    const activeRoles = user.aktiveVerv.map(normalizeActiveRole).sort(sortByPriority)
+export const buildDisplayRoles = (user: User, now: Date = new Date()): DisplayRoleRow[] => {
+    const activeRoles = getEffectiveActiveRoles(user, now)
+        .map(normalizeActiveRole)
+        .sort(sortByPriority)
 
     if (!hasPingvinValidity(user)) {
         return activeRoles

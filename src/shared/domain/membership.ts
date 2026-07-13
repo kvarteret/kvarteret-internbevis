@@ -1,4 +1,10 @@
-import { InternKortVerv, RabattTrinn, User } from "@/shared/types/user"
+import { osloWallClock } from "@/shared/time/osloTime"
+import type {
+    InternKortVerv,
+    InternKortVervHistorikk,
+    RabattTrinn,
+    User,
+} from "@/shared/types/user"
 
 // Single owner of the membership-tier business rules (Pingvin threshold, tier
 // ordering, virtual-role constants). Every other module imports from here;
@@ -40,14 +46,64 @@ export const createPingvinRole = (): InternKortVerv => ({
     pingvinPoeng: Number.MAX_SAFE_INTEGER,
 })
 
-const getHighestTierVerv = (user: User): InternKortVerv | null => {
-    // Pingvin is always treated as the highest tier.
-    if (hasPingvinValidity(user)) {
-        return createPingvinRole()
+type SemesterTerm = 1 | 2
+
+interface SemesterReference {
+    year: number
+    term: SemesterTerm
+}
+
+const getGracePeriodSemester = (now: Date): SemesterReference | null => {
+    const { year, month, day } = osloWallClock(now)
+
+    // The backend starts querying the next semester on January 1 and July 1,
+    // before volunteer assignments for that semester are necessarily updated.
+    // Carry the previous semester through January 14 and August 31.
+    if (month === 1 && day < 15) {
+        return { year: year - 1, term: 2 }
     }
 
-    let highest: InternKortVerv | null = null
-    for (const verv of user.aktiveVerv) {
+    if (month >= 7 && month <= 8) {
+        return { year, term: 1 }
+    }
+
+    return null
+}
+
+const getHistoryTerm = (semester: string | null): SemesterTerm | null => {
+    const normalized = semester?.trim().toLowerCase() ?? ""
+    if (normalized === "1" || normalized.includes("vår")) {
+        return 1
+    }
+
+    if (normalized === "2" || normalized.includes("høst")) {
+        return 2
+    }
+
+    return null
+}
+
+export const getEffectiveActiveRoles = (user: User, now: Date = new Date()): InternKortVerv[] => {
+    if (user.aktiveVerv.length > 0) {
+        return user.aktiveVerv
+    }
+
+    const graceSemester = getGracePeriodSemester(now)
+    if (!graceSemester) {
+        return []
+    }
+
+    return user.vervHistorikk.filter(
+        (role: InternKortVervHistorikk) =>
+            role.ar === graceSemester.year && getHistoryTerm(role.semester) === graceSemester.term,
+    )
+}
+
+const getHighestTierVerv = <TRole extends Pick<InternKortVerv, "rabattTrinn">>(
+    roles: ReadonlyArray<TRole>,
+): TRole | null => {
+    let highest: TRole | null = null
+    for (const verv of roles) {
         if (!highest || rankTier(verv.rabattTrinn) > rankTier(highest.rabattTrinn)) {
             highest = verv
         }
@@ -56,26 +112,42 @@ const getHighestTierVerv = (user: User): InternKortVerv | null => {
     return highest
 }
 
-const hasAnyTierSource = (user: User): boolean =>
-    user.aktiveVerv.length > 0 || hasPingvinValidity(user)
+export const getHighestTierFromRoles = (
+    roles: ReadonlyArray<Pick<InternKortVerv, "rabattTrinn">>,
+): number => getHighestTierVerv(roles)?.rabattTrinn ?? 0
 
-export const getHighestTier = (user: User): number => {
-    if (!hasAnyTierSource(user)) {
+const hasAnyTierSource = (user: User, now: Date): boolean =>
+    getEffectiveActiveRoles(user, now).length > 0 || hasPingvinValidity(user)
+
+export const getHighestTier = (user: User, now: Date = new Date()): number => {
+    if (!hasAnyTierSource(user, now)) {
         return 0
     }
-    return getHighestTierVerv(user)?.rabattTrinn ?? 0
+    if (hasPingvinValidity(user)) {
+        return PINGVIN_DISCOUNT_TIER
+    }
+
+    return getHighestTierVerv(getEffectiveActiveRoles(user, now))?.rabattTrinn ?? 0
 }
 
-export const getHighestTierGroup = (user: User): string => {
-    if (!hasAnyTierSource(user)) {
+export const getHighestTierGroup = (user: User, now: Date = new Date()): string => {
+    if (!hasAnyTierSource(user, now)) {
         return ""
     }
-    return getHighestTierVerv(user)?.gruppe ?? ""
+    if (hasPingvinValidity(user)) {
+        return PINGVIN_GROUP_NAME
+    }
+
+    return getHighestTierVerv(getEffectiveActiveRoles(user, now))?.gruppe ?? ""
 }
 
-export const getHighestTierName = (user: User): string => {
-    if (!hasAnyTierSource(user)) {
+export const getHighestTierName = (user: User, now: Date = new Date()): string => {
+    if (!hasAnyTierSource(user, now)) {
         return ""
     }
-    return getHighestTierVerv(user)?.navn ?? ""
+    if (hasPingvinValidity(user)) {
+        return PINGVIN_ROLE_NAME
+    }
+
+    return getHighestTierVerv(getEffectiveActiveRoles(user, now))?.navn ?? ""
 }

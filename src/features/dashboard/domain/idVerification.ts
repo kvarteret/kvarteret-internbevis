@@ -1,7 +1,12 @@
-import { getHighestTier, hasPingvinValidity } from "@/shared/domain/membership"
-import { User } from "@/shared/types/user"
+import {
+    getEffectiveActiveRoles,
+    getHighestTier,
+    getHighestTierFromRoles,
+    hasPingvinValidity,
+} from "@/shared/domain/membership"
+import type { User } from "@/shared/types/user"
 
-export type IdVerificationReason = "active-role" | "pingvin-points" | "none"
+export type IdVerificationReason = "active-role" | "pingvin-points" | "grace-period" | "none"
 
 export interface IdVerificationStatus {
     isValid: boolean
@@ -11,15 +16,18 @@ export interface IdVerificationStatus {
 
 const hasActiveRole = (user: User): boolean => user.aktiveVerv.length > 0
 
-export const isIdVerificationValid = (user: User): boolean =>
-    hasActiveRole(user) || hasPingvinValidity(user)
+export const isIdVerificationValid = (user: User, now: Date = new Date()): boolean =>
+    getIdVerificationStatus(user, now).isValid
 
-export const getIdVerificationStatus = (user: User): IdVerificationStatus => {
+export const getIdVerificationStatus = (
+    user: User,
+    now: Date = new Date(),
+): IdVerificationStatus => {
     if (hasActiveRole(user)) {
         return {
             isValid: true,
             reason: "active-role",
-            tier: getHighestTier(user),
+            tier: getHighestTier(user, now),
         }
     }
 
@@ -27,7 +35,16 @@ export const getIdVerificationStatus = (user: User): IdVerificationStatus => {
         return {
             isValid: true,
             reason: "pingvin-points",
-            tier: getHighestTier(user),
+            tier: getHighestTier(user, now),
+        }
+    }
+
+    const gracePeriodRoles = getEffectiveActiveRoles(user, now)
+    if (gracePeriodRoles.length > 0) {
+        return {
+            isValid: true,
+            reason: "grace-period",
+            tier: getHighestTierFromRoles(gracePeriodRoles),
         }
     }
 

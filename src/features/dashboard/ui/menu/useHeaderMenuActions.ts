@@ -13,6 +13,7 @@ import {
     buildNativeMenuActions,
     NATIVE_MENU_ACTION_ID,
 } from "@/features/dashboard/ui/menu/nativeMenuActions"
+import { getEffectiveActiveRoles } from "@/shared/domain/membership"
 
 const toNativeMenuIcon = (image?: string) =>
     image
@@ -67,7 +68,7 @@ export const useHeaderMenuActions = (): {
     const { user, logout, exitAnonymousMode } = useSession()
     const { changeLanguage } = useLanguage()
     const isLoggedIn = Boolean(user)
-    const isVolunteer = Boolean(user && user.aktiveVerv.length > 0)
+    const isVolunteer = Boolean(user && getEffectiveActiveRoles(user).length > 0)
 
     const menuActions = useMemo(
         () =>

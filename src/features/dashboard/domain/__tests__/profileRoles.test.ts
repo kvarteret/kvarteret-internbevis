@@ -1,4 +1,4 @@
-import { User } from "@/shared/types/user"
+import type { User } from "@/shared/types/user"
 import {
     arePersistedRoleSelectionsEqual,
     buildDisplayRoles,
@@ -24,6 +24,22 @@ const createUser = (overrides: Partial<User> = {}): User => ({
     aktiveVerv: [],
     vervHistorikk: [],
     dagensOrd: "",
+    ...overrides,
+})
+
+const createHistoryRole = (
+    overrides: Partial<User["vervHistorikk"][number]> = {},
+): User["vervHistorikk"][number] => ({
+    navn: "Medlem",
+    gruppe: "PR-Etaten",
+    signertKontrakt: true,
+    rabattTrinn: 2,
+    pingvinPoeng: 8,
+    startet: null,
+    sluttet: null,
+    ar: 2026,
+    semester: "Vår",
+    aktiv: false,
     ...overrides,
 })
 
@@ -120,6 +136,27 @@ describe("buildDisplayRoles", () => {
             signertKontrakt: false,
             source: "active",
         })
+    })
+
+    it("represents the previous semester role as active during summer grace", () => {
+        const user = createUser({ vervHistorikk: [createHistoryRole()] })
+
+        const roles = buildDisplayRoles(user, new Date("2026-08-31T12:00:00+02:00"))
+
+        expect(roles).toEqual([
+            expect.objectContaining({
+                source: "active",
+                navn: "Medlem",
+                gruppe: "PR-Etaten",
+                rabattTrinn: 2,
+            }),
+        ])
+    })
+
+    it("stops representing the previous semester role after summer grace", () => {
+        const user = createUser({ vervHistorikk: [createHistoryRole()] })
+
+        expect(buildDisplayRoles(user, new Date("2026-09-01T00:00:00+02:00"))).toEqual([])
     })
 })
 
