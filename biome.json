@@ -6,7 +6,17 @@
         "useIgnoreFile": true
     },
     "files": {
-        "includes": ["**", "!.claude/**", "!docs/**", "!dist/**", "!node_modules/**", "!**/*.css"],
+        "includes": [
+            "**",
+            "!.claude",
+            "!coverage",
+            "!docs",
+            "!dist",
+            "!node_modules",
+            "!src/core/api/kvarteret-personal",
+            "!uniwind-types.d.ts",
+            "!**/*.css"
+        ],
         "ignoreUnknown": true
     },
     "formatter": {
@@ -18,7 +28,7 @@
     "linter": {
         "enabled": true,
         "rules": {
-            "recommended": false,
+            "recommended": true,
             "complexity": {
                 "useArrowFunction": "warn"
             }
