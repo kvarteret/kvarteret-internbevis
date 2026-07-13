@@ -15,7 +15,7 @@ Why this strategy:
 Keep old app IDs
 ================
 - iOS bundle id: com.kvarteret.internbevis.internBevisKvarteret
-- Android package: com.kvarteret.internbevis.internBevisKvarteret
+- Android package: com.kvarteret.internbevis.intern_bevis_kvarteret
 
 
 Versioning model (date-driven)
@@ -36,7 +36,7 @@ One-time setup (manual)
 - Create App Store Connect API key for CI submit.
 
 2) Google Play Console
-- Confirm app uses package com.kvarteret.internbevis.internBevisKvarteret.
+- Confirm app uses package com.kvarteret.internbevis.intern_bevis_kvarteret.
 - Update app title/logo/store listing.
 - Create Google Play service account and grant release permissions.
 

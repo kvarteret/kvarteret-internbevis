@@ -91,20 +91,34 @@ import { cn } from "@/shared/utils/cn";
 
 ## Architecture and screen workflow
 
-The app uses **Feature-first + selective MVVM**:
+The app uses **Feature-first**, with screen logic as composed hooks rather than a ViewModel layer:
 
 - Feature-first folders are the default (`src/features/<feature>`).
-- Use a ViewModel hook (`vm/use<Screen>VM.ts`) for complex screens.
-- Keep simple screens lean (render + simple local state) when VM does not add value.
-- Shared cross-feature primitives live in `src/shared`, infra lives in `src/core`.
+- For complex screens, compose several focused hooks in `vm/` (e.g. `useOtpRequest`, `useTokenLogin`), each returning ~8 members or fewer — not one hook that owns the whole screen.
+- Keep simple screens lean (render + simple local state) when composed hooks don't add value.
+- Cross-cutting code every feature may depend on lives in `src/shared`; platform infra with no product knowledge lives in `src/core`.
+- The four feature/domain/shared boundary rules are enforced in CI via `npm run lint:architecture` (`dependency-cruiser`), not just by review.
 
-Architecture policy:
+Architecture policy (file name kept for history; content covers the current composed-hooks rule):
 
 - `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/docs/architecture/FEATURE_FIRST_MVVM_LITE.md`
 
 Project skill and implementation reference for adding screens:
 
 - `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/docs/skills/new-screen/SKILL.md`
+
+## Data storage and PII
+
+- **Session token / login credentials**: `expo-secure-store` (`src/core/storage/sessionStorage.ts`), backed by iOS Keychain / Android Keystore. Correct tool for secrets.
+- **Cached member card** (name, birth date, photo URL, role history — `session_cached_user:v2`) and other app state: `AsyncStorage` (`src/core/storage/asyncStorage.ts`), which is OS-file-based storage, not hardware-backed.
+
+Decision (2026-07-07, product owner): keep the cached card in AsyncStorage for now rather than moving it into SecureStore. Rationale:
+
+- The card payload (with role history) is roughly 2–4 KB of JSON, above Android Keystore's practical ~2 KB comfort limit — SecureStore is the wrong tool for this size, not just a smaller version of the right one.
+- AsyncStorage on both platforms sits on OS-level file encryption (iOS Data Protection, Android's encrypted filesystem on modern devices), and the cache is cleared on logout (`clearCachedUser`).
+- The data is moderate-sensitivity (a membership card, not a credential) and the app already treats it as ephemeral/reconstructable from the network.
+
+Planned follow-up: migrate the cached-card storage to app-layer envelope encryption (a random AES key held in SecureStore/Keychain, payload encrypted at rest in regular storage — typically `react-native-mmkv`'s encryption mode in RN) at the next native-build window, since it requires a new native dependency. Tracked as a Linear ticket (see `plans/mmkv-migration-ticket.md` for the drafted ticket body pending manual creation — no Linear MCP was connected when this was written).
 
 ## Preview deployments (EAS + Firebase App Distribution)
 
@@ -116,7 +130,7 @@ This repository is configured for hybrid previews:
 ### One-time setup required
 
 1. Create or select the dedicated Firebase preview project.
-2. Register Android app id `com.kvarteret.internbevis.internBevisKvarteret` in Firebase App Distribution.
+2. Register Android app id `com.kvarteret.internbevis.intern_bevis_kvarteret` in Firebase App Distribution.
 3. Register iOS app id `com.kvarteret.internbevis.internBevisKvarteret` in Firebase App Distribution.
 4. Create Firebase tester group `internal-qa`.
 5. Link the Expo project to EAS and get the project id UUID.
@@ -164,11 +178,13 @@ This repository now uses a controlled release workflow:
 
 ### Release versioning
 
-Release workflow version/build is date-driven:
+`release-submit.yml` is the single source of truth for release version numbers — it computes them, date-driven:
 
 1. App version: `YYYY.M.<build-sequence>`
 2. iOS `buildNumber`: unix timestamp (seconds)
 3. Android `versionCode`: unix timestamp (seconds)
+
+`app.json`'s `version`/`buildNumber`/`versionCode` fields are **local/dev-build values only**. Do not bump them by hand as part of a release — the workflow overwrites them at build time. They exist so `expo run:ios`/`expo run:android` and Expo Go have a sane version during local development.
 
 ### How to release
 
@@ -198,16 +214,12 @@ Create `/Users/kluvin/dev/kvarteret/kvarteret-internbevis-rn/.env.local`:
 
 ```bash
 EXPO_PUBLIC_INTERNKORT_BASE_URL=http://<LAN-IP>:5001/api/v1/mobile-card
-
-# Optional overrides for Firestore-backed event feed
-# (defaults use the shared frontend-eventside Firebase project)
-EXPO_PUBLIC_FIREBASE_API_KEY=<firebase-api-key>
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=<project>.firebaseapp.com
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=<firebase-project-id>
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=<project>.firebasestorage.app
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=<messaging-sender-id>
-EXPO_PUBLIC_FIREBASE_APP_ID=<firebase-app-id>
+EXPO_PUBLIC_KVARTERET_PERSONAL_API_BASE_URL=http://<LAN-IP>:5001/api/v1
 ```
+
+The first URL is used for login and card requests. The second is the shared
+Personal API root used by feedback. Set both so local feedback does not
+silently target production while login targets your local backend.
 
 Then start the app:
 
