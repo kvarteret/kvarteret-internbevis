@@ -24,6 +24,8 @@ export const ProfileAvatar = ({
     const { textSecondary } = useThemeRuntimeColors()
     const localImageSource = imageUrl ? localImageMap[imageUrl] : undefined
     const hasRemoteImage = Boolean(imageUrl && !localImageSource)
+    const stableRecyclingKey =
+        hasRemoteImage && imageUrl ? imageUrl.split("?")[0] : undefined
 
     return (
         <View
@@ -36,10 +38,10 @@ export const ProfileAvatar = ({
 
             {!localImageSource && hasRemoteImage ? (
                 <CachedImage
-                    cachePolicy="memory"
+                    cachePolicy="memory-disk"
                     className="h-full w-full"
                     contentFit="cover"
-                    recyclingKey={imageUrl}
+                    recyclingKey={stableRecyclingKey}
                     source={imageUrl}
                 />
             ) : null}
