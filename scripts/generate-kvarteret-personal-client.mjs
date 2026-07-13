@@ -76,7 +76,9 @@ const runGenerator = outputDir => {
         process.exit(1)
     }
 
-    const formatResult = spawnSync("npx", ["biome", "check", "--write", outputDir], {
+    // Generated vendor code is excluded from repository linting. Format it for
+    // stable diffs without applying project lint rules to generator internals.
+    const formatResult = spawnSync("npx", ["biome", "format", "--write", outputDir], {
         cwd: rootDir,
         stdio: "inherit",
     })

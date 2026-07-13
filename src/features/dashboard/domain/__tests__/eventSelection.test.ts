@@ -249,5 +249,4 @@ describe("eventsService", () => {
             expect(d.getTime()).toBeGreaterThan(now.getTime())
         }
     })
-
 })

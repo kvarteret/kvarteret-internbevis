@@ -30,14 +30,13 @@ export const mobileCardSessionRequestSchema = z
     })
     .strict()
 
-export const mobileCardRoleApiSchema = z
-    .object({
-        name: nullableStringSchema,
-        group: nullableStringSchema,
-        discount_level: nullableIntSchema,
-        pingvin_points: z.number().int().optional(),
-        signed_contract: z.boolean().optional(),
-    })
+export const mobileCardRoleApiSchema = z.object({
+    name: nullableStringSchema,
+    group: nullableStringSchema,
+    discount_level: nullableIntSchema,
+    pingvin_points: z.number().int().optional(),
+    signed_contract: z.boolean().optional(),
+})
 
 const nullableStringOrNumberSchema = z.union([z.string(), z.number()]).nullable().optional()
 
@@ -46,49 +45,46 @@ const nullableStringOrNumberSchema = z.union([z.string(), z.number()]).nullable(
 // pre-restructure backend (role_name/group_name/started_at/…) is gone.
 // Zod's default strip behavior keeps additive backend changes compatible
 // without persisting unknown fields in the unencrypted offline cache.
-export const mobileCardRoleHistoryApiSchema = z
-    .object({
-        name: nullableStringSchema,
-        group: nullableStringSchema,
-        discount_level: nullableIntSchema,
-        pingvin_points: z.number().int().optional(),
-        signed_contract: z.boolean().optional(),
-        year: nullableIntSchema,
-        term: nullableStringOrNumberSchema,
-        semester: nullableStringOrNumberSchema,
-        is_active: z.boolean().optional(),
-    })
+export const mobileCardRoleHistoryApiSchema = z.object({
+    name: nullableStringSchema,
+    group: nullableStringSchema,
+    discount_level: nullableIntSchema,
+    pingvin_points: z.number().int().optional(),
+    signed_contract: z.boolean().optional(),
+    year: nullableIntSchema,
+    term: nullableStringOrNumberSchema,
+    semester: nullableStringOrNumberSchema,
+    is_active: z.boolean().optional(),
+})
 
-export const mobileCardResponseApiSchema = z
-    .object({
-        person_id: z.number().int(),
-        first_name: nullableStringSchema,
-        last_name: nullableStringSchema,
-        birth_date: nullableDateTimeSchema,
-        created_at: z
-            .string()
-            .min(1)
-            .refine(value => isValidDateTime(value), {
-                message: "created_at must be a valid date-time string",
-            }),
-        valid_until: z
-            .string()
-            .min(1)
-            .refine(value => isValidDateTime(value), {
-                message: "valid_until must be a valid date-time string",
-            }),
-        photo_url: nullableStringSchema,
-        pingvin_points: z.number().int(),
-        active_roles: z.array(mobileCardRoleApiSchema).nullable().optional(),
-        role_history: z.array(mobileCardRoleHistoryApiSchema).nullable().optional(),
-        word_of_the_day: nullableStringSchema,
-    })
+export const mobileCardResponseApiSchema = z.object({
+    person_id: z.number().int(),
+    first_name: nullableStringSchema,
+    last_name: nullableStringSchema,
+    birth_date: nullableDateTimeSchema,
+    created_at: z
+        .string()
+        .min(1)
+        .refine(value => isValidDateTime(value), {
+            message: "created_at must be a valid date-time string",
+        }),
+    valid_until: z
+        .string()
+        .min(1)
+        .refine(value => isValidDateTime(value), {
+            message: "valid_until must be a valid date-time string",
+        }),
+    photo_url: nullableStringSchema,
+    pingvin_points: z.number().int(),
+    active_roles: z.array(mobileCardRoleApiSchema).nullable().optional(),
+    role_history: z.array(mobileCardRoleHistoryApiSchema).nullable().optional(),
+    word_of_the_day: nullableStringSchema,
+})
 
-export const mobileCardSessionApiSchema = z
-    .object({
-        session_token: z.string().min(1),
-        card: mobileCardResponseApiSchema,
-    })
+export const mobileCardSessionApiSchema = z.object({
+    session_token: z.string().min(1),
+    card: mobileCardResponseApiSchema,
+})
 
 function mapMobileCardRole(value: z.infer<typeof mobileCardRoleApiSchema>): InternKortVerv {
     return {

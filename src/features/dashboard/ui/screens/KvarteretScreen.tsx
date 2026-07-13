@@ -91,8 +91,7 @@ export const KvarteretScreen = (): React.JSX.Element => {
     })
 
     const now = new Date()
-    const showOpeningStatusHero =
-        !nowPlayingError && shouldShowGrondahlsStatusCard(nowPlaying, now)
+    const showOpeningStatusHero = !nowPlayingError && shouldShowGrondahlsStatusCard(nowPlaying, now)
     const nowPlayingProgressWidth =
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
 
