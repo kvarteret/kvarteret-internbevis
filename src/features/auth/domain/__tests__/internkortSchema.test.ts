@@ -139,5 +139,6 @@ describe("parseInternkortInformation", () => {
 
         expect(session.sessionToken).toBe("session-123")
         expect(session.user.id).toBe(2)
+        expect(session.rawCard).not.toHaveProperty("future_card_field")
     })
 })

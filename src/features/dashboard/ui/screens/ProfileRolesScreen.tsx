@@ -14,6 +14,7 @@ import {
 } from "@/features/dashboard/domain/profileRoles"
 import { MemberHeader } from "@/features/dashboard/ui/components/MemberHeader"
 import { SelectedFrontpageRolesGrid } from "@/features/dashboard/ui/components/SelectedFrontpageRolesGrid"
+import { useFrontpageRoles } from "@/features/dashboard/ui/FrontpageRolesProvider"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Card } from "@/shared/ui/Card"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
@@ -155,12 +156,9 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
     const navigation = useNavigation()
     const router = useRouter()
     const { editorialValid } = useThemeRuntimeColors()
-    const {
-        user,
-        hasStoredCredentials,
-        selectedFrontpageRoleSelections,
-        setSelectedFrontpageRoleSelections,
-    } = useSession()
+    const { user, status } = useSession()
+    const { selectedFrontpageRoleSelections, setSelectedFrontpageRoleSelections } =
+        useFrontpageRoles()
 
     const displayRoles = useMemo(() => (user ? buildDisplayRoles(user) : []), [user])
     const volunteerHistoryRows = useMemo(
@@ -182,7 +180,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
     }, [navigation, t])
 
     useEffect(() => {
-        if (!user && !hasStoredCredentials) {
+        if (status === "signedOut" || status === "anonymous") {
             if (router.canGoBack()) {
                 router.back()
                 return
@@ -190,7 +188,7 @@ export const ProfileRolesScreen = (): React.JSX.Element => {
 
             router.replace("/login")
         }
-    }, [hasStoredCredentials, router, user])
+    }, [router, status])
 
     const getRoleTitle = (role: DisplayRoleRow): string =>
         role.source === "virtual_pingvin" ? t("profileRoleVirtualPingvin") : role.navn

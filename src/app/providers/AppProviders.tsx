@@ -7,6 +7,7 @@ import { DeepLinkProvider } from "@/app/providers/DeepLinkProvider"
 import { LanguageProvider } from "@/app/providers/LanguageProvider"
 import { queryClient } from "@/app/providers/queryClient"
 import { SessionProvider } from "@/app/providers/SessionProvider"
+import { FrontpageRolesProvider } from "@/features/dashboard/ui/FrontpageRolesProvider"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { BlurTargetProvider } from "@/shared/ui/blur/BlurTargetProvider"
 import { SafeAreaListener, SafeAreaProvider } from "@/shared/ui/interop"
@@ -47,7 +48,9 @@ export const AppProviders = ({ children }: PropsWithChildren): React.JSX.Element
                         <QueryClientProvider client={queryClient}>
                             <DeepLinkProvider>
                                 <LanguageProvider>
-                                    <SessionProvider>{children}</SessionProvider>
+                                    <SessionProvider>
+                                        <FrontpageRolesProvider>{children}</FrontpageRolesProvider>
+                                    </SessionProvider>
                                 </LanguageProvider>
                             </DeepLinkProvider>
                         </QueryClientProvider>

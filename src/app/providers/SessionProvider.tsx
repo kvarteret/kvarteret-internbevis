@@ -1,6 +1,7 @@
 import React, {
     createContext,
     PropsWithChildren,
+    useCallback,
     useContext,
     useEffect,
     useMemo,
@@ -11,6 +12,7 @@ import { reportSessionLogoutDiagnostic } from "@/features/auth/data/authDiagnost
 import {
     AuthResult,
     authResultFromError,
+    cacheAuthenticatedCard,
     clearCachedUser,
     clearCredentials,
     clearDeepLinkToken,
@@ -20,382 +22,251 @@ import {
     getInternkortInformation,
     getSavedCredentials,
     getSavedLoginMarker,
-    saveCachedUser,
     saveCredentials,
     saveLoginMarker,
 } from "@/features/auth/data/authRepository"
-import { isTransientAuthError, toAuthServiceError } from "@/features/auth/domain/authError"
+import { toAuthServiceError } from "@/features/auth/domain/authError"
 import {
     getHydrationErrorMessage,
     shouldClearCredentialsOnHydrationError,
 } from "@/features/auth/domain/authHydration"
 import {
-    arePersistedRoleSelectionsEqual,
-    buildDisplayRoles,
-    isPersistedRoleSelection,
-    isPersistedRoleSelectionArray,
-    PersistedRoleSelection,
-    resolveDefaultRoleSelections,
-    resolvePersistedRoleSelections,
-    serializeRoleSelection,
-    serializeRoleSelections,
-} from "@/features/dashboard/domain/profileRoles"
+    resolveHydrationErrorOutcome,
+    resolveHydrationPrecheck,
+} from "@/features/auth/domain/sessionHydration"
 import { User } from "@/shared/types/user"
 
+// One discriminated union instead of parallel booleans: the session is always
+// in exactly one of these states, and impossible combinations (for example
+// "hydrating with a user") cannot be represented.
+export type SessionState =
+    | { status: "hydrating" }
+    | { status: "authenticated"; user: User; staleFromCache: boolean }
+    | { status: "anonymous" }
+    | { status: "signedOut"; error: string | null }
+
+export type SessionStatus = SessionState["status"]
+
 interface SessionContextValue {
+    status: SessionStatus
     user: User | null
+    // True while an authenticated user is rendered from the offline cache
+    // (refresh in flight or last refresh failed transiently).
+    staleFromCache: boolean
     isAnonymous: boolean
-    hasStoredCredentials: boolean
-    selectedFrontpageRoleSelections: PersistedRoleSelection[]
     isHydrating: boolean
     isLoading: boolean
     error: string | null
     setUser: (nextUser: User | null) => void
     continueAnonymously: () => Promise<void>
     exitAnonymousMode: () => Promise<void>
-    setSelectedFrontpageRoleSelections: (selections: PersistedRoleSelection[]) => Promise<void>
     loginWithToken: (email: string, accessToken: string) => Promise<AuthResult>
     logout: () => Promise<void>
 }
 
-type ParsedPersistedRoleSelections = {
-    format: "array" | "invalid" | "legacy" | "missing"
-    selections: PersistedRoleSelection[]
-}
-
 const SessionContext = createContext<SessionContextValue | undefined>(undefined)
-const FRONT_PAGE_ROLE_STORAGE_KEY_PREFIX = "selected_frontpage_role"
 const ANONYMOUS_MODE_STORAGE_KEY = "anonymous_mode"
 
-const getFrontPageRoleStorageKey = (userId: number): string =>
-    `${FRONT_PAGE_ROLE_STORAGE_KEY_PREFIX}:${userId}`
-
-const parsePersistedRoleSelections = (rawValue: string | null): ParsedPersistedRoleSelections => {
-    if (!rawValue) {
-        return {
-            format: "missing",
-            selections: [],
-        }
-    }
-
-    try {
-        const parsed = JSON.parse(rawValue) as unknown
-
-        if (isPersistedRoleSelection(parsed)) {
-            return {
-                format: "legacy",
-                selections: [parsed],
-            }
-        }
-
-        if (isPersistedRoleSelectionArray(parsed)) {
-            return {
-                format: "array",
-                selections: parsed,
-            }
-        }
-
-        return {
-            format: "invalid",
-            selections: [],
-        }
-    } catch {
-        return {
-            format: "invalid",
-            selections: [],
-        }
-    }
+const clearStoredSession = async (): Promise<void> => {
+    await clearCredentials()
+    await clearDeepLinkToken()
+    await clearCachedUser()
+    await clearLoginMarker()
 }
 
 export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Element => {
-    const [user, setUser] = useState<User | null>(null)
-    const [isAnonymous, setIsAnonymous] = useState(false)
-    const [hasStoredCredentials, setHasStoredCredentials] = useState(false)
-    const [selectedFrontpageRoleSelections, setSelectedFrontpageRoleSelectionsState] = useState<
-        PersistedRoleSelection[]
-    >([])
-    const [isHydrating, setIsHydrating] = useState(true)
+    const [state, setState] = useState<SessionState>({ status: "hydrating" })
     const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        const hydrateUser = async (): Promise<void> => {
-            let cachedUser: User | null = null
-            let hadStoredCredentials = false
-            let loginMarker: { userId: number } | null = null
+        const resolveSignedOutState = async (
+            error: string | null = null,
+        ): Promise<SessionState> => {
+            try {
+                const anonymousFlag = await getStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+                if (anonymousFlag === "true") {
+                    return { status: "anonymous" }
+                }
+            } catch {
+                // Unreadable flag reads as not anonymous.
+            }
+
+            return { status: "signedOut", error }
+        }
+
+        const hydrateSession = async (): Promise<void> => {
+            let snapshot = {
+                hasStoredCredentials: false,
+                cachedUser: null as User | null,
+                hasLoginMarker: false,
+            }
+            let accessToken: string | null = null
 
             try {
-                const [credentials, nextCachedUser, nextLoginMarker] = await Promise.all([
+                const [credentials, cachedUser, loginMarker] = await Promise.all([
                     getSavedCredentials(),
                     getCachedUser(),
                     getSavedLoginMarker(),
                 ])
-                cachedUser = nextCachedUser
-                loginMarker = nextLoginMarker
-                hadStoredCredentials = Boolean(credentials.accessToken)
-                setHasStoredCredentials(hadStoredCredentials)
+                accessToken = credentials.accessToken
+                snapshot = {
+                    hasStoredCredentials: Boolean(credentials.accessToken),
+                    cachedUser,
+                    hasLoginMarker: Boolean(loginMarker),
+                }
 
-                if (!hadStoredCredentials && loginMarker) {
+                const precheck = resolveHydrationPrecheck(snapshot)
+
+                if (precheck.kind === "inconsistent-state-clear") {
                     await reportSessionLogoutDiagnostic({
                         authErrorCode: null,
                         authErrorMessage: null,
                         authErrorStatus: null,
-                        cachedUserId: cachedUser?.id ?? loginMarker.userId,
+                        cachedUserId: snapshot.cachedUser?.id ?? null,
                         eventName: "credentials_missing_after_login",
-                        hadCachedUser: Boolean(cachedUser),
+                        hadCachedUser: Boolean(snapshot.cachedUser),
                         hadLoginMarker: true,
                         hadStoredCredentials: false,
                         occurredAt: new Date().toISOString(),
                     })
-                    await clearCredentials()
-                    await clearCachedUser()
-                    await clearLoginMarker()
-                    cachedUser = null
-                    loginMarker = null
-                }
-
-                if (hadStoredCredentials && cachedUser) {
-                    setUser(cachedUser)
-                    setIsAnonymous(false)
-                    setError(null)
-                    await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
-                }
-
-                if (credentials.accessToken) {
-                    const hydratedUser = await getInternkortInformation(credentials.accessToken)
-                    setUser(hydratedUser)
-                    await Promise.all([
-                        saveCachedUser(hydratedUser),
-                        saveLoginMarker(hydratedUser.id),
-                    ])
-                    setIsAnonymous(false)
-                    setError(null)
-                    await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+                    await clearStoredSession()
+                    setState(await resolveSignedOutState())
                     return
                 }
 
-                setUser(null)
-                setHasStoredCredentials(false)
-                const anonymousFlag = await getStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
-                setIsAnonymous(anonymousFlag === "true")
-                setError(null)
-            } catch (nextError) {
-                if (shouldClearCredentialsOnHydrationError(nextError)) {
-                    const authError = toAuthServiceError(nextError)
+                if (precheck.kind === "signed-out") {
+                    setState(await resolveSignedOutState())
+                    return
+                }
+
+                if (precheck.cachedUser) {
+                    setState({
+                        status: "authenticated",
+                        user: precheck.cachedUser,
+                        staleFromCache: true,
+                    })
+                    await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+                }
+
+                const hydratedUser = await getInternkortInformation(accessToken ?? "")
+                await saveLoginMarker(hydratedUser.id)
+                setState({ status: "authenticated", user: hydratedUser, staleFromCache: false })
+                await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+            } catch (error) {
+                const outcome = resolveHydrationErrorOutcome(error, snapshot.cachedUser)
+
+                if (outcome.kind === "clear-session") {
+                    const authError = toAuthServiceError(error)
                     await reportSessionLogoutDiagnostic({
                         authErrorCode: authError.code,
                         authErrorMessage: authError.message,
                         authErrorStatus: authError.status ?? null,
-                        cachedUserId: cachedUser?.id ?? loginMarker?.userId ?? null,
+                        cachedUserId: snapshot.cachedUser?.id ?? null,
                         eventName: "session_invalidated",
-                        hadCachedUser: Boolean(cachedUser),
-                        hadLoginMarker: Boolean(loginMarker),
-                        hadStoredCredentials,
+                        hadCachedUser: Boolean(snapshot.cachedUser),
+                        hadLoginMarker: snapshot.hasLoginMarker,
+                        hadStoredCredentials: snapshot.hasStoredCredentials,
                         occurredAt: new Date().toISOString(),
                     })
-                    await clearCredentials()
-                    await clearDeepLinkToken()
-                    await clearCachedUser()
-                    await clearLoginMarker()
-                    setHasStoredCredentials(false)
-                } else if (isTransientAuthError(nextError)) {
-                    const cachedUser = await getCachedUser()
-                    if (cachedUser) {
-                        setUser(cachedUser)
-                        setIsAnonymous(false)
-                        setError(getHydrationErrorMessage(nextError))
-                        await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
-                        return
-                    }
+                    await clearStoredSession()
+                    setState(await resolveSignedOutState())
+                    return
                 }
 
-                setUser(null)
-                try {
-                    const anonymousFlag = await getStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
-                    setIsAnonymous(anonymousFlag === "true")
-                } catch {
-                    setIsAnonymous(false)
+                if (outcome.kind === "keep-cached-user") {
+                    setState({
+                        status: "authenticated",
+                        user: outcome.cachedUser,
+                        staleFromCache: true,
+                    })
+                    await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+                    return
                 }
-                setError(getHydrationErrorMessage(nextError))
-            } finally {
-                setIsHydrating(false)
+
+                setState(await resolveSignedOutState(getHydrationErrorMessage(error)))
             }
         }
 
-        void hydrateUser()
+        void hydrateSession()
     }, [])
 
-    useEffect(() => {
-        const hydrateFrontpageRoleSelections = async (): Promise<void> => {
+    const setUser = useCallback((nextUser: User | null): void => {
+        setState(
+            nextUser
+                ? { status: "authenticated", user: nextUser, staleFromCache: false }
+                : { status: "signedOut", error: null },
+        )
+    }, [])
+
+    const loginWithToken = useCallback(
+        async (email: string, accessToken: string): Promise<AuthResult> => {
+            setIsLoading(true)
+
             try {
-                if (!user) {
-                    setSelectedFrontpageRoleSelectionsState([])
-                    return
+                const session = await createMobileCardSession(email, accessToken)
+                await saveCredentials(email, session.sessionToken)
+                await saveLoginMarker(session.user.id)
+                await cacheAuthenticatedCard(session.rawCard)
+                setState({ status: "authenticated", user: session.user, staleFromCache: false })
+                await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+                return { success: true, status: 200 }
+            } catch (error) {
+                if (shouldClearCredentialsOnHydrationError(error)) {
+                    await clearDeepLinkToken()
                 }
 
-                const storageKey = getFrontPageRoleStorageKey(user.id)
-                const parsedSelections = parsePersistedRoleSelections(
-                    await getStoredValue(storageKey),
-                )
-                const roles = buildDisplayRoles(user)
-
-                if (roles.length === 0) {
-                    setSelectedFrontpageRoleSelectionsState([])
-                    await removeStoredValue(storageKey)
-                    return
-                }
-
-                const resolvedPersistedSelections = resolvePersistedRoleSelections(
-                    roles,
-                    parsedSelections.selections,
-                )
-
-                const nextSelections = (() => {
-                    switch (parsedSelections.format) {
-                        case "array":
-                            if (parsedSelections.selections.length === 0) {
-                                return []
-                            }
-
-                            return resolvedPersistedSelections.length > 0
-                                ? resolvedPersistedSelections
-                                : resolveDefaultRoleSelections(roles)
-                        case "legacy":
-                            return resolveDefaultRoleSelections(
-                                roles,
-                                resolvedPersistedSelections.map(serializeRoleSelection),
-                            )
-                        case "invalid":
-                        case "missing":
-                        default:
-                            return resolveDefaultRoleSelections(roles)
-                    }
-                })()
-
-                const nextPersistedSelections = serializeRoleSelections(nextSelections)
-                setSelectedFrontpageRoleSelectionsState(nextPersistedSelections)
-
-                if (
-                    parsedSelections.format !== "array" ||
-                    !arePersistedRoleSelectionsEqual(
-                        nextPersistedSelections,
-                        parsedSelections.selections,
-                    )
-                ) {
-                    await setStoredValue(storageKey, JSON.stringify(nextPersistedSelections))
-                }
-            } catch {
-                setSelectedFrontpageRoleSelectionsState([])
+                const failedResult = authResultFromError(error)
+                setState({ status: "signedOut", error: failedResult.message ?? null })
+                return failedResult
+            } finally {
+                setIsLoading(false)
             }
-        }
+        },
+        [],
+    )
 
-        void hydrateFrontpageRoleSelections()
-    }, [user])
-
-    const setSelectedFrontpageRoleSelections = async (
-        selections: PersistedRoleSelection[],
-    ): Promise<void> => {
-        setSelectedFrontpageRoleSelectionsState(selections)
-
-        try {
-            if (!user) {
-                return
-            }
-
-            const storageKey = getFrontPageRoleStorageKey(user.id)
-            await setStoredValue(storageKey, JSON.stringify(selections))
-        } catch {
-            // Keep in-memory selection even if persistence temporarily fails.
-        }
-    }
-
-    const loginWithToken = async (email: string, accessToken: string): Promise<AuthResult> => {
-        setIsLoading(true)
-        setError(null)
-
-        try {
-            const session = await createMobileCardSession(email, accessToken)
-            await saveCredentials(email, session.sessionToken)
-            await Promise.all([saveCachedUser(session.user), saveLoginMarker(session.user.id)])
-            setUser(session.user)
-            setHasStoredCredentials(true)
-            setIsAnonymous(false)
-            await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
-            return { success: true, status: 200 }
-        } catch (nextError) {
-            if (shouldClearCredentialsOnHydrationError(nextError)) {
-                await clearDeepLinkToken()
-            }
-
-            const failedResult = authResultFromError(nextError)
-            setError(failedResult.message ?? null)
-            return failedResult
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    const continueAnonymously = async (): Promise<void> => {
-        setIsAnonymous(true)
+    const continueAnonymously = useCallback(async (): Promise<void> => {
+        setState({ status: "anonymous" })
 
         try {
             await setStoredValue(ANONYMOUS_MODE_STORAGE_KEY, "true")
         } catch {
             // Keep in-memory anonymous mode even if persistence temporarily fails.
         }
-    }
+    }, [])
 
-    const exitAnonymousMode = async (): Promise<void> => {
-        setIsAnonymous(false)
+    const exitAnonymousMode = useCallback(async (): Promise<void> => {
+        setState({ status: "signedOut", error: null })
 
         try {
             await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
         } catch {
             // Keep in-memory state even if persistence temporarily fails.
         }
-    }
+    }, [])
 
-    const logout = async (): Promise<void> => {
-        await clearCredentials()
-        await clearDeepLinkToken()
-        await clearCachedUser()
-        await clearLoginMarker()
+    const logout = useCallback(async (): Promise<void> => {
+        await clearStoredSession()
         await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
-        setIsAnonymous(false)
-        setHasStoredCredentials(false)
-        setSelectedFrontpageRoleSelectionsState([])
-        setUser(null)
-    }
+        setState({ status: "signedOut", error: null })
+    }, [])
 
-    const value = useMemo(
+    const value = useMemo<SessionContextValue>(
         () => ({
-            user,
-            isAnonymous,
-            hasStoredCredentials,
-            selectedFrontpageRoleSelections,
-            isHydrating,
+            status: state.status,
+            user: state.status === "authenticated" ? state.user : null,
+            staleFromCache: state.status === "authenticated" ? state.staleFromCache : false,
+            isAnonymous: state.status === "anonymous",
+            isHydrating: state.status === "hydrating",
             isLoading,
-            error,
+            error: state.status === "signedOut" ? state.error : null,
             setUser,
             continueAnonymously,
             exitAnonymousMode,
-            setSelectedFrontpageRoleSelections,
             loginWithToken,
             logout,
         }),
-        [
-            continueAnonymously,
-            error,
-            exitAnonymousMode,
-            hasStoredCredentials,
-            isAnonymous,
-            isHydrating,
-            isLoading,
-            loginWithToken,
-            logout,
-            selectedFrontpageRoleSelections,
-            user,
-        ],
+        [continueAnonymously, exitAnonymousMode, isLoading, loginWithToken, logout, setUser, state],
     )
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

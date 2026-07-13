@@ -1,6 +1,3 @@
-export const normalizeEmail = (email: string): string => email.trim()
-
-export const isEmailValid = (email: string): boolean => {
-    const normalized = normalizeEmail(email)
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)
-}
+// E-mail validation lives in shared/domain so non-auth features (feedback)
+// can use it without a cross-feature import; re-exported here for auth callers.
+export { isEmailValid, normalizeEmail } from "@/shared/domain/emailValidation"

@@ -1,4 +1,5 @@
-import { getHighestTier, getHighestTierGroup, getHighestTierName, User } from "../user"
+import { User } from "@/shared/types/user"
+import { getHighestTier, getHighestTierGroup, getHighestTierName } from "../membership"
 
 const createUser = (overrides: Partial<User> = {}): User => ({
     id: 1,

@@ -16,12 +16,13 @@ import {
     DisplayRoleRow,
     resolvePersistedRoleSelections,
 } from "@/features/dashboard/domain/profileRoles"
-import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { ProfileAvatar } from "@/features/dashboard/ui/components/ProfileAvatar"
 import { SelectedFrontpageRolesGrid } from "@/features/dashboard/ui/components/SelectedFrontpageRolesGrid"
+import { useFrontpageRoles } from "@/features/dashboard/ui/FrontpageRolesProvider"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
+import { DashboardShellLayout } from "@/shared/ui/DashboardShellLayout"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { useSafeAreaFrame } from "@/shared/ui/interop"
 import { Text } from "@/shared/ui/Text"
@@ -207,23 +208,17 @@ const LoggedOutCard = ({
 export const ProfileScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
-    const {
-        user,
-        isAnonymous,
-        hasStoredCredentials,
-        selectedFrontpageRoleSelections,
-        isLoading,
-        exitAnonymousMode,
-    } = useSession()
+    const { user, status: sessionStatus, isLoading, exitAnonymousMode } = useSession()
+    const { selectedFrontpageRoleSelections } = useFrontpageRoles()
     const frame = useSafeAreaFrame()
     const { textPrimary } = useThemeRuntimeColors()
     const [avatarAnimationTrigger, setAvatarAnimationTrigger] = useState(0)
 
     useEffect(() => {
-        if (!user && !isAnonymous && !hasStoredCredentials) {
+        if (sessionStatus === "signedOut") {
             router.replace("/login")
         }
-    }, [hasStoredCredentials, isAnonymous, router, user])
+    }, [router, sessionStatus])
 
     const avatarSize = Math.min(340, Math.max(180, frame.width * 0.46))
 

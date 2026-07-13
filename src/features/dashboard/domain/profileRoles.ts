@@ -1,3 +1,9 @@
+import {
+    hasPingvinValidity,
+    PINGVIN_DISCOUNT_TIER,
+    PINGVIN_GROUP_NAME,
+    PINGVIN_ROLE_NAME,
+} from "@/shared/domain/membership"
 import { InternKortVerv, InternKortVervHistorikk, User } from "@/shared/types/user"
 
 export const MAX_FRONT_PAGE_ROLE_SELECTIONS = 3
@@ -39,8 +45,6 @@ export type ToggleRoleSelectionResult =
     | { action: "removed"; nextSelections: PersistedRoleSelection[] }
     | { action: "blocked_max"; nextSelections: PersistedRoleSelection[] }
 
-const PINGVIN_NAME = "Pingvin"
-const PINGVIN_GROUP = "Pingvin Ordenen"
 const VIRTUAL_PINGVIN_PRIORITY = Number.MAX_SAFE_INTEGER
 
 const normalizeText = (value: string): string => {
@@ -311,7 +315,7 @@ export const toggleFrontPageRoleSelection = (
 export const buildDisplayRoles = (user: User): DisplayRoleRow[] => {
     const activeRoles = user.aktiveVerv.map(normalizeActiveRole).sort(sortByPriority)
 
-    if (user.pingvinPoengSum < 14) {
+    if (!hasPingvinValidity(user)) {
         return activeRoles
     }
 
@@ -319,14 +323,14 @@ export const buildDisplayRoles = (user: User): DisplayRoleRow[] => {
         source: "virtual_pingvin",
         selectionKey: createSelectionKey(
             "virtual_pingvin",
-            PINGVIN_GROUP,
-            PINGVIN_NAME,
-            3,
+            PINGVIN_GROUP_NAME,
+            PINGVIN_ROLE_NAME,
+            PINGVIN_DISCOUNT_TIER,
             VIRTUAL_PINGVIN_PRIORITY,
         ),
-        navn: PINGVIN_NAME,
-        gruppe: PINGVIN_GROUP,
-        rabattTrinn: 3,
+        navn: PINGVIN_ROLE_NAME,
+        gruppe: PINGVIN_GROUP_NAME,
+        rabattTrinn: PINGVIN_DISCOUNT_TIER,
         pingvinPoeng: VIRTUAL_PINGVIN_PRIORITY,
         signertKontrakt: true,
     }

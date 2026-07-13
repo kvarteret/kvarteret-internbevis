@@ -1,4 +1,5 @@
-import { getHighestTier, User } from "@/shared/types/user"
+import { getHighestTier, hasPingvinValidity } from "@/shared/domain/membership"
+import { User } from "@/shared/types/user"
 
 export type IdVerificationReason = "active-role" | "pingvin-points" | "none"
 
@@ -9,8 +10,6 @@ export interface IdVerificationStatus {
 }
 
 const hasActiveRole = (user: User): boolean => user.aktiveVerv.length > 0
-
-const hasPingvinValidity = (user: User): boolean => user.pingvinPoengSum >= 14
 
 export const isIdVerificationValid = (user: User): boolean =>
     hasActiveRole(user) || hasPingvinValidity(user)

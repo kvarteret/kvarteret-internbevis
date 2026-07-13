@@ -38,31 +38,26 @@ export const mobileCardRoleApiSchema = z
         pingvin_points: z.number().int().optional(),
         signed_contract: z.boolean().optional(),
     })
-    .passthrough()
 
 const nullableStringOrNumberSchema = z.union([z.string(), z.number()]).nullable().optional()
 
+// Field set matches the backend's MobileCardRoleHistory schema exactly
+// (kvarteret-personal openapi.json); the dual-key tolerance for the retired
+// pre-restructure backend (role_name/group_name/started_at/…) is gone.
+// Zod's default strip behavior keeps additive backend changes compatible
+// without persisting unknown fields in the unencrypted offline cache.
 export const mobileCardRoleHistoryApiSchema = z
     .object({
         name: nullableStringSchema,
-        role_name: nullableStringSchema,
         group: nullableStringSchema,
-        group_name: nullableStringSchema,
         discount_level: nullableIntSchema,
         pingvin_points: z.number().int().optional(),
         signed_contract: z.boolean().optional(),
-        contract_signed: z.boolean().optional(),
-        start_date: nullableStringSchema,
-        started_at: nullableStringSchema,
-        end_date: nullableStringSchema,
-        ended_at: nullableStringSchema,
         year: nullableIntSchema,
         term: nullableStringOrNumberSchema,
         semester: nullableStringOrNumberSchema,
         is_active: z.boolean().optional(),
-        active: z.boolean().optional(),
     })
-    .passthrough()
 
 export const mobileCardResponseApiSchema = z
     .object({
@@ -88,14 +83,12 @@ export const mobileCardResponseApiSchema = z
         role_history: z.array(mobileCardRoleHistoryApiSchema).nullable().optional(),
         word_of_the_day: nullableStringSchema,
     })
-    .passthrough()
 
 export const mobileCardSessionApiSchema = z
     .object({
         session_token: z.string().min(1),
         card: mobileCardResponseApiSchema,
     })
-    .passthrough()
 
 function mapMobileCardRole(value: z.infer<typeof mobileCardRoleApiSchema>): InternKortVerv {
     return {
@@ -120,16 +113,19 @@ function mapMobileCardRoleHistory(
     value: z.infer<typeof mobileCardRoleHistoryApiSchema>,
 ): InternKortVervHistorikk {
     return {
-        navn: value.name ?? value.role_name ?? "",
-        gruppe: value.group ?? value.group_name ?? "",
+        navn: value.name ?? "",
+        gruppe: value.group ?? "",
         rabattTrinn: value.discount_level ?? null,
         pingvinPoeng: value.pingvin_points ?? 0,
-        signertKontrakt: value.signed_contract ?? value.contract_signed ?? false,
-        startet: value.start_date ?? value.started_at ?? null,
-        sluttet: value.end_date ?? value.ended_at ?? null,
+        signertKontrakt: value.signed_contract ?? false,
+        // The backend does not emit start/end dates for history rows; the
+        // year/semester pair is the period. The fields stay in the domain type
+        // because active roles converted to history rows populate them.
+        startet: null,
+        sluttet: null,
         ar: value.year ?? null,
         semester: normalizeStringOrNumber(value.semester ?? value.term),
-        aktiv: value.is_active ?? value.active ?? false,
+        aktiv: value.is_active ?? false,
     }
 }
 
@@ -154,10 +150,12 @@ export function parseInternkortInformation(payload: unknown): User {
 export function parseMobileCardSession(payload: unknown): {
     sessionToken: string
     user: User
+    rawCard: z.infer<typeof mobileCardResponseApiSchema>
 } {
     const parsed = mobileCardSessionApiSchema.parse(payload)
     return {
         sessionToken: parsed.session_token,
         user: parseInternkortInformation(parsed.card),
+        rawCard: parsed.card,
     }
 }

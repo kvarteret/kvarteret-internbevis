@@ -1,4 +1,5 @@
 import { ZodError } from "zod"
+import { appEnv } from "@/app/config/env"
 import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import {
     getSessionValue,
@@ -8,15 +9,19 @@ import {
 } from "@/core/storage/sessionStorage"
 import { createAuthServiceError, toAuthServiceError } from "@/features/auth/domain/authError"
 import {
+    mobileCardResponseApiSchema,
     mobileCardSessionRequestSchema,
     parseInternkortInformation,
     parseMobileCardSession,
 } from "@/features/auth/domain/internkortSchema"
 import { User } from "@/shared/types/user"
 
-const DEFAULT_INTERNKORT_BASE_URL = "https://personal.kvarteret.no/api/v1/mobile-card"
 const INCLUDE_ROLE_HISTORY_QUERY = "?include_role_history=true"
-const SESSION_CACHE_USER_KEY = "session_cached_user"
+// v2 = raw API payload validated by mobileCardResponseApiSchema; v1 stored a
+// hand-mapped User object with a parallel parser that could drift from the
+// schema. Old-format entries fail the schema parse and read as a cache miss.
+const SESSION_CACHE_USER_KEY = "session_cached_user:v2"
+const LEGACY_SESSION_CACHE_USER_KEY = "session_cached_user"
 const SESSION_LOGIN_MARKER_KEY = "session_login_marker"
 
 export interface AuthResult {
@@ -31,8 +36,7 @@ export interface SavedLoginMarker {
 }
 
 const getInternkortBaseUrl = (): string => {
-    const configured = process.env.EXPO_PUBLIC_INTERNKORT_BASE_URL?.trim()
-    const base = configured && configured.length > 0 ? configured : DEFAULT_INTERNKORT_BASE_URL
+    const base = appEnv.internkortBaseUrl.trim()
     return base.endsWith("/") ? base.slice(0, -1) : base
 }
 
@@ -51,83 +55,16 @@ const getAuthJson = async (path: string, sessionToken: string): Promise<Response
     })
 }
 
-const mapCachedUser = (payload: unknown): User | null => {
-    if (!payload || typeof payload !== "object") {
-        return null
-    }
-
-    const candidate = payload as Partial<User> & Record<string, unknown>
-    if (typeof candidate.id !== "number") {
-        return null
-    }
-
-    const gyldigTilRaw = candidate.gyldigTil
-    const gyldigTil = new Date(
-        gyldigTilRaw instanceof Date ? gyldigTilRaw.getTime() : String(gyldigTilRaw ?? ""),
-    )
-    if (Number.isNaN(gyldigTil.getTime())) {
-        return null
-    }
-
-    const toOptionalDate = (raw: unknown): Date | null => {
-        if (!raw) {
-            return null
-        }
-
-        const parsed = new Date(raw instanceof Date ? raw.getTime() : String(raw))
-        return Number.isNaN(parsed.getTime()) ? null : parsed
-    }
-
-    const mapCachedRole = (entry: Record<string, unknown>): User["aktiveVerv"][number] => ({
-        navn: typeof entry.navn === "string" ? entry.navn : "",
-        gruppe: typeof entry.gruppe === "string" ? entry.gruppe : "",
-        signertKontrakt: Boolean(entry.signertKontrakt),
-        rabattTrinn:
-            typeof entry.rabattTrinn === "number" && Number.isInteger(entry.rabattTrinn)
-                ? entry.rabattTrinn
-                : null,
-        pingvinPoeng:
-            typeof entry.pingvinPoeng === "number" && Number.isInteger(entry.pingvinPoeng)
-                ? entry.pingvinPoeng
-                : 0,
-    })
-    const cachedActiveRoles = Array.isArray(candidate.aktiveVerv)
-        ? (candidate.aktiveVerv as unknown[])
-        : []
-    const cachedRoleHistory = Array.isArray(candidate.vervHistorikk)
-        ? (candidate.vervHistorikk as unknown[])
-        : []
-
-    return {
-        id: candidate.id,
-        fornavn: typeof candidate.fornavn === "string" ? candidate.fornavn : "",
-        etternavn: typeof candidate.etternavn === "string" ? candidate.etternavn : "",
-        fodselsdato: toOptionalDate(candidate.fodselsdato),
-        opprettet: toOptionalDate(candidate.opprettet),
-        gyldigTil,
-        bildeUrl: typeof candidate.bildeUrl === "string" ? candidate.bildeUrl : undefined,
-        pingvinPoengSum:
-            typeof candidate.pingvinPoengSum === "number" ? candidate.pingvinPoengSum : 0,
-        aktiveVerv: cachedActiveRoles
-            .filter(
-                (entry): entry is Record<string, unknown> =>
-                    Boolean(entry) && typeof entry === "object",
-            )
-            .map(entry => mapCachedRole(entry)),
-        vervHistorikk: cachedRoleHistory
-            .filter(
-                (entry): entry is Record<string, unknown> =>
-                    Boolean(entry) && typeof entry === "object",
-            )
-            .map(entry => ({
-                ...mapCachedRole(entry),
-                startet: typeof entry.startet === "string" ? entry.startet : null,
-                sluttet: typeof entry.sluttet === "string" ? entry.sluttet : null,
-                ar: typeof entry.ar === "number" && Number.isInteger(entry.ar) ? entry.ar : null,
-                semester: typeof entry.semester === "string" ? entry.semester : null,
-                aktiv: Boolean(entry.aktiv),
-            })),
-        dagensOrd: typeof candidate.dagensOrd === "string" ? candidate.dagensOrd : "",
+// Persists the raw card payload that just passed the Zod schema, so cache and
+// network rehydrate through the same parser (parseInternkortInformation) and
+// can never drift. Best-effort: the session stays usable if persistence fails.
+export const cacheAuthenticatedCard = async (rawCard: unknown): Promise<void> => {
+    const cacheableCard = mobileCardResponseApiSchema.parse(rawCard)
+    try {
+        await setStoredJson(SESSION_CACHE_USER_KEY, cacheableCard)
+        await removeStoredValue(LEGACY_SESSION_CACHE_USER_KEY)
+    } catch {
+        // Keep the session usable even if cache persistence fails.
     }
 }
 
@@ -205,6 +142,7 @@ export const createMobileCardSession = async (
 ): Promise<{
     sessionToken: string
     user: User
+    rawCard: unknown
 }> => {
     const requestBody = mobileCardSessionRequestSchema.parse({ email, accessCode: accessToken })
 
@@ -237,7 +175,8 @@ export const createMobileCardSession = async (
         }
 
         try {
-            return parseMobileCardSession(payload)
+            const session = parseMobileCardSession(payload)
+            return session
         } catch (error) {
             if (error instanceof ZodError) {
                 throw createAuthServiceError({
@@ -310,6 +249,7 @@ export const getInternkortInformation = async (sessionToken: string): Promise<Us
 
         try {
             const user = parseInternkortInformation(payload)
+            await cacheAuthenticatedCard(payload)
             const renewedSessionToken =
                 response.headers.get("x-mobile-card-session-token")?.trim() ?? ""
 
@@ -385,17 +325,26 @@ export const clearCredentials = async (): Promise<void> => {
     ])
 }
 
-export const saveCachedUser = async (user: User): Promise<void> => {
-    await setStoredJson(SESSION_CACHE_USER_KEY, user)
-}
-
 export const getCachedUser = async (): Promise<User | null> => {
     const cached = await getStoredJson<unknown>(SESSION_CACHE_USER_KEY)
-    return mapCachedUser(cached)
+    if (cached === null || cached === undefined) {
+        return null
+    }
+
+    try {
+        return parseInternkortInformation(cached)
+    } catch {
+        // Unknown or outdated cache shapes read as a cache miss; the next
+        // successful network fetch rewrites the cache in the current format.
+        return null
+    }
 }
 
 export const clearCachedUser = async (): Promise<void> => {
-    await removeStoredValue(SESSION_CACHE_USER_KEY)
+    await Promise.all([
+        removeStoredValue(SESSION_CACHE_USER_KEY),
+        removeStoredValue(LEGACY_SESSION_CACHE_USER_KEY),
+    ])
 }
 
 export const saveLoginMarker = async (userId: number): Promise<void> => {
