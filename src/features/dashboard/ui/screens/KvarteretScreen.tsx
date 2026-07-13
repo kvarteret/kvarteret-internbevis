@@ -1,416 +1,40 @@
 import { useIsFocused } from "@react-navigation/native"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "expo-router"
-import React, { useEffect, useMemo, useRef, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import {
-    ActivityIndicator,
-    Modal,
-    NativeTouchEvent,
-    PanResponder,
-    Pressable,
-    ScrollView,
-    useWindowDimensions,
-    View,
-} from "react-native"
+import { ActivityIndicator, ScrollView, View } from "react-native"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import { useSession } from "@/app/providers/SessionProvider"
 import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
 import { fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
+import { fetchNowPlaying } from "@/features/dashboard/data/nowPlayingRepository"
 import {
     buildEventFeedSections,
     countActiveEventFilters,
     createEmptyEventFilterState,
     deriveTaxonomyFromEvents,
-    DerivedTaxonomy,
     EventFilterState,
     filterEvents,
-    getLocalizedTaxonomyGroupName,
     parsePersistedEventFilterState,
 } from "@/features/dashboard/domain/eventSelection"
 import { shouldShowGrondahlsStatusCard } from "@/features/dashboard/domain/grondahlsOpening"
-import { EventFeedEntry } from "@/features/dashboard/domain/types"
-import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
-import { EventCard } from "@/features/dashboard/ui/components/EventCard"
 import { EventCarousel } from "@/features/dashboard/ui/components/EventCarousel"
-import { fetchNowPlaying, NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
+import { EventFilterBar } from "@/features/dashboard/ui/components/EventFilterBar"
+import { EventFiltersModal } from "@/features/dashboard/ui/components/EventFiltersModal"
+import { EventGrid } from "@/features/dashboard/ui/components/EventGrid"
+import { OpeningStatusHero } from "@/features/dashboard/ui/components/OpeningStatusHero"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
-import { Button } from "@/shared/ui/Button"
-import { CachedImage } from "@/shared/ui/CachedImage"
-import { Card } from "@/shared/ui/Card"
+import { DashboardShellLayout } from "@/shared/ui/DashboardShellLayout"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
 
 const NOW_PLAYING_POLL_INTERVAL_MS = 10_000
-const TAXONOMY_GROUP_ORDER = ["Musikk", "Scenekunst", "Faglig", "Sosialt", "Organisasjon"]
-const GRID_CARD_GAP = 10
 const EVENT_FILTER_STORAGE_KEY = "kvarteret_event_filters_sanity:v1"
 
 const clampProgress = (value: number | null): number => {
     if (value === null || !Number.isFinite(value)) return 0
     return Math.min(100, Math.max(0, value))
-}
-
-interface OpeningStatusHeroProps {
-    title: string
-    nowPlaying: NowPlayingState | null
-    progressWidth: `${number}%`
-}
-
-const OpeningStatusHero = ({
-    title,
-    nowPlaying,
-    progressWidth,
-}: OpeningStatusHeroProps): React.JSX.Element => {
-    return (
-        <Card
-            className="w-full gap-3 rounded-3xl bg-editorial-surface px-4 py-4"
-            effect="liquid"
-            variant="grouped"
-        >
-            <Text className="text-3xl leading-tight text-editorial-ink font-black">{title}</Text>
-            {nowPlaying ? (
-                <NowPlayingWidget nowPlaying={nowPlaying} progressWidth={progressWidth} />
-            ) : null}
-        </Card>
-    )
-}
-
-interface EventGridProps {
-    entries: EventFeedEntry[]
-    onRetry: () => Promise<unknown>
-    onEventPress: (eventId: string) => void
-    columns: 1 | 2
-    onPinchColumnsChange?: (columns: 1 | 2) => void
-}
-
-const getTouchDistance = (touches: NativeTouchEvent["touches"]): number | null => {
-    const [firstTouch, secondTouch] = touches
-    if (!firstTouch || !secondTouch) return null
-    return Math.hypot(firstTouch.pageX - secondTouch.pageX, firstTouch.pageY - secondTouch.pageY)
-}
-
-const EventGrid = ({
-    entries,
-    onEventPress,
-    columns,
-    onPinchColumnsChange,
-}: EventGridProps): React.JSX.Element => {
-    const { t } = useTranslation()
-    const { width } = useWindowDimensions()
-    const pinchDistanceRef = useRef<number | null>(null)
-    const listCardWidth = columns === 2 ? (width - 32 - GRID_CARD_GAP) / 2 : width - 32
-
-    const panResponder = useMemo(
-        () =>
-            PanResponder.create({
-                onMoveShouldSetPanResponder: event => event.nativeEvent.touches.length === 2,
-                onStartShouldSetPanResponder: event => event.nativeEvent.touches.length === 2,
-                onPanResponderGrant: event => {
-                    pinchDistanceRef.current = getTouchDistance(event.nativeEvent.touches)
-                },
-                onPanResponderMove: event => {
-                    const initialDistance = pinchDistanceRef.current
-                    const currentDistance = getTouchDistance(event.nativeEvent.touches)
-                    if (!initialDistance || !currentDistance || !onPinchColumnsChange) return
-                    const scale = currentDistance / initialDistance
-                    if (scale < 0.86) onPinchColumnsChange(2)
-                    else if (scale > 1.14) onPinchColumnsChange(1)
-                },
-                onPanResponderRelease: () => {
-                    pinchDistanceRef.current = null
-                },
-                onPanResponderTerminate: () => {
-                    pinchDistanceRef.current = null
-                },
-            }),
-        [onPinchColumnsChange],
-    )
-
-    return (
-        <View className="w-full gap-2.5">
-            <View className="flex-row items-center justify-between px-1">
-                <Text className="text-2xl leading-8 text-editorial-ink font-black">
-                    {t("eventFeedRest")}
-                </Text>
-                <Text className="text-xs uppercase tracking-widest text-editorial-action font-extrabold">
-                    {t("eventSectionCount", { count: entries.length })}
-                </Text>
-            </View>
-            <View
-                className={columns === 2 ? "flex-row flex-wrap gap-2.5" : "gap-3"}
-                {...panResponder.panHandlers}
-            >
-                {entries.map(({ event, upcomingDates }) => (
-                    <EventCard
-                        accessibilityOpenHint=""
-                        cardWidth={listCardWidth}
-                        event={event}
-                        key={event._id}
-                        layout="grid"
-                        upcomingDates={upcomingDates}
-                        onPress={onEventPress}
-                    />
-                ))}
-            </View>
-        </View>
-    )
-}
-
-interface FilterChipProps {
-    label: string
-    selected: boolean
-    onPress: () => void
-    variant?: "filled" | "outlined"
-}
-
-const FilterChip = ({
-    label,
-    selected,
-    onPress,
-    variant = "filled",
-}: FilterChipProps): React.JSX.Element => (
-    <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ selected }}
-        className={`h-12 items-center justify-center rounded-none px-5 ${
-            variant === "outlined" ? "border-2 border-editorial-ink" : ""
-        } ${selected ? "bg-editorial-ink" : "bg-surface-muted"}`}
-        onPress={onPress}
-    >
-        <Text
-            className={`text-base font-extrabold ${
-                selected ? "text-editorial-surface" : "text-editorial-ink"
-            }`}
-        >
-            {label}
-        </Text>
-    </Pressable>
-)
-
-const toggleFilterValue = (values: string[], value: string): string[] =>
-    values.includes(value) ? values.filter(item => item !== value) : [...values, value]
-
-const getQuickTaxonomyGroups = (taxonomy: DerivedTaxonomy | undefined): string[] => {
-    const available = new Set(taxonomy?.taxonomyGroups.map(g => g.name) ?? [])
-    return TAXONOMY_GROUP_ORDER.filter(name => available.has(name))
-}
-
-interface EventFilterBarProps {
-    activeFilterCount: number
-    filters: EventFilterState
-    language: "no" | "en"
-    taxonomy: DerivedTaxonomy | undefined
-    onChange: (filters: EventFilterState) => void
-    onOpenFilters: () => void
-}
-
-const EventFilterBar = ({
-    activeFilterCount,
-    filters,
-    language,
-    taxonomy,
-    onChange,
-    onOpenFilters,
-}: EventFilterBarProps): React.JSX.Element => {
-    const { t } = useTranslation()
-    const quickGroups = getQuickTaxonomyGroups(taxonomy)
-
-    return (
-        <View className="gap-3">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row gap-2 pr-4">
-                    <FilterChip
-                        label={t("eventFilterAll")}
-                        selected={countActiveEventFilters(filters) === 0}
-                        onPress={() => onChange(createEmptyEventFilterState())}
-                    />
-                    {quickGroups.map(groupName => (
-                        <FilterChip
-                            key={groupName}
-                            label={getLocalizedTaxonomyGroupName(groupName, language)}
-                            selected={
-                                filters.taxonomyGroup === groupName &&
-                                filters.eventTypeIds.length === 0
-                            }
-                            onPress={() =>
-                                onChange({
-                                    ...filters,
-                                    eventTypeIds: [],
-                                    taxonomyGroup:
-                                        filters.taxonomyGroup === groupName ? null : groupName,
-                                })
-                            }
-                        />
-                    ))}
-                    <FilterChip
-                        label={
-                            activeFilterCount > 0
-                                ? `${t("eventFilterMore")} (${activeFilterCount})`
-                                : t("eventFilterMore")
-                        }
-                        selected={
-                            filters.eventTypeIds.length > 0 || filters.organizerGroupIds.length > 0
-                        }
-                        onPress={onOpenFilters}
-                    />
-                </View>
-            </ScrollView>
-        </View>
-    )
-}
-
-interface EventFiltersModalProps {
-    eventCount: number
-    filters: EventFilterState
-    language: "no" | "en"
-    taxonomy: DerivedTaxonomy | undefined
-    visible: boolean
-    onChange: (filters: EventFilterState) => void
-    onClose: () => void
-}
-
-const EventFiltersModal = ({
-    eventCount,
-    filters,
-    language,
-    taxonomy,
-    visible,
-    onChange,
-    onClose,
-}: EventFiltersModalProps): React.JSX.Element => {
-    const { t } = useTranslation()
-
-    return (
-        <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
-            <View className="flex-1 justify-end bg-black/25">
-                <View className="max-h-[88%] rounded-t-3xl bg-background px-5 pb-8 pt-5">
-                    <View className="mb-5 flex-row items-center justify-between">
-                        <Text className="text-3xl text-editorial-ink font-black">
-                            {t("eventFilterTitle")}
-                        </Text>
-                        <Pressable
-                            accessibilityRole="button"
-                            onPress={() => onChange(createEmptyEventFilterState())}
-                        >
-                            <Text className="text-sm uppercase tracking-widest text-editorial-action font-extrabold">
-                                {t("eventFilterReset")}
-                            </Text>
-                        </Pressable>
-                    </View>
-                    <ScrollView contentContainerClassName="gap-7">
-                        <View className="gap-5">
-                            <Text className="text-sm uppercase tracking-widest text-editorial-action font-extrabold">
-                                {t("eventFilterType")}
-                            </Text>
-                            {taxonomy?.taxonomyGroups.map(group => (
-                                <View className="gap-3" key={group.name}>
-                                    <Text className="text-4xl leading-tight text-editorial-ink font-black">
-                                        {getLocalizedTaxonomyGroupName(group.name, language)}
-                                    </Text>
-                                    <View className="flex-row flex-wrap gap-3">
-                                        {group.eventTypes.map(eventType => (
-                                            <FilterChip
-                                                key={eventType._id}
-                                                label={eventType.name}
-                                                selected={filters.eventTypeIds.includes(
-                                                    eventType._id,
-                                                )}
-                                                onPress={() =>
-                                                    onChange({
-                                                        ...filters,
-                                                        eventTypeIds: toggleFilterValue(
-                                                            filters.eventTypeIds,
-                                                            eventType._id,
-                                                        ),
-                                                        taxonomyGroup: null,
-                                                    })
-                                                }
-                                                variant="outlined"
-                                            />
-                                        ))}
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
-                        <View className="gap-3 border-t border-border-soft pt-6">
-                            <Text className="text-sm uppercase tracking-widest text-editorial-action font-extrabold">
-                                {t("eventFilterOrganizer")}
-                            </Text>
-                            <View className="flex-row flex-wrap gap-2">
-                                {taxonomy?.organizerGroups.map(group => (
-                                    <FilterChip
-                                        key={group._id}
-                                        label={group.name}
-                                        selected={filters.organizerGroupIds.includes(group._id)}
-                                        onPress={() =>
-                                            onChange({
-                                                ...filters,
-                                                organizerGroupIds: toggleFilterValue(
-                                                    filters.organizerGroupIds,
-                                                    group._id,
-                                                ),
-                                            })
-                                        }
-                                    />
-                                ))}
-                            </View>
-                        </View>
-                    </ScrollView>
-                    <Button className="mt-6" onPress={onClose}>
-                        {t("eventFilterShowCount", { count: eventCount })}
-                    </Button>
-                </View>
-            </View>
-        </Modal>
-    )
-}
-
-interface NowPlayingWidgetProps {
-    nowPlaying: NowPlayingState
-    progressWidth: `${number}%`
-}
-
-const NowPlayingWidget = ({
-    nowPlaying,
-    progressWidth,
-}: NowPlayingWidgetProps): React.JSX.Element => {
-    return (
-        <View className="w-full flex-row items-center gap-3 pt-3">
-            {nowPlaying.image ? (
-                <CachedImage
-                    className="h-16 w-16 rounded-lg"
-                    contentFit="cover"
-                    source={nowPlaying.image}
-                />
-            ) : (
-                <View className="h-16 w-16 rounded-lg bg-surface-muted" />
-            )}
-            <View className="flex-1 gap-1.5">
-                <Text
-                    className="text-base text-editorial-ink font-extrabold"
-                    ellipsizeMode="tail"
-                    numberOfLines={1}
-                >
-                    {nowPlaying.name ?? "-"}
-                </Text>
-                <Text
-                    className="text-sm text-editorial-ink-soft"
-                    ellipsizeMode="tail"
-                    numberOfLines={1}
-                >
-                    {nowPlaying.artists ?? "-"}
-                    {nowPlaying.album ? ` - ${nowPlaying.album}` : ""}
-                </Text>
-                <View className="h-1.5 w-full overflow-hidden rounded-full bg-border-soft">
-                    <View
-                        className="h-full rounded-full bg-editorial-valid"
-                        style={{ width: progressWidth }}
-                    />
-                </View>
-            </View>
-        </View>
-    )
 }
 
 export const KvarteretScreen = (): React.JSX.Element => {
@@ -450,9 +74,8 @@ export const KvarteretScreen = (): React.JSX.Element => {
         isError: eventsError,
         refetch: refetchEvents,
     } = useQuery({
-        queryKey: ["home-events", Boolean(user), language],
-        queryFn: ({ signal }) =>
-            fetchHomeEvents({ includeInternal: Boolean(user), language }, signal),
+        queryKey: ["home-events", Boolean(user)],
+        queryFn: ({ signal }) => fetchHomeEvents({ includeInternal: Boolean(user) }, signal),
         staleTime: 30_000,
         retry: 1,
     })
@@ -468,8 +91,8 @@ export const KvarteretScreen = (): React.JSX.Element => {
     })
 
     const now = new Date()
-    const showNowPlayingWidget = !nowPlayingError && shouldShowGrondahlsStatusCard(nowPlaying, now)
-    const showGrondahlsCard = showNowPlayingWidget
+    const showOpeningStatusHero =
+        !nowPlayingError && shouldShowGrondahlsStatusCard(nowPlaying, now)
     const nowPlayingProgressWidth =
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
 
@@ -495,10 +118,10 @@ export const KvarteretScreen = (): React.JSX.Element => {
                 contentInsetAdjustmentBehavior="automatic"
                 contentContainerClassName="gap-6 px-4 pb-36 pt-2.5"
             >
-                {showGrondahlsCard ? (
+                {showOpeningStatusHero ? (
                     <OpeningStatusHero
                         title={t("kvarteretOpenStatusTitle")}
-                        nowPlaying={showNowPlayingWidget && nowPlaying ? nowPlaying : null}
+                        nowPlaying={nowPlaying ?? null}
                         progressWidth={nowPlayingProgressWidth}
                     />
                 ) : null}
@@ -528,7 +151,6 @@ export const KvarteretScreen = (): React.JSX.Element => {
                             entries={eventFeed.rest}
                             onEventPress={eventId => router.push(`/event/${eventId}`)}
                             onPinchColumnsChange={setRestColumns}
-                            onRetry={async () => refetchEvents()}
                         />
                     ) : (
                         <Text className="text-sm text-text-secondary">{t("homeEventsEmpty")}</Text>

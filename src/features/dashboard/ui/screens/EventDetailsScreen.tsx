@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { useLocalSearchParams, useNavigation } from "expo-router"
-import React, { useCallback, useLayoutEffect, useMemo } from "react"
+import type React from "react"
+import { useCallback, useLayoutEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
@@ -42,16 +43,22 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         isError,
         refetch,
     } = useQuery({
-        queryKey: ["event", resolvedEventId, Boolean(user), language],
+        queryKey: ["event", resolvedEventId, Boolean(user)],
         queryFn: ({ signal }) => {
             if (!resolvedEventId) throw new Error("Missing event ID.")
-            return fetchEventById(resolvedEventId, { includeInternal: Boolean(user), language }, signal)
+            return fetchEventById(resolvedEventId, { includeInternal: Boolean(user) }, signal)
         },
         enabled: Boolean(resolvedEventId),
         retry: 1,
     })
 
     const title = event?.title || t("eventDetailsTitle")
+    const statusLabel =
+        event?.eventStatus === "cancelled"
+            ? t("eventStatusCancelled")
+            : event?.eventStatus === "postponed"
+              ? t("eventStatusPostponed")
+              : null
 
     const details = useMemo(() => {
         if (!event) return null
@@ -61,11 +68,17 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         const whenValue = formatEventStartStopWithDuration(startDate, endDate, language)
         const taxonomy = getEventTaxonomyText(event)
         const roomText = getEventRoomText(event)
-        const recurring =
-            event.isRecurring ? getRecurringBadgeText(event.rrule, language) : ""
-        const priceText = getPriceText(event)
+        const recurring = event.isRecurring
+            ? getRecurringBadgeText(event.rrule, {
+                  recurring: t("eventRecurring"),
+                  daily: t("eventRecurringDaily"),
+                  weekly: t("eventRecurringWeekly"),
+                  monthly: t("eventRecurringMonthly"),
+              })
+            : ""
+        const priceText = getPriceText(event, t("eventPriceFree"))
         return { event, detailsHtml, whenValue, taxonomy, roomText, recurring, priceText }
-    }, [event, language])
+    }, [event, language, t])
 
     const openLink = useCallback(async (url: string): Promise<void> => {
         if (!url) return
@@ -164,6 +177,13 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                 </View>
 
                 <View className="gap-2 border-b border-border-soft pb-5">
+                    {statusLabel ? (
+                        <View className="self-start rounded-full bg-state-danger/15 px-3 py-1.5">
+                            <Text className="text-sm uppercase tracking-widest text-state-danger font-extrabold">
+                                {statusLabel}
+                            </Text>
+                        </View>
+                    ) : null}
                     {details.taxonomy ? (
                         <Text className="text-sm uppercase tracking-widest text-editorial-action font-extrabold">
                             {details.taxonomy}

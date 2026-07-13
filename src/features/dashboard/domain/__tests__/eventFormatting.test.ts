@@ -1,7 +1,9 @@
-import { SanityPortableTextBlock } from "@/features/dashboard/domain/types"
+import type { SanityPortableTextBlock } from "@/features/dashboard/domain/types"
 import {
     formatEventStart,
     formatEventStartStopWithDuration,
+    getPriceText,
+    getRecurringBadgeText,
     selectPrimaryDetailsHtml,
     selectProjectedDescriptionPreview,
     toRenderableHtml,
@@ -86,5 +88,24 @@ describe("eventFormatting", () => {
         expect(value).toContain("varer i")
         expect(value).toContain("2 timer")
         expect(value).toContain("30 minutter")
+    })
+
+    test("getPriceText receives the translated free label from the UI boundary", () => {
+        const event = { isFree: true } as Parameters<typeof getPriceText>[0]
+
+        expect(getPriceText(event, "Free")).toBe("Free")
+        expect(getPriceText(event, "Gratis")).toBe("Gratis")
+    })
+
+    test("getRecurringBadgeText receives translated labels instead of owning UI copy", () => {
+        const labels = {
+            recurring: "Recurring",
+            daily: "every day",
+            weekly: "every week",
+            monthly: "every month",
+        }
+
+        expect(getRecurringBadgeText("FREQ=WEEKLY", labels)).toBe("every week")
+        expect(getRecurringBadgeText(null, labels)).toBe("Recurring")
     })
 })

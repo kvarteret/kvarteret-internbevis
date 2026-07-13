@@ -1,5 +1,5 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs"
-import React from "react"
+import type React from "react"
 import { useTranslation } from "react-i18next"
 import { Platform } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
@@ -49,7 +49,7 @@ export default function TabsLayout(): React.JSX.Element {
 
             <NativeTabs.Trigger name="games">
                 <NativeTabs.Trigger.Icon md="sports_esports" sf="gamecontroller.fill" />
-                <NativeTabs.Trigger.Label>{"Spill"}</NativeTabs.Trigger.Label>
+                <NativeTabs.Trigger.Label>{t("tabSpill")}</NativeTabs.Trigger.Label>
             </NativeTabs.Trigger>
         </NativeTabs>
     )

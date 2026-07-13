@@ -3,7 +3,7 @@ import { EventFeedEntry, KvarteretEventDocument } from "@/features/dashboard/dom
 
 const FALLBACK_TAXONOMY_GROUP = "Annet"
 const OSLO_TIME_ZONE = "Europe/Oslo"
-const TAXONOMY_GROUP_ORDER = ["Musikk", "Scenekunst", "Faglig", "Sosialt", "Organisasjon"]
+export const TAXONOMY_GROUP_ORDER = ["Musikk", "Scenekunst", "Faglig", "Sosialt", "Organisasjon"]
 
 const TAXONOMY_GROUP_LABELS: Record<string, { no: string; en: string }> = {
     Musikk: { no: "Musikk", en: "Music" },
@@ -189,24 +189,3 @@ export const buildEventFeedSections = (events: KvarteretEventDocument[]): EventF
         upcomingDates: getUpcomingDates(event),
     })),
 })
-
-// ─── Legacy helpers kept for tests ────────────────────────────────────────
-
-export const pickHomeEvents = (
-    events: KvarteretEventDocument[],
-    options?: { now?: Date; maxCount?: number },
-): KvarteretEventDocument[] => {
-    const now = options?.now ?? new Date()
-    const maxCount = options?.maxCount ?? 5
-    return events
-        .filter(event => {
-            const first = event.dates[0]
-            if (!first) return false
-            // Recurring events with an rrule always have upcoming occurrences —
-            // their anchor date may be in the past but the rule generates future ones.
-            if (event.isRecurring && event.rrule) return true
-            return toOsloDate(first.startDate, first.startTime).getTime() >= now.getTime()
-        })
-        .filter(event => event.title.trim().length > 0)
-        .slice(0, maxCount)
-}

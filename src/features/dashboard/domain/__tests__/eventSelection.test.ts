@@ -6,7 +6,6 @@ import {
     deriveTaxonomyFromEvents,
     filterEvents,
     parsePersistedEventFilterState,
-    pickHomeEvents,
 } from "../eventSelection"
 
 function makeDate(isoString: string): SanityArrangementDate {
@@ -42,6 +41,9 @@ function createEvent(
 
     return {
         _id: id,
+        eventKind: "single",
+        eventStatus: "scheduled",
+        parent: null,
         title: options?.title ?? `Event ${id}`,
         slug: `event-${id}`,
         dates,
@@ -84,28 +86,6 @@ function createEvent(
 }
 
 describe("eventsService", () => {
-    test("pickHomeEvents excludes events whose first date is in the past", () => {
-        const now = new Date("2026-02-20T12:00:00.000Z")
-        // Past event: startDate before now
-        const ended = createEvent("ended", { start: new Date("2026-02-19T08:00:00.000Z") })
-        const active = createEvent("active", { start: new Date("2026-02-20T14:00:00.000Z") })
-
-        const result = pickHomeEvents([ended, active], { now })
-        expect(result.map(e => e._id)).toEqual(["active"])
-    })
-
-    test("pickHomeEvents returns at most 5 events", () => {
-        const base = new Date("2026-02-20T12:00:00.000Z")
-        const events = Array.from({ length: 7 }, (_, i) =>
-            createEvent(String(i + 1), {
-                start: new Date(base.getTime() + i * 60 * 60 * 1000),
-            }),
-        )
-
-        const result = pickHomeEvents(events, { now: base })
-        expect(result).toHaveLength(5)
-    })
-
     test("deriveTaxonomyFromEvents groups event types by taxonomy group", () => {
         const music = createEvent("music", {
             eventTypeId: "konsert",
@@ -270,17 +250,4 @@ describe("eventsService", () => {
         }
     })
 
-    test("pickHomeEvents includes recurring events even when anchor date is in the past", () => {
-        const now = new Date("2026-05-10T12:00:00.000Z")
-        const recurring: KvarteretEventDocument = {
-            ...createEvent("weekly"),
-            dates: [{ _key: "d1", startDate: "2024-01-09", startTime: "19:00", endTime: null }],
-            isRecurring: true,
-            rrule: "FREQ=WEEKLY;BYDAY=TU",
-        }
-
-        const result = pickHomeEvents([recurring], { now })
-
-        expect(result.map(e => e._id)).toContain("weekly")
-    })
 })

@@ -1,4 +1,4 @@
-import type { NowPlayingState } from "@/features/now-playing/data/nowPlayingRepository"
+import type { NowPlayingState } from "@/features/dashboard/data/nowPlayingRepository"
 import { isWithinGrondahlsOpeningHours, shouldShowGrondahlsStatusCard } from "../grondahlsOpening"
 
 const createNowPlayingState = (overrides?: Partial<NowPlayingState>): NowPlayingState => ({
@@ -16,37 +16,56 @@ const createNowPlayingState = (overrides?: Partial<NowPlayingState>): NowPlaying
     ...overrides,
 })
 
+// Opening hours are evaluated in Europe/Oslo wall-clock time, so the tests use
+// explicit UTC instants with the Oslo local time noted alongside. Early March
+// 2026 is CET (UTC+1); mid-July is CEST (UTC+2).
+
 describe("grondahlsOpening", () => {
     test("shows within weekday opening hours", () => {
-        expect(isWithinGrondahlsOpeningHours(new Date(2026, 2, 2, 20, 0, 0))).toBe(true)
+        // Monday 2026-03-02 20:00 Oslo
+        expect(isWithinGrondahlsOpeningHours(new Date("2026-03-02T19:00:00Z"))).toBe(true)
     })
 
     test("shows during weekday spillover after midnight", () => {
-        expect(isWithinGrondahlsOpeningHours(new Date(2026, 2, 7, 0, 30, 0))).toBe(true)
+        // Saturday 2026-03-07 00:30 Oslo (Friday night spillover)
+        expect(isWithinGrondahlsOpeningHours(new Date("2026-03-06T23:30:00Z"))).toBe(true)
     })
 
     test("hides before weekday opening", () => {
-        expect(isWithinGrondahlsOpeningHours(new Date(2026, 2, 2, 19, 59, 0))).toBe(false)
+        // Monday 2026-03-02 19:59 Oslo
+        expect(isWithinGrondahlsOpeningHours(new Date("2026-03-02T18:59:00Z"))).toBe(false)
     })
 
     test("hides at weekday closing time", () => {
-        expect(isWithinGrondahlsOpeningHours(new Date(2026, 2, 7, 1, 0, 0))).toBe(false)
+        // Saturday 2026-03-07 01:00 Oslo
+        expect(isWithinGrondahlsOpeningHours(new Date("2026-03-07T00:00:00Z"))).toBe(false)
     })
 
     test("shows within saturday opening hours", () => {
-        expect(isWithinGrondahlsOpeningHours(new Date(2026, 2, 7, 21, 0, 0))).toBe(true)
+        // Saturday 2026-03-07 21:00 Oslo
+        expect(isWithinGrondahlsOpeningHours(new Date("2026-03-07T20:00:00Z"))).toBe(true)
     })
 
     test("shows during saturday spillover after midnight", () => {
-        expect(isWithinGrondahlsOpeningHours(new Date(2026, 2, 8, 1, 30, 0))).toBe(true)
+        // Sunday 2026-03-08 01:30 Oslo
+        expect(isWithinGrondahlsOpeningHours(new Date("2026-03-08T00:30:00Z"))).toBe(true)
     })
 
     test("hides at saturday closing time", () => {
-        expect(isWithinGrondahlsOpeningHours(new Date(2026, 2, 8, 2, 0, 0))).toBe(false)
+        // Sunday 2026-03-08 02:00 Oslo
+        expect(isWithinGrondahlsOpeningHours(new Date("2026-03-08T01:00:00Z"))).toBe(false)
+    })
+
+    test("evaluates in Oslo time during CEST too", () => {
+        // Wednesday 2026-07-15 20:00 Oslo is 18:00 UTC in summer
+        expect(isWithinGrondahlsOpeningHours(new Date("2026-07-15T18:00:00Z"))).toBe(true)
+        // 19:59 Oslo the same evening
+        expect(isWithinGrondahlsOpeningHours(new Date("2026-07-15T17:59:00Z"))).toBe(false)
     })
 
     test("requires active playback to show the card", () => {
-        const now = new Date(2026, 2, 2, 20, 30, 0)
+        // Monday 2026-03-02 20:30 Oslo
+        const now = new Date("2026-03-02T19:30:00Z")
 
         expect(shouldShowGrondahlsStatusCard(createNowPlayingState(), now)).toBe(true)
         expect(

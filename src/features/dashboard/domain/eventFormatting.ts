@@ -1,26 +1,19 @@
 import { differenceInMinutes, format, formatDistanceToNowStrict, isSameWeek } from "date-fns"
 import { enUS, nb } from "date-fns/locale"
 import { RRule } from "rrule"
-import {
+import type {
     KvarteretEventDocument,
     SanityPortableTextBlock,
     SanityPortableTextMarkDef,
 } from "@/features/dashboard/domain/types"
+import { toOsloDate } from "@/shared/time/osloTime"
 
 const DESCRIPTION_PREVIEW_MAX_CHARS = 200
 
 // ─── Date helpers ──────────────────────────────────────────────────────────
 
-const getOsloUtcOffset = (dateStr: string): string => {
-    const month = parseInt(dateStr.split("-")[1] ?? "1", 10)
-    // Rough DST approximation: CEST (UTC+2) April–October, CET (UTC+1) otherwise
-    return month >= 4 && month <= 10 ? "+02:00" : "+01:00"
-}
-
-export const toOsloDate = (startDate: string, time: string | null): Date => {
-    const offset = getOsloUtcOffset(startDate)
-    return new Date(`${startDate}T${time ?? "00:00"}:00${offset}`)
-}
+// Re-exported so existing call sites keep one import path for event dates.
+export { toOsloDate }
 
 export const getEventStartDate = (event: KvarteretEventDocument): Date => {
     const first = event.dates[0]
@@ -58,7 +51,7 @@ export const expandRruleUpcomingDates = (
         return rule
             .between(now, ceiling, true)
             .slice(0, maxCount)
-            .map((d: Date) => toOsloDate(d.toISOString().split("T")[0]!, anchorTime))
+            .map((d: Date) => toOsloDate(d.toISOString().slice(0, 10), anchorTime))
     } catch {
         return []
     }
@@ -116,6 +109,8 @@ const portableTextToHtml = (blocks: SanityPortableTextBlock[] | null | undefined
                     return `<h2>${content}</h2>`
                 case "h3":
                     return `<h3>${content}</h3>`
+                case "h4":
+                    return `<h4>${content}</h4>`
                 case "blockquote":
                     return `<blockquote>${content}</blockquote>`
                 default:
@@ -236,20 +231,30 @@ export const getEventTaxonomyText = (event: KvarteretEventDocument): string => {
 export const getEventRoomText = (event: KvarteretEventDocument): string =>
     event.room?.name ?? event.roomText ?? ""
 
-export const getRecurringBadgeText = (rrule: string | null, language: "no" | "en"): string => {
-    if (!rrule) return language === "en" ? "Recurring" : "Gjentagende"
+export interface RecurringBadgeLabels {
+    recurring: string
+    daily: string
+    weekly: string
+    monthly: string
+}
+
+export const getRecurringBadgeText = (
+    rrule: string | null,
+    labels: RecurringBadgeLabels,
+): string => {
+    if (!rrule) return labels.recurring
 
     const freqMatch = rrule.match(/FREQ=(\w+)/)
     const freq = freqMatch?.[1]?.toUpperCase()
 
-    if (freq === "DAILY") return language === "en" ? "every day" : "hver dag"
-    if (freq === "WEEKLY") return language === "en" ? "every week" : "hver uke"
-    if (freq === "MONTHLY") return language === "en" ? "every month" : "hver måned"
-    return language === "en" ? "recurring" : "gjentagende"
+    if (freq === "DAILY") return labels.daily
+    if (freq === "WEEKLY") return labels.weekly
+    if (freq === "MONTHLY") return labels.monthly
+    return labels.recurring
 }
 
-export const getPriceText = (event: KvarteretEventDocument): string => {
-    if (event.isFree) return "Gratis"
+export const getPriceText = (event: KvarteretEventDocument, freeLabel: string): string => {
+    if (event.isFree) return freeLabel
     const prices = [event.priceOrdinar, event.priceStudent, event.priceMedlem].filter(
         (p): p is number => p !== null && p !== undefined,
     )

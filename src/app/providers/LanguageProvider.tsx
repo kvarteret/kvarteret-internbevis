@@ -1,7 +1,9 @@
 import * as Localization from "expo-localization"
-import React, {
+import type React from "react"
+import {
     createContext,
-    PropsWithChildren,
+    type PropsWithChildren,
+    useCallback,
     useContext,
     useEffect,
     useMemo,
@@ -22,20 +24,28 @@ const STORAGE_KEY = "selected_language"
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined)
 
-const getInitialLanguage = (): SupportedLanguage => {
+const getDeviceLanguage = (): SupportedLanguage => {
     const locale = Localization.getLocales()[0]?.languageCode ?? "no"
     return locale === "en" ? "en" : "no"
 }
 
+// Pure so first-launch behavior is unit-testable without rendering the
+// provider: an unset/unrecognized stored value falls back to the device
+// locale rather than hard-coding Norwegian.
+export const resolveHydratedLanguage = (
+    stored: string | null,
+    deviceLanguage: SupportedLanguage,
+): SupportedLanguage => (stored === "en" || stored === "no" ? stored : deviceLanguage)
+
 export const LanguageProvider = ({ children }: PropsWithChildren): React.JSX.Element => {
-    const [language, setLanguage] = useState<SupportedLanguage>(getInitialLanguage())
+    const [language, setLanguage] = useState<SupportedLanguage>(getDeviceLanguage())
     const [isHydrating, setIsHydrating] = useState(true)
 
     useEffect(() => {
         const hydrateLanguage = async (): Promise<void> => {
             try {
                 const stored = await getStoredValue(STORAGE_KEY)
-                const nextLanguage: SupportedLanguage = stored === "en" ? "en" : "no"
+                const nextLanguage = resolveHydratedLanguage(stored, getDeviceLanguage())
                 setLanguage(nextLanguage)
                 await i18n.changeLanguage(nextLanguage)
             } finally {
@@ -46,11 +56,11 @@ export const LanguageProvider = ({ children }: PropsWithChildren): React.JSX.Ele
         void hydrateLanguage()
     }, [])
 
-    const changeLanguage = async (nextLanguage: SupportedLanguage): Promise<void> => {
+    const changeLanguage = useCallback(async (nextLanguage: SupportedLanguage): Promise<void> => {
         setLanguage(nextLanguage)
         await setStoredValue(STORAGE_KEY, nextLanguage)
         await i18n.changeLanguage(nextLanguage)
-    }
+    }, [])
 
     const value = useMemo(
         () => ({
@@ -58,7 +68,7 @@ export const LanguageProvider = ({ children }: PropsWithChildren): React.JSX.Ele
             isHydrating,
             changeLanguage,
         }),
-        [language, isHydrating],
+        [language, isHydrating, changeLanguage],
     )
 
     return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>

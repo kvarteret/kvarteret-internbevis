@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { AppState } from "react-native"
-import { ChessTimeControl } from "@/features/games/domain/chessTimeControl"
+import type { ChessTimeControl } from "@/features/games/domain/chessTimeControl"
 import {
-    ChessPlayer,
-    ChessTimerState,
+    type ChessPlayer,
+    type ChessTimerState,
     completeMove,
     pause,
     resetTimer,
@@ -36,7 +36,7 @@ export const useChessTimer = (timeControl: ChessTimeControl): UseChessTimerResul
     useEffect(() => {
         setTimerState(resetTimer(timeControl.initialMs, timeControl.incrementMs))
         lastTickAtRef.current = null
-    }, [timeControl.preset, timeControl.initialMs, timeControl.incrementMs])
+    }, [timeControl.initialMs, timeControl.incrementMs])
 
     const applyElapsed = useCallback((now: number): void => {
         setTimerState(previous => {

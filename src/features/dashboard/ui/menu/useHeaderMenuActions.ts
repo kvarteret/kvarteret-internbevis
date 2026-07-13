@@ -77,7 +77,7 @@ export const useHeaderMenuActions = (): {
                 isVolunteer,
                 platform: Platform.OS === "android" ? "android" : "ios",
             }),
-        [isLoggedIn, t],
+        [isLoggedIn, isVolunteer, t],
     )
 
     const onMenuAction = useCallback(
