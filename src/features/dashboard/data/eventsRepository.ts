@@ -1,6 +1,6 @@
 import { sanityFetch } from "@/core/sanity/client"
 import { ARRANGEMENT_BY_ID_QUERY, PUBLISHED_ARRANGEMENTS_QUERY } from "@/core/sanity/queries"
-import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
+import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import { parseRawEvent, parseRawEvents } from "@/features/dashboard/data/eventSchema"
 import { resolveEventDocument } from "@/features/dashboard/domain/eventResolution"
 import type { KvarteretEventDocument } from "@/features/dashboard/domain/types"
@@ -41,16 +41,11 @@ const writeCachedValue = async <T>(key: string, value: T): Promise<void> => {
     }
 }
 
-export const fetchHomeEvents = async (
-    options: { includeInternal: boolean },
-    signal?: AbortSignal,
-): Promise<KvarteretEventDocument[]> => {
-    // Offline cache is scoped by visibility so an anonymous session can never
-    // read a cached internal-inclusive feed.
-    const cacheKey = `${EVENTS_CACHE_KEY}:${options.includeInternal ? "internal" : "public"}`
+export const fetchHomeEvents = async (signal?: AbortSignal): Promise<KvarteretEventDocument[]> => {
+    const cacheKey = `${EVENTS_CACHE_KEY}:public`
     try {
         const payload = await sanityFetch<unknown>(PUBLISHED_ARRANGEMENTS_QUERY, {
-            params: { today: toOsloDateString(), includeInternal: options.includeInternal },
+            params: { today: toOsloDateString() },
             signal,
         })
         const rawEvents = parseRawEvents(payload)
@@ -69,23 +64,32 @@ export const fetchHomeEvents = async (
 
 export const fetchEventById = async (
     eventId: string,
-    options: { includeInternal: boolean },
     signal?: AbortSignal,
 ): Promise<KvarteretEventDocument> => {
-    const cacheKey = `${EVENT_CACHE_KEY_PREFIX}:${eventId}:${options.includeInternal ? "internal" : "public"}`
+    const cacheKey = `${EVENT_CACHE_KEY_PREFIX}:${eventId}:public`
+    let payload: unknown
+
     try {
-        const payload = await sanityFetch<unknown>(ARRANGEMENT_BY_ID_QUERY, {
-            params: { id: eventId, includeInternal: options.includeInternal },
+        payload = await sanityFetch<unknown>(ARRANGEMENT_BY_ID_QUERY, {
+            params: { id: eventId, today: toOsloDateString() },
             signal,
         })
-        if (!payload) throw new Error(`Event not found: ${eventId}`)
-        const rawEvent = parseRawEvent(payload)
-        const event = resolveEventDocument(rawEvent)
-        await writeCachedValue(cacheKey, event)
-        return event
     } catch (error) {
         const cached = await readCachedValue<KvarteretEventDocument>(cacheKey, EVENTS_CACHE_TTL_MS)
         if (cached) return cached
         throw error
     }
+
+    // An authoritative null is a visibility tombstone (unpublished, internal,
+    // or otherwise unavailable), not an offline condition. Never revive it
+    // from a cache populated while the event was public.
+    if (!payload) {
+        await removeStoredValue(cacheKey)
+        throw new Error(`Event not found: ${eventId}`)
+    }
+
+    const rawEvent = parseRawEvent(payload)
+    const event = resolveEventDocument(rawEvent)
+    await writeCachedValue(cacheKey, event)
+    return event
 }

@@ -40,7 +40,7 @@ const clampProgress = (value: number | null): number => {
 export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
-    const { user, isLoading } = useSession()
+    const { isLoading } = useSession()
     const { language } = useLanguage()
     const isFocused = useIsFocused()
     const { textPrimary } = useThemeRuntimeColors()
@@ -74,8 +74,8 @@ export const KvarteretScreen = (): React.JSX.Element => {
         isError: eventsError,
         refetch: refetchEvents,
     } = useQuery({
-        queryKey: ["home-events", Boolean(user)],
-        queryFn: ({ signal }) => fetchHomeEvents({ includeInternal: Boolean(user) }, signal),
+        queryKey: ["home-events"],
+        queryFn: ({ signal }) => fetchHomeEvents(signal),
         staleTime: 30_000,
         retry: 1,
     })

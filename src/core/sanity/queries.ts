@@ -25,7 +25,10 @@ const INHERITABLE_EVENT_FIELDS_PROJECTION = `
   facebookUrl,
   isInternalEvent`
 
-const ARRANGEMENT_PROJECTION = `{
+const createArrangementProjection = (futureDatesOnly: boolean): string => {
+    const datesSelector = futureDatesOnly ? "[startDate >= $today]" : "[]"
+
+    return `{
   _id,
   "eventKind": coalesce(eventKind, "single"),
   eventStatus,
@@ -39,7 +42,7 @@ const ARRANGEMENT_PROJECTION = `{
   "slug": coalesce(slug.current, ""),
   "isRecurring": coalesce(isRecurring, false),
   rrule,
-  "dates": coalesce(dates[] | order(startDate asc) {
+  "dates": coalesce(dates${datesSelector} | order(startDate asc, startTime asc) {
     _key,
     "startDate": coalesce(startDate, ""),
     startTime,
@@ -49,22 +52,30 @@ const ARRANGEMENT_PROJECTION = `{
   roomText,
   ${INHERITABLE_EVENT_FIELDS_PROJECTION}
 }`
+}
+
+const FUTURE_ARRANGEMENT_PROJECTION = createArrangementProjection(true)
+const DETAIL_ARRANGEMENT_PROJECTION = createArrangementProjection(false)
 
 export const PUBLISHED_ARRANGEMENTS_QUERY = `
 *[_type == "arrangement" && approvalStatus == "approved"
     && ${CONCRETE_EVENT_KINDS}
-    && (coalesce(isInternalEvent, parentEvent->isInternalEvent, false) != true || $includeInternal == true)
+    && coalesce(isInternalEvent, parentEvent->isInternalEvent, false) != true
     && count(dates[startDate >= $today]) > 0]
 | order(
-    coalesce(dates[startDate >= $today][0].startDate, dates[0].startDate) asc,
-    coalesce(dates[startDate >= $today][0].startTime, dates[0].startTime, "00:00") asc
+    dates[startDate >= $today][0].startDate asc,
+    coalesce(dates[startDate >= $today][0].startTime, "00:00") asc
 )
-${ARRANGEMENT_PROJECTION}
+${FUTURE_ARRANGEMENT_PROJECTION}
 `
 
 export const ARRANGEMENT_BY_ID_QUERY = `
 *[_type == "arrangement" && _id == $id && approvalStatus == "approved"
     && ${CONCRETE_EVENT_KINDS}
-    && (coalesce(isInternalEvent, parentEvent->isInternalEvent, false) != true || $includeInternal == true)][0]
-${ARRANGEMENT_PROJECTION}
+    && coalesce(isInternalEvent, parentEvent->isInternalEvent, false) != true
+    && (
+        count(dates[startDate >= $today]) > 0
+        || eventStatus in ["cancelled", "postponed"]
+    )][0]
+${DETAIL_ARRANGEMENT_PROJECTION}
 `

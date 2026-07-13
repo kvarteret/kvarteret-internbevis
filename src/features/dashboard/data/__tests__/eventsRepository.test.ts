@@ -1,9 +1,10 @@
 jest.mock("@/core/storage/asyncStorage", () => ({
     getStoredJson: jest.fn(),
+    removeStoredValue: jest.fn(),
     setStoredJson: jest.fn(),
 }))
 
-import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
+import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import { fetchEventById, fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
 
 const createSanityEvent = (id = "event-1") => ({
@@ -54,26 +55,20 @@ describe("eventsRepository (Sanity)", () => {
     test("fetchHomeEvents queries Sanity with today param", async () => {
         ;(global.fetch as jest.Mock).mockResolvedValue(createSanityResponse([createSanityEvent()]))
 
-        const events = await fetchHomeEvents({ includeInternal: false })
+        const events = await fetchHomeEvents()
 
         const url = new URL((global.fetch as jest.Mock).mock.calls[0][0] as string)
         expect(url.hostname).toContain("sanity.io")
         expect(url.searchParams.has("$today")).toBe(true)
-        expect(url.searchParams.get("$includeInternal")).toBe("false")
+        expect(url.searchParams.has("$includeInternal")).toBe(false)
         expect(url.searchParams.get("query")).toContain(
-            "coalesce(isInternalEvent, parentEvent->isInternalEvent, false)",
+            "coalesce(isInternalEvent, parentEvent->isInternalEvent, false) != true",
+        )
+        expect(url.searchParams.get("query")).toContain(
+            "dates[startDate >= $today] | order(startDate asc, startTime asc)",
         )
         expect(events).toHaveLength(1)
         expect(events[0]?._id).toBe("event-1")
-    })
-
-    test("fetchHomeEvents requests internal events for logged-in sessions", async () => {
-        ;(global.fetch as jest.Mock).mockResolvedValue(createSanityResponse([createSanityEvent()]))
-
-        await fetchHomeEvents({ includeInternal: true })
-
-        const url = new URL((global.fetch as jest.Mock).mock.calls[0][0] as string)
-        expect(url.searchParams.get("$includeInternal")).toBe("true")
     })
 
     test("fetchHomeEvents resolves fields inherited by materialized child events", async () => {
@@ -106,7 +101,7 @@ describe("eventsRepository (Sanity)", () => {
         }
         ;(global.fetch as jest.Mock).mockResolvedValue(createSanityResponse([child]))
 
-        const events = await fetchHomeEvents({ includeInternal: false })
+        const events = await fetchHomeEvents()
 
         expect(events[0]).toEqual(
             expect.objectContaining({
@@ -130,45 +125,22 @@ describe("eventsRepository (Sanity)", () => {
         })
         ;(global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"))
 
-        const events = await fetchHomeEvents({ includeInternal: false })
+        const events = await fetchHomeEvents()
 
         expect(events[0]?._id).toBe("cached-event")
     })
 
-    test("fetchHomeEvents keeps public and internal offline caches separate", async () => {
-        ;(global.fetch as jest.Mock)
-            .mockResolvedValueOnce(createSanityResponse([createSanityEvent("public-event")]))
-            .mockResolvedValueOnce(createSanityResponse([createSanityEvent("internal-event")]))
+    test("fetchHomeEvents writes only the public offline cache", async () => {
+        ;(global.fetch as jest.Mock).mockResolvedValue(
+            createSanityResponse([createSanityEvent("public-event")]),
+        )
 
-        await fetchHomeEvents({ includeInternal: false })
-        await fetchHomeEvents({ includeInternal: true })
+        await fetchHomeEvents()
 
-        expect(setStoredJson).toHaveBeenNthCalledWith(
-            1,
+        expect(setStoredJson).toHaveBeenCalledWith(
             "events_sanity_cache:home:public",
             expect.objectContaining({ value: [expect.objectContaining({ _id: "public-event" })] }),
         )
-        expect(setStoredJson).toHaveBeenNthCalledWith(
-            2,
-            "events_sanity_cache:home:internal",
-            expect.objectContaining({
-                value: [expect.objectContaining({ _id: "internal-event" })],
-            }),
-        )
-    })
-
-    test("fetchHomeEvents cannot fall back to the internal cache for a public request", async () => {
-        ;(getStoredJson as jest.Mock).mockImplementation(async (key: string) =>
-            key.endsWith(":internal")
-                ? { cachedAt: Date.now(), value: [createSanityEvent("internal-event")] }
-                : null,
-        )
-        ;(global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"))
-
-        await expect(fetchHomeEvents({ includeInternal: false })).rejects.toThrow("Network error")
-        await expect(fetchHomeEvents({ includeInternal: true })).resolves.toEqual([
-            expect.objectContaining({ _id: "internal-event" }),
-        ])
     })
 
     test("fetchEventById queries Sanity by document id", async () => {
@@ -176,24 +148,53 @@ describe("eventsRepository (Sanity)", () => {
             createSanityResponse(createSanityEvent("abc-123")),
         )
 
-        const event = await fetchEventById("abc-123", { includeInternal: false })
+        const event = await fetchEventById("abc-123")
 
         const url = new URL((global.fetch as jest.Mock).mock.calls[0][0] as string)
         expect(url.hostname).toContain("sanity.io")
         expect(url.searchParams.get("$id")).toBe('"abc-123"')
-        expect(url.searchParams.get("$includeInternal")).toBe("false")
+        expect(url.searchParams.has("$includeInternal")).toBe(false)
+        expect(url.searchParams.has("$today")).toBe(true)
         expect(url.searchParams.get("query")).toContain(
-            "coalesce(isInternalEvent, parentEvent->isInternalEvent, false)",
+            "coalesce(isInternalEvent, parentEvent->isInternalEvent, false) != true",
+        )
+        expect(url.searchParams.get("query")).toContain('eventStatus in ["cancelled", "postponed"]')
+        expect(url.searchParams.get("query")).toContain(
+            "dates[] | order(startDate asc, startTime asc)",
         )
         expect(event._id).toBe("abc-123")
         expect(event.dates[0]?.startDate).toBe("2026-05-20")
     })
 
-    test("fetchEventById throws when event is not found and no cache", async () => {
-        ;(global.fetch as jest.Mock).mockResolvedValue(createSanityResponse(null))
+    test("fetchEventById tombstones an event that becomes unavailable", async () => {
+        let cachedValue: unknown = {
+            cachedAt: Date.now(),
+            value: createSanityEvent("removed-event"),
+        }
+        ;(getStoredJson as jest.Mock).mockImplementation(async () => cachedValue)
+        ;(removeStoredValue as jest.Mock).mockImplementation(async () => {
+            cachedValue = null
+        })
+        ;(global.fetch as jest.Mock)
+            .mockResolvedValueOnce(createSanityResponse(null))
+            .mockRejectedValueOnce(new Error("Network error"))
 
-        await expect(fetchEventById("missing", { includeInternal: false })).rejects.toThrow(
-            "Event not found",
+        await expect(fetchEventById("removed-event")).rejects.toThrow("Event not found")
+        expect(removeStoredValue).toHaveBeenCalledWith(
+            "events_sanity_cache:event:removed-event:public",
+        )
+        await expect(fetchEventById("removed-event")).rejects.toThrow("Network error")
+    })
+
+    test("fetchEventById returns a cached event on a transport failure", async () => {
+        ;(getStoredJson as jest.Mock).mockResolvedValue({
+            cachedAt: Date.now(),
+            value: createSanityEvent("cached-event"),
+        })
+        ;(global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"))
+
+        await expect(fetchEventById("cached-event")).resolves.toEqual(
+            expect.objectContaining({ _id: "cached-event" }),
         )
     })
 })
