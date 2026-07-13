@@ -1,5 +1,6 @@
 import {
-    buildFeedbackPayload,
+    buildFeedbackRequestBody,
+    FEEDBACK_SOURCE,
     FeedbackValidationError,
     MAX_FEEDBACK_MESSAGE_LENGTH,
     normalizeFeedbackContactEmail,
@@ -32,82 +33,85 @@ describe("feedback validation", () => {
     })
 })
 
-describe("buildFeedbackPayload", () => {
-    it("omits user metadata for anonymous submissions", () => {
-        const payload = buildFeedbackPayload({
+describe("buildFeedbackRequestBody", () => {
+    it("omits user and contact fields for anonymous submissions", () => {
+        const body = buildFeedbackRequestBody({
             contactAllowed: false,
             contactEmail: null,
             message: "Hei",
             page: "/(tabs)/feedback",
             platform: "ios",
-            submittedAt: "28.03.2026 12:00",
             user: null,
         })
 
-        const fields = payload.blocks[1].type === "section" ? (payload.blocks[1].fields ?? []) : []
-
-        expect(fields).toHaveLength(5)
-        expect(fields.some(field => field.text.includes("Bruker-ID"))).toBe(false)
-        expect(fields.some(field => field.text.includes("Kan kontaktes"))).toBe(true)
+        expect(body).toEqual({
+            message: "Hei",
+            page: "/(tabs)/feedback",
+            platform: "ios",
+            contact_allowed: false,
+            contact_email: null,
+            user_id: null,
+            user_full_name: null,
+            source: FEEDBACK_SOURCE,
+        })
     })
 
     it("includes logged-in user metadata and contact email when allowed", () => {
-        const payload = buildFeedbackPayload({
+        const body = buildFeedbackRequestBody({
             contactAllowed: true,
             contactEmail: "sample.person@example.com",
             message: "Hei",
             page: "/(tabs)/feedback",
             platform: "android",
-            submittedAt: "28.03.2026 12:00",
             user: {
                 id: 12,
                 fullName: "Sample Person",
             },
         })
 
-        const fields = payload.blocks[1].type === "section" ? (payload.blocks[1].fields ?? []) : []
-
-        expect(fields.some(field => field.text.includes("Sample Person"))).toBe(true)
-        expect(fields.some(field => field.text.includes("12"))).toBe(true)
-        expect(fields.some(field => field.text.includes("Kan kontaktes"))).toBe(true)
-        expect(fields.some(field => field.text.includes("sample.person@example.com"))).toBe(true)
+        expect(body.user_id).toBe(12)
+        expect(body.user_full_name).toBe("Sample Person")
+        expect(body.contact_allowed).toBe(true)
+        expect(body.contact_email).toBe("sample.person@example.com")
     })
 
-    it("escapes slack special characters in the message", () => {
-        const payload = buildFeedbackPayload({
+    it("omits the contact email when contact is not allowed, even if one was typed", () => {
+        const body = buildFeedbackRequestBody({
             contactAllowed: false,
-            contactEmail: null,
-            message: "Hei <team> & takk",
-            page: "/(tabs)/feedback",
-            platform: "ios",
-            submittedAt: "28.03.2026 12:00",
-            user: null,
-        })
-
-        const messageSection =
-            payload.blocks[payload.blocks.length - 1].type === "section"
-                ? payload.blocks[payload.blocks.length - 1].text?.text
-                : ""
-
-        expect(messageSection).toContain("&lt;team&gt;")
-        expect(messageSection).toContain("&amp;")
-    })
-
-    it("escapes slack special characters in the contact email", () => {
-        const payload = buildFeedbackPayload({
-            contactAllowed: true,
-            contactEmail: "sample+test<&>@example.com",
+            contactEmail: "sample.person@example.com",
             message: "Hei",
             page: "/(tabs)/feedback",
             platform: "ios",
-            submittedAt: "28.03.2026 12:00",
             user: null,
         })
 
-        const fields = payload.blocks[1].type === "section" ? (payload.blocks[1].fields ?? []) : []
+        expect(body.contact_email).toBeNull()
+    })
 
-        expect(
-            fields.some(field => field.text.includes("sample+test&lt;&amp;&gt;@example.com")),
-        ).toBe(true)
+    it("falls back to the feedback page and unknown platform when blank", () => {
+        const body = buildFeedbackRequestBody({
+            contactAllowed: false,
+            contactEmail: null,
+            message: "Hei",
+            page: "  ",
+            platform: "  ",
+            user: null,
+        })
+
+        expect(body.page).toBe("/(tabs)/feedback")
+        expect(body.platform).toBe("unknown")
+    })
+
+    it("rejects an invalid contact email even when validating the full submission", () => {
+        expect(() =>
+            buildFeedbackRequestBody({
+                contactAllowed: true,
+                contactEmail: "ikke-en-epost",
+                message: "Hei",
+                page: "/(tabs)/feedback",
+                platform: "ios",
+                user: null,
+            }),
+        ).toThrow(FeedbackValidationError)
     })
 })

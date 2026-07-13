@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next"
 import { Platform, Pressable, ScrollView, View } from "react-native"
 import { useSession } from "@/app/providers/SessionProvider"
 import { getSavedCredentials } from "@/features/auth/data/authRepository"
-import { DashboardShellLayout } from "@/features/dashboard/ui/components/DashboardShellLayout"
 import { submitFeedback } from "@/features/feedback/data/feedbackRepository"
 import {
     buildFeedbackUserContext,
@@ -14,6 +13,7 @@ import {
 } from "@/features/feedback/domain/feedback"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
+import { DashboardShellLayout } from "@/shared/ui/DashboardShellLayout"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
 import { TextField } from "@/shared/ui/TextField"

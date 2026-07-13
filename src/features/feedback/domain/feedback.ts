@@ -1,8 +1,12 @@
-import { isEmailValid, normalizeEmail } from "@/features/auth/domain/authValidation"
+import { isEmailValid, normalizeEmail } from "@/shared/domain/emailValidation"
 import { User } from "@/shared/types/user"
 
 export const FEEDBACK_PAGE = "/(tabs)/feedback"
 export const MAX_FEEDBACK_MESSAGE_LENGTH = 2_000
+
+// Identifies this app to the backend's feedback endpoint; must match a key
+// in kvarteret-personal's `_SOURCE_PROJECT` (app/domain/feedback/service.py).
+export const FEEDBACK_SOURCE = "internbevis-rn"
 
 export type FeedbackValidationErrorCode =
     | "CONTACT_EMAIL_INVALID"
@@ -30,39 +34,20 @@ export interface FeedbackSubmissionInput {
     message: string
     page: string
     platform: string
-    submittedAt: string
     user?: FeedbackUserContext | null
 }
 
-interface SlackPayloadField {
-    type: "mrkdwn"
-    text: string
-}
-
-interface SlackPayloadSection {
-    type: "section"
-    fields?: SlackPayloadField[]
-    text?: {
-        type: "mrkdwn"
-        text: string
-    }
-}
-
-interface SlackPayloadHeader {
-    type: "header"
-    text: {
-        type: "plain_text"
-        text: string
-    }
-}
-
-interface SlackPayloadDivider {
-    type: "divider"
-}
-
-export interface SlackPayload {
-    text: string
-    blocks: (SlackPayloadHeader | SlackPayloadSection | SlackPayloadDivider)[]
+// Field-for-field match of the backend's FeedbackRequest model
+// (kvarteret-personal app/api/v1/feedback.py) — keep the two in sync.
+export interface FeedbackRequestBody {
+    message: string
+    page: string
+    platform: string
+    contact_allowed: boolean
+    contact_email: string | null
+    user_id: number | null
+    user_full_name: string | null
+    source: string
 }
 
 export const buildFeedbackUserContext = (user: User | null): FeedbackUserContext | null => {
@@ -76,16 +61,6 @@ export const buildFeedbackUserContext = (user: User | null): FeedbackUserContext
         id: user.id,
         fullName: fullName.length > 0 ? fullName : null,
     }
-}
-
-export const buildSubmittedAtLabel = (date = new Date()): string => {
-    const day = String(date.getDate()).padStart(2, "0")
-    const month = String(date.getMonth() + 1).padStart(2, "0")
-    const year = date.getFullYear()
-    const hours = String(date.getHours()).padStart(2, "0")
-    const minutes = String(date.getMinutes()).padStart(2, "0")
-
-    return `${day}.${month}.${year} ${hours}:${minutes}`
 }
 
 export const normalizeFeedbackMessage = (value: string): string => {
@@ -119,82 +94,20 @@ export const normalizeFeedbackContactEmail = (value: string | null | undefined):
     return normalizedEmail
 }
 
-export const escapeSlackText = (value: string): string =>
-    value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-
-const buildMetadataFields = (submission: FeedbackSubmissionInput): SlackPayloadField[] => {
-    const normalizedContactEmail = normalizeFeedbackContactEmail(submission.contactEmail)
-    const fields: SlackPayloadField[] = [
-        {
-            type: "mrkdwn",
-            text: `*Kilde*\n${escapeSlackText("internbevis-rn")}`,
-        },
-        {
-            type: "mrkdwn",
-            text: `*Side*\n${escapeSlackText(submission.page.trim() || FEEDBACK_PAGE)}`,
-        },
-        {
-            type: "mrkdwn",
-            text: `*Plattform*\n${escapeSlackText(submission.platform.trim() || "unknown")}`,
-        },
-        {
-            type: "mrkdwn",
-            text: `*Sendt*\n${escapeSlackText(submission.submittedAt.trim())}`,
-        },
-        {
-            type: "mrkdwn",
-            text: `*Kan kontaktes*\n${escapeSlackText(submission.contactAllowed ? "Ja" : "Nei")}`,
-        },
-    ]
-
-    if (submission.user) {
-        fields.push({
-            type: "mrkdwn",
-            text: `*Bruker*\n${escapeSlackText(submission.user.fullName || "Innlogget bruker")}`,
-        })
-        fields.push({
-            type: "mrkdwn",
-            text: `*Bruker-ID*\n${escapeSlackText(String(submission.user.id))}`,
-        })
-    }
-
-    if (normalizedContactEmail) {
-        fields.push({
-            type: "mrkdwn",
-            text: `*E-post*\n${escapeSlackText(normalizedContactEmail)}`,
-        })
-    }
-
-    return fields
-}
-
-export const buildFeedbackPayload = (submission: FeedbackSubmissionInput): SlackPayload => {
+export const buildFeedbackRequestBody = (
+    submission: FeedbackSubmissionInput,
+): FeedbackRequestBody => {
     const normalizedMessage = normalizeFeedbackMessage(submission.message)
+    const normalizedContactEmail = normalizeFeedbackContactEmail(submission.contactEmail)
 
     return {
-        text: "Ny tilbakemelding fra internbevis-rn",
-        blocks: [
-            {
-                type: "header",
-                text: {
-                    type: "plain_text",
-                    text: "Ny tilbakemelding til internbevis-appen",
-                },
-            },
-            {
-                type: "section",
-                fields: buildMetadataFields(submission),
-            },
-            {
-                type: "divider",
-            },
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `*Melding*\n${escapeSlackText(normalizedMessage)}`,
-                },
-            },
-        ],
+        message: normalizedMessage,
+        page: submission.page.trim() || FEEDBACK_PAGE,
+        platform: submission.platform.trim() || "unknown",
+        contact_allowed: submission.contactAllowed,
+        contact_email: submission.contactAllowed ? normalizedContactEmail : null,
+        user_id: submission.user?.id ?? null,
+        user_full_name: submission.user?.fullName ?? null,
+        source: FEEDBACK_SOURCE,
     }
 }
