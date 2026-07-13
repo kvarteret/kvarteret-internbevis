@@ -13,8 +13,6 @@
         "update:production": "eas update --channel production --environment production",
         "update:preview": "eas update --channel preview --environment preview",
         "workflow:dev-builds": "eas workflow:run .eas/workflows/create-development-builds.yml --wait",
-        "api:generate": "node scripts/generate-kvarteret-personal-client.mjs",
-        "api:check": "node scripts/generate-kvarteret-personal-client.mjs --check",
         "test": "jest",
         "test:watch": "jest --watch",
         "check:style-exceptions": "bash ./scripts/check-style-exceptions.sh",
@@ -73,7 +71,6 @@
     },
     "devDependencies": {
         "@biomejs/biome": "^2.3.14",
-        "@hey-api/openapi-ts": "^0.96.1",
         "@testing-library/react-native": "13.3.3",
         "@types/jest": "29.5.14",
         "@types/react": "~19.2.10",

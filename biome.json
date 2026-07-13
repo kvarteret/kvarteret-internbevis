@@ -13,7 +13,6 @@
             "!docs",
             "!dist",
             "!node_modules",
-            "!src/core/api/kvarteret-personal",
             "!uniwind-types.d.ts",
             "!**/*.css"
         ],
