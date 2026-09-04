@@ -3,12 +3,10 @@ import {
     buildEventCalendarMonths,
     buildEventFeedSections,
     buildUpcomingDateChips,
-    createEmptyEventFilterState,
     deriveTaxonomyFromEvents,
     filterEvents,
     occurrenceDateString,
     parsePersistedEventFilterState,
-    pickHomeEvents,
 } from "../eventSelection"
 
 const makeOccurrence = (
@@ -209,20 +207,5 @@ describe("eventSelection", () => {
                 makeOccurrence("midnight", { startsAt: "2026-09-04T22:30:00.000Z" }),
             ),
         ).toBe("2026-09-05")
-    })
-
-    test("picks future, titled occurrences up to the requested limit", () => {
-        expect(createEmptyEventFilterState()).toEqual({
-            taxonomyGroup: null,
-            eventTypeIds: [],
-            organizerGroupIds: [],
-        })
-        const past = makeOccurrence("past", { startsAt: "2026-09-03T17:00:00.000Z" })
-        const future = makeOccurrence("future", { startsAt: "2026-09-05T17:00:00.000Z" })
-        expect(
-            pickHomeEvents([past, future], { now: new Date("2026-09-04T12:00:00Z") }).map(
-                item => item.id,
-            ),
-        ).toEqual(["future"])
     })
 })

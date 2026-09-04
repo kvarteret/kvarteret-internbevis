@@ -13,9 +13,6 @@ import {
     getEventRoomText,
     getEventTaxonomyText,
     getPriceText,
-    getRecurringBadgeText,
-    selectPrimaryDetailsHtml,
-    toRenderableHtml,
 } from "@/features/dashboard/domain/eventFormatting"
 import { Button } from "@/shared/ui/Button"
 import { CachedImage } from "@/shared/ui/CachedImage"
@@ -55,16 +52,11 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         if (!occurrence) return null
         return {
             event: occurrence.event,
-            detailsHtml: toRenderableHtml(selectPrimaryDetailsHtml(occurrence)),
+            detailsHtml: occurrence.event.description.html,
             whenValue: formatOccurrenceStartStopWithDuration(occurrence, language),
             taxonomy: getEventTaxonomyText(occurrence),
             roomText: getEventRoomText(occurrence),
-            recurring: occurrence.event.parent
-                ? getRecurringBadgeText(occurrence, {
-                      recurring: t("eventRecurring"),
-                      festival: t("eventRecurring"),
-                  })
-                : "",
+            recurring: occurrence.event.parent ? t("eventRecurring") : "",
             priceText: getPriceText(occurrence, t("eventPriceFree")),
         }
     }, [occurrence, language, t])

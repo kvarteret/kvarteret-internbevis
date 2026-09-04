@@ -1,12 +1,9 @@
 import type { EventOccurrence } from "@/features/dashboard/domain/types"
 import {
-    formatEventStart,
-    formatEventStartStopWithDuration,
     formatOccurrenceStart,
+    formatOccurrenceStartStopWithDuration,
     getPriceText,
-    selectPrimaryDetailsHtml,
     selectProjectedDescriptionPreview,
-    toRenderableHtml,
 } from "../eventFormatting"
 
 const occurrence = (overrides?: Partial<EventOccurrence>): EventOccurrence => ({
@@ -48,7 +45,7 @@ describe("eventFormatting", () => {
 
     test("uses the API's sanitized HTML and plain-text description", () => {
         const event = occurrence()
-        expect(selectPrimaryDetailsHtml(event)).toBe("<p>Hello <strong>world</strong></p>")
+        expect(event.event.description.html).toBe("<p>Hello <strong>world</strong></p>")
         expect(selectProjectedDescriptionPreview(event)).toBe("Hello world")
     })
 
@@ -63,12 +60,6 @@ describe("eventFormatting", () => {
         expect(selectProjectedDescriptionPreview(event)).toBe(`${"a".repeat(200)}...`)
     })
 
-    test("passes renderable API HTML through unchanged", () => {
-        expect(toRenderableHtml("<p>Already <strong>formatted</strong></p>")).toBe(
-            "<p>Already <strong>formatted</strong></p>",
-        )
-    })
-
     test("formats date-only occurrences without inventing a time", () => {
         const value = formatOccurrenceStart(
             occurrence({
@@ -80,18 +71,34 @@ describe("eventFormatting", () => {
         expect(value).not.toMatch(/\d{2}:\d{2}/)
     })
 
-    test("formatEventStart uses relative phrasing for same-week dates", () => {
-        jest.useFakeTimers().setSystemTime(new Date(2026, 2, 2, 12, 0, 0))
-        const value = formatEventStart(new Date(2026, 2, 5, 18, 0, 0), "no")
+    test("uses relative phrasing for same-week dates", () => {
+        jest.useFakeTimers().setSystemTime(new Date("2026-03-02T11:00:00.000Z"))
+        const value = formatOccurrenceStart(
+            occurrence({
+                schedule: {
+                    kind: "timed",
+                    startsAt: "2026-03-05T17:00:00.000Z",
+                    endsAt: null,
+                    timeZone: "Europe/Oslo",
+                },
+            }),
+            "no",
+        )
         expect(value).toContain(" - 18:00")
         expect(value).toContain("om")
     })
 
     test("formats Norwegian duration phrasing on a separate line", () => {
-        jest.useFakeTimers().setSystemTime(new Date(2026, 2, 1, 12, 0, 0))
-        const value = formatEventStartStopWithDuration(
-            new Date(2026, 2, 10, 19, 0, 0),
-            new Date(2026, 2, 10, 21, 30, 0),
+        jest.useFakeTimers().setSystemTime(new Date("2026-03-01T11:00:00.000Z"))
+        const value = formatOccurrenceStartStopWithDuration(
+            occurrence({
+                schedule: {
+                    kind: "timed",
+                    startsAt: "2026-03-10T18:00:00.000Z",
+                    endsAt: "2026-03-10T20:30:00.000Z",
+                    timeZone: "Europe/Oslo",
+                },
+            }),
             "no",
         )
         expect(value).toContain("varer i 2 timer 30 minutter")

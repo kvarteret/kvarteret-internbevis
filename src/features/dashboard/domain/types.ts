@@ -1,8 +1,6 @@
 import type { PublicEventsResponse } from "@/core/api/samfunnet-events"
 
 export type EventOccurrence = PublicEventsResponse["data"][number]
-export type PublicEvent = EventOccurrence["event"]
-export type EventSchedule = EventOccurrence["schedule"]
 
 export interface EventFeedEntry {
     occurrence: EventOccurrence

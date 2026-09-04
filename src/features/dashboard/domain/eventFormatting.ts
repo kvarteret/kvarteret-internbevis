@@ -5,10 +5,9 @@ import type { EventOccurrence } from "@/features/dashboard/domain/types"
 
 const DESCRIPTION_PREVIEW_MAX_CHARS = 200
 
-export const getEventStartDate = (occurrence: EventOccurrence): Date =>
-    occurrenceStartDate(occurrence)
+const getEventStartDate = (occurrence: EventOccurrence): Date => occurrenceStartDate(occurrence)
 
-export const getEventEndDate = (occurrence: EventOccurrence): Date => {
+const getEventEndDate = (occurrence: EventOccurrence): Date => {
     if (occurrence.schedule.kind === "date") return occurrenceStartDate(occurrence)
     if (occurrence.schedule.endsAt) return new Date(occurrence.schedule.endsAt)
     return new Date(occurrenceStartDate(occurrence).getTime() + 2 * 60 * 60 * 1000)
@@ -85,10 +84,10 @@ const formatEventDuration = (startDate: Date, endDate: Date, language: "no" | "e
           : "0 minutter"
 }
 
-export const formatEventStart = (date: Date, language: "no" | "en"): string =>
+const formatEventStart = (date: Date, language: "no" | "en"): string =>
     formatEventWhen(date, language, new Date())
 
-export const formatEventStartStopWithDuration = (
+const formatEventStartStopWithDuration = (
     startDate: Date,
     endDate: Date,
     language: "no" | "en",
@@ -135,11 +134,6 @@ export const getEventTaxonomyText = ({ event }: EventOccurrence): string => {
 
 export const getEventRoomText = ({ event }: EventOccurrence): string => event.location.name
 
-export const getRecurringBadgeText = (
-    occurrence: EventOccurrence,
-    labels: { recurring: string; festival: string },
-): string => (occurrence.event.kind === "festivalSession" ? labels.festival : labels.recurring)
-
 export const getPriceText = ({ event }: EventOccurrence, freeLabel: string): string => {
     if (event.pricing.isFree) return freeLabel
     const prices = [event.pricing.ordinary, event.pricing.student, event.pricing.member].filter(
@@ -151,13 +145,8 @@ export const getPriceText = ({ event }: EventOccurrence, freeLabel: string): str
     return min === max ? `${min} kr` : `${min}–${max} kr`
 }
 
-export const selectPrimaryDetailsHtml = (occurrence: EventOccurrence): string =>
-    occurrence.event.description.html
-
 export const selectProjectedDescriptionPreview = (occurrence: EventOccurrence): string => {
     const text = occurrence.event.description.text
     if (text.length <= DESCRIPTION_PREVIEW_MAX_CHARS) return text
     return `${text.slice(0, DESCRIPTION_PREVIEW_MAX_CHARS).trimEnd()}...`
 }
-
-export const toRenderableHtml = (html: string): string => html

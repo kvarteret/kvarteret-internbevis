@@ -259,14 +259,3 @@ export const buildEventCalendarMonths = (
         }
     })
 }
-
-export const pickHomeEvents = (
-    occurrences: EventOccurrence[],
-    options?: { now?: Date; maxCount?: number },
-): EventOccurrence[] => {
-    const now = options?.now ?? new Date()
-    return occurrences
-        .filter(occurrence => occurrenceStartDate(occurrence).getTime() >= now.getTime())
-        .filter(occurrence => occurrence.event.title.trim().length > 0)
-        .slice(0, options?.maxCount ?? 5)
-}
