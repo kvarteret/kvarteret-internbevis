@@ -5,11 +5,7 @@ jest.mock("@/shared/theme/use-theme-runtime-colors", () => ({
     useThemeRuntimeColors: () => ({ textSecondary: "#6b7280" }),
 }))
 jest.mock("@/shared/ui/CachedImage", () => ({
-    CachedImage: (props: {
-        cachePolicy?: string
-        recyclingKey?: string
-        source?: string
-    }) => {
+    CachedImage: (props: { cachePolicy?: string; recyclingKey?: string; source?: string }) => {
         const { View: MockView } = require("react-native") as typeof import("react-native")
 
         return <MockView testID="cached-image" {...props} />

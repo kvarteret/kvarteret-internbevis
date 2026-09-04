@@ -1,45 +1,59 @@
 jest.mock("@/core/storage/asyncStorage", () => ({
     getStoredJson: jest.fn(),
-    removeStoredValue: jest.fn(),
     setStoredJson: jest.fn(),
 }))
 
-import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
-import { fetchEventById, fetchHomeEvents } from "@/features/dashboard/data/eventsRepository"
+import { getStoredJson } from "@/core/storage/asyncStorage"
+import {
+    fetchEventById,
+    fetchEventOccurrences,
+    fetchHomeEvents,
+} from "@/features/dashboard/data/eventsRepository"
+import type { EventOccurrence } from "@/features/dashboard/domain/types"
 
-const createSanityEvent = (id = "event-1") => ({
-    _id: id,
-    eventKind: "single",
-    eventStatus: "scheduled",
-    parent: null,
-    title: "Concert",
-    slug: id,
-    dates: [{ _key: "d1", startDate: "2026-05-20", startTime: "19:00", endTime: "22:00" }],
-    isRecurring: false,
-    rrule: null,
-    isFree: false,
-    priceOrdinar: 100,
-    priceStudent: 80,
-    priceMedlem: null,
-    ticketUrl: null,
-    facebookUrl: null,
-    imageUrl: null,
-    imageCaption: null,
-    room: null,
-    roomText: null,
-    organizerGroup: null,
-    organizerText: null,
-    eventType: null,
-    description: null,
+const createOccurrence = (id = "occurrence:event-1:date-1"): EventOccurrence => ({
+    id,
+    schedule: {
+        kind: "timed",
+        startsAt: "2026-09-04T18:30:00.000Z",
+        endsAt: "2026-09-04T21:00:00.000Z",
+        timeZone: "Europe/Oslo",
+    },
+    event: {
+        id: "event-1",
+        slug: "concert",
+        kind: "single",
+        status: "scheduled",
+        updatedAt: "2026-09-03T13:35:22Z",
+        title: "Concert",
+        description: { html: "<p>Description</p>", text: "Description" },
+        image: null,
+        eventType: { id: "concert", name: "Konsert" },
+        taxonomyGroup: { id: "eventTaxonomyGroup-musikk", name: "Konserter" },
+        organizer: null,
+        location: { kind: "venue", name: "Det Akademiske Kvarter" },
+        pricing: {
+            currency: "NOK",
+            isFree: true,
+            ordinary: null,
+            student: null,
+            member: null,
+        },
+        parent: null,
+        links: {
+            website: "https://www.samfunnetibergen.no/nb/arrangementer/concert",
+            ticket: null,
+            facebook: null,
+        },
+    },
 })
 
-const createSanityResponse = (result: unknown) => ({
-    ok: true,
-    status: 200,
-    json: async () => ({ result }),
+const createApiResponse = (occurrences: EventOccurrence[]) => ({
+    data: occurrences,
+    meta: { locale: "nb" as const, from: "2026-09-04", to: null },
 })
 
-describe("eventsRepository (Sanity)", () => {
+describe("eventsRepository (Samfunnet public API)", () => {
     const originalFetch = global.fetch
 
     beforeEach(() => {
@@ -52,149 +66,94 @@ describe("eventsRepository (Sanity)", () => {
         global.fetch = originalFetch
     })
 
-    test("fetchHomeEvents queries Sanity with today param", async () => {
-        ;(global.fetch as jest.Mock).mockResolvedValue(createSanityResponse([createSanityEvent()]))
-
-        const events = await fetchHomeEvents()
-
-        const url = new URL((global.fetch as jest.Mock).mock.calls[0][0] as string)
-        expect(url.hostname).toContain("sanity.io")
-        expect(url.searchParams.has("$today")).toBe(true)
-        expect(url.searchParams.has("$includeInternal")).toBe(false)
-        expect(url.searchParams.get("query")).toContain(
-            "coalesce(isInternalEvent, parentEvent->isInternalEvent, false) != true",
-        )
-        expect(url.searchParams.get("query")).toContain(
-            "dates[startDate >= $today] | order(startDate asc, startTime asc)",
-        )
-        expect(events).toHaveLength(1)
-        expect(events[0]?._id).toBe("event-1")
-    })
-
-    test("fetchHomeEvents resolves fields inherited by materialized child events", async () => {
-        const child = {
-            ...createSanityEvent("child-event"),
-            eventKind: "seriesInstance",
-            title: null,
-            imageUrl: null,
-            isFree: null,
-            parent: {
-                _id: "parent-event",
-                slug: "weekly-quiz",
-                eventKind: "seriesParent",
-                eventStatus: "scheduled",
-                title: "Weekly quiz",
-                description: null,
-                imageUrl: "https://cdn.sanity.io/quiz.jpg",
-                imageCaption: null,
-                organizerGroup: null,
-                organizerText: null,
-                eventType: null,
-                isFree: true,
-                priceOrdinar: null,
-                priceStudent: null,
-                priceMedlem: null,
-                ticketUrl: null,
-                facebookUrl: null,
-                isInternalEvent: false,
-            },
-        }
-        ;(global.fetch as jest.Mock).mockResolvedValue(createSanityResponse([child]))
-
-        const events = await fetchHomeEvents()
-
-        expect(events[0]).toEqual(
-            expect.objectContaining({
-                eventKind: "seriesInstance",
-                title: "Weekly quiz",
-                imageUrl: "https://cdn.sanity.io/quiz.jpg",
-                isFree: true,
+    test("requests the generated events endpoint with locale and inclusive dates", async () => {
+        ;(global.fetch as jest.Mock).mockResolvedValue(
+            new Response(JSON.stringify(createApiResponse([createOccurrence()])), {
+                status: 200,
+                headers: { "content-type": "application/json", etag: '"events-v1"' },
             }),
         )
-        const url = new URL((global.fetch as jest.Mock).mock.calls[0][0] as string)
-        expect(url.searchParams.get("query")).toContain(
-            'coalesce(eventKind, "single") in ["single", "seriesInstance", "festivalSession"]',
-        )
+
+        const response = await fetchEventOccurrences({
+            language: "no",
+            from: "2026-09-04",
+            to: "2026-10-31",
+        })
+
+        const request = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+        const url = new URL(request.url)
+        expect(url.origin).toBe("https://www.samfunnetibergen.no")
+        expect(url.pathname).toBe("/api/v1/events")
+        expect(url.searchParams.get("locale")).toBe("nb")
+        expect(url.searchParams.get("from")).toBe("2026-09-04")
+        expect(url.searchParams.get("to")).toBe("2026-10-31")
+        expect(response.data[0]?.id).toBe("occurrence:event-1:date-1")
     })
 
-    test("fetchHomeEvents returns cached result on network failure", async () => {
-        const cached = [createSanityEvent("cached-event")]
+    test("maps the app's English language to the API locale", async () => {
+        ;(global.fetch as jest.Mock).mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    ...createApiResponse([createOccurrence()]),
+                    meta: { locale: "en", from: "2026-09-04", to: null },
+                }),
+                { status: 200, headers: { "content-type": "application/json" } },
+            ),
+        )
+
+        await fetchEventOccurrences({ language: "en", from: "2026-09-04" })
+        const request = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+        expect(new URL(request.url).searchParams.get("locale")).toBe("en")
+    })
+
+    test("reuses an ETag snapshot when the API returns 304", async () => {
+        const cached = createApiResponse([createOccurrence("cached-occurrence")])
+        ;(getStoredJson as jest.Mock).mockResolvedValue({
+            cachedAt: Date.now() - 60_000,
+            etag: '"events-v1"',
+            value: cached,
+        })
+        ;(global.fetch as jest.Mock).mockResolvedValue(new Response(null, { status: 304 }))
+
+        const response = await fetchEventOccurrences({ language: "no", from: "2026-09-04" })
+        const request = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+        expect(request.headers.get("if-none-match")).toBe('"events-v1"')
+        expect(response.data[0]?.id).toBe("cached-occurrence")
+    })
+
+    test("returns a fresh cached snapshot on network failure", async () => {
+        const cached = createApiResponse([createOccurrence("cached-occurrence")])
         ;(getStoredJson as jest.Mock).mockResolvedValue({
             cachedAt: Date.now() - 60_000,
             value: cached,
         })
         ;(global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"))
 
-        const events = await fetchHomeEvents()
-
-        expect(events[0]?._id).toBe("cached-event")
+        const events = await fetchHomeEvents("no")
+        expect(events[0]?.id).toBe("cached-occurrence")
     })
 
-    test("fetchHomeEvents writes only the public offline cache", async () => {
+    test("finds details by opaque occurrence id", async () => {
+        const expected = createOccurrence("opaque-occurrence-id")
         ;(global.fetch as jest.Mock).mockResolvedValue(
-            createSanityResponse([createSanityEvent("public-event")]),
+            new Response(JSON.stringify(createApiResponse([expected])), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+            }),
         )
 
-        await fetchHomeEvents()
-
-        expect(setStoredJson).toHaveBeenCalledWith(
-            "events_sanity_cache:home:public",
-            expect.objectContaining({ value: [expect.objectContaining({ _id: "public-event" })] }),
-        )
+        const occurrence = await fetchEventById("opaque-occurrence-id", "no")
+        expect(occurrence.event.title).toBe("Concert")
     })
 
-    test("fetchEventById queries Sanity by document id", async () => {
+    test("throws when an occurrence is absent and no cache exists", async () => {
         ;(global.fetch as jest.Mock).mockResolvedValue(
-            createSanityResponse(createSanityEvent("abc-123")),
+            new Response(JSON.stringify(createApiResponse([])), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+            }),
         )
 
-        const event = await fetchEventById("abc-123")
-
-        const url = new URL((global.fetch as jest.Mock).mock.calls[0][0] as string)
-        expect(url.hostname).toContain("sanity.io")
-        expect(url.searchParams.get("$id")).toBe('"abc-123"')
-        expect(url.searchParams.has("$includeInternal")).toBe(false)
-        expect(url.searchParams.has("$today")).toBe(true)
-        expect(url.searchParams.get("query")).toContain(
-            "coalesce(isInternalEvent, parentEvent->isInternalEvent, false) != true",
-        )
-        expect(url.searchParams.get("query")).toContain('eventStatus in ["cancelled", "postponed"]')
-        expect(url.searchParams.get("query")).toContain(
-            "dates[] | order(startDate asc, startTime asc)",
-        )
-        expect(event._id).toBe("abc-123")
-        expect(event.dates[0]?.startDate).toBe("2026-05-20")
-    })
-
-    test("fetchEventById tombstones an event that becomes unavailable", async () => {
-        let cachedValue: unknown = {
-            cachedAt: Date.now(),
-            value: createSanityEvent("removed-event"),
-        }
-        ;(getStoredJson as jest.Mock).mockImplementation(async () => cachedValue)
-        ;(removeStoredValue as jest.Mock).mockImplementation(async () => {
-            cachedValue = null
-        })
-        ;(global.fetch as jest.Mock)
-            .mockResolvedValueOnce(createSanityResponse(null))
-            .mockRejectedValueOnce(new Error("Network error"))
-
-        await expect(fetchEventById("removed-event")).rejects.toThrow("Event not found")
-        expect(removeStoredValue).toHaveBeenCalledWith(
-            "events_sanity_cache:event:removed-event:public",
-        )
-        await expect(fetchEventById("removed-event")).rejects.toThrow("Network error")
-    })
-
-    test("fetchEventById returns a cached event on a transport failure", async () => {
-        ;(getStoredJson as jest.Mock).mockResolvedValue({
-            cachedAt: Date.now(),
-            value: createSanityEvent("cached-event"),
-        })
-        ;(global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"))
-
-        await expect(fetchEventById("cached-event")).resolves.toEqual(
-            expect.objectContaining({ _id: "cached-event" }),
-        )
+        await expect(fetchEventById("missing", "no")).rejects.toThrow("Event occurrence not found")
     })
 })

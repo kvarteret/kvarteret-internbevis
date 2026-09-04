@@ -1,10 +1,10 @@
-import React from "react"
+import type React from "react"
 import { useTranslation } from "react-i18next"
 import { Modal, Pressable, ScrollView, View } from "react-native"
 import {
     createEmptyEventFilterState,
-    DerivedTaxonomy,
-    EventFilterState,
+    type DerivedTaxonomy,
+    type EventFilterState,
     getLocalizedTaxonomyGroupName,
 } from "@/features/dashboard/domain/eventSelection"
 import { FilterChip } from "@/features/dashboard/ui/components/FilterChip"
@@ -58,7 +58,7 @@ export const EventFiltersModal = ({
                                 {t("eventFilterType")}
                             </Text>
                             {taxonomy?.taxonomyGroups.map(group => (
-                                <View className="gap-3" key={group.name}>
+                                <View className="gap-3" key={group._id}>
                                     <Text className="text-4xl leading-tight text-editorial-ink font-black">
                                         {getLocalizedTaxonomyGroupName(group.name, language)}
                                     </Text>

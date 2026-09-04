@@ -1,18 +1,21 @@
-import { sanityFetch } from "@/core/sanity/client"
-import { ARRANGEMENT_BY_ID_QUERY, PUBLISHED_ARRANGEMENTS_QUERY } from "@/core/sanity/queries"
-import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
-import { parseRawEvent, parseRawEvents } from "@/features/dashboard/data/eventSchema"
-import { resolveEventDocument } from "@/features/dashboard/domain/eventResolution"
-import type { KvarteretEventDocument } from "@/features/dashboard/domain/types"
+import { appEnv } from "@/app/config/env"
+import { listEvents, type PublicEventsResponse } from "@/core/api/samfunnet-events"
+import { client } from "@/core/api/samfunnet-events/client.gen"
+import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
+import type { EventOccurrence } from "@/features/dashboard/domain/types"
 
-const EVENTS_CACHE_KEY = "events_sanity_cache:home"
-const EVENT_CACHE_KEY_PREFIX = "events_sanity_cache:event"
+const EVENTS_CACHE_KEY_PREFIX = "samfunnet_events_api_cache:v1"
 const EVENTS_CACHE_TTL_MS = 15 * 60 * 1000
 
 interface CachedPayload<T> {
     cachedAt: number
+    etag?: string
     value: T
 }
+
+type EventLanguage = "no" | "en"
+
+const toApiLocale = (language: EventLanguage): "nb" | "en" => (language === "en" ? "en" : "nb")
 
 const toOsloDateString = (): string =>
     new Intl.DateTimeFormat("en-CA", {
@@ -22,74 +25,89 @@ const toOsloDateString = (): string =>
         day: "2-digit",
     }).format(new Date())
 
-const readCachedValue = async <T>(key: string, maxAgeMs: number): Promise<T | null> => {
+const configureClient = (): void => {
+    client.setConfig({ baseUrl: appEnv.samfunnetApiBaseUrl.replace(/\/$/, "") })
+}
+
+const getEventsCacheKey = (locale: "nb" | "en", from: string, to?: string): string =>
+    `${EVENTS_CACHE_KEY_PREFIX}:${locale}:${from}:${to ?? "open"}`
+
+const readCachedPayload = async <T>(key: string): Promise<CachedPayload<T> | null> => {
     try {
-        const payload = await getStoredJson<CachedPayload<T>>(key)
-        if (!payload) return null
-        if (Date.now() - payload.cachedAt > maxAgeMs) return null
-        return payload.value
+        return await getStoredJson<CachedPayload<T>>(key)
     } catch {
         return null
     }
 }
 
-const writeCachedValue = async <T>(key: string, value: T): Promise<void> => {
+const isFresh = (payload: CachedPayload<unknown>): boolean =>
+    Date.now() - payload.cachedAt <= EVENTS_CACHE_TTL_MS
+
+const writeCachedPayload = async <T>(key: string, value: T, etag?: string): Promise<void> => {
     try {
-        await setStoredJson(key, { cachedAt: Date.now(), value })
+        await setStoredJson(key, { cachedAt: Date.now(), etag, value })
     } catch {
-        // Ignore cache write failures — network response stays authoritative.
+        // Cache failures must not hide a successful API response.
     }
 }
 
-export const fetchHomeEvents = async (signal?: AbortSignal): Promise<KvarteretEventDocument[]> => {
-    const cacheKey = `${EVENTS_CACHE_KEY}:public`
+export interface FetchEventsOptions {
+    language: EventLanguage
+    from?: string
+    to?: string
+}
+
+export const fetchEventOccurrences = async (
+    options: FetchEventsOptions,
+    signal?: AbortSignal,
+): Promise<PublicEventsResponse> => {
+    configureClient()
+    const locale = toApiLocale(options.language)
+    const from = options.from ?? toOsloDateString()
+    const cacheKey = getEventsCacheKey(locale, from, options.to)
+    const cached = await readCachedPayload<PublicEventsResponse>(cacheKey)
+
     try {
-        const payload = await sanityFetch<unknown>(PUBLISHED_ARRANGEMENTS_QUERY, {
-            params: { today: toOsloDateString() },
+        const result = await listEvents({
+            headers: cached?.etag ? { "If-None-Match": cached.etag } : undefined,
+            query: { locale, from, to: options.to },
             signal,
         })
-        const rawEvents = parseRawEvents(payload)
-        const events = rawEvents.map(resolveEventDocument)
-        await writeCachedValue(cacheKey, events)
-        return events
+
+        if (result.response?.status === 304 && cached) {
+            await writeCachedPayload(cacheKey, cached.value, cached.etag)
+            return cached.value
+        }
+        if (!result.response?.ok || result.error || !result.data) {
+            throw new Error(`Unable to fetch events (${result.response?.status ?? "network"}).`)
+        }
+
+        const etag = result.response.headers.get("etag") ?? undefined
+        await writeCachedPayload(cacheKey, result.data, etag)
+        return result.data
     } catch (error) {
-        const cached = await readCachedValue<KvarteretEventDocument[]>(
-            cacheKey,
-            EVENTS_CACHE_TTL_MS,
-        )
-        if (cached) return cached
+        if (cached && isFresh(cached)) return cached.value
         throw error
     }
+}
+
+export const fetchHomeEvents = async (
+    language: EventLanguage,
+    signal?: AbortSignal,
+): Promise<EventOccurrence[]> => {
+    const response = await fetchEventOccurrences({ language }, signal)
+    return response.data
 }
 
 export const fetchEventById = async (
-    eventId: string,
+    occurrenceId: string,
+    language: EventLanguage,
     signal?: AbortSignal,
-): Promise<KvarteretEventDocument> => {
-    const cacheKey = `${EVENT_CACHE_KEY_PREFIX}:${eventId}:public`
-    let payload: unknown
-
-    try {
-        payload = await sanityFetch<unknown>(ARRANGEMENT_BY_ID_QUERY, {
-            params: { id: eventId, today: toOsloDateString() },
-            signal,
-        })
-    } catch (error) {
-        const cached = await readCachedValue<KvarteretEventDocument>(cacheKey, EVENTS_CACHE_TTL_MS)
-        if (cached) return cached
-        throw error
-    }
-
-    // An authoritative null is a visibility tombstone (unpublished, internal,
-    // or otherwise unavailable), not an offline condition. Never revive it
-    // from a cache populated while the event was public.
-    if (!payload) {
-        await removeStoredValue(cacheKey)
-        throw new Error(`Event not found: ${eventId}`)
-    }
-
-    const rawEvent = parseRawEvent(payload)
-    const event = resolveEventDocument(rawEvent)
-    await writeCachedValue(cacheKey, event)
-    return event
+): Promise<EventOccurrence> => {
+    const response = await fetchEventOccurrences({ language }, signal)
+    const occurrence = response.data.find(
+        candidate => candidate.id === occurrenceId || candidate.event.id === occurrenceId,
+    )
+    if (!occurrence) throw new Error(`Event occurrence not found: ${occurrenceId}`)
+    return occurrence
 }

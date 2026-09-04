@@ -1,150 +1,42 @@
-import { differenceInMinutes, format, formatDistanceToNowStrict, isSameWeek } from "date-fns"
+import { differenceInMinutes, formatDistanceToNowStrict, isSameWeek } from "date-fns"
 import { enUS, nb } from "date-fns/locale"
-import { RRule } from "rrule"
-import type {
-    KvarteretEventDocument,
-    SanityPortableTextBlock,
-    SanityPortableTextMarkDef,
-} from "@/features/dashboard/domain/types"
-import { toOsloDate } from "@/shared/time/osloTime"
+import { occurrenceStartDate } from "@/features/dashboard/domain/eventSelection"
+import type { EventOccurrence } from "@/features/dashboard/domain/types"
 
 const DESCRIPTION_PREVIEW_MAX_CHARS = 200
 
-// ─── Date helpers ──────────────────────────────────────────────────────────
+export const getEventStartDate = (occurrence: EventOccurrence): Date =>
+    occurrenceStartDate(occurrence)
 
-// Re-exported so existing call sites keep one import path for event dates.
-export { toOsloDate }
-
-export const getEventStartDate = (event: KvarteretEventDocument): Date => {
-    const first = event.dates[0]
-    if (!first) return new Date()
-    return toOsloDate(first.startDate, first.startTime)
+export const getEventEndDate = (occurrence: EventOccurrence): Date => {
+    if (occurrence.schedule.kind === "date") return occurrenceStartDate(occurrence)
+    if (occurrence.schedule.endsAt) return new Date(occurrence.schedule.endsAt)
+    return new Date(occurrenceStartDate(occurrence).getTime() + 2 * 60 * 60 * 1000)
 }
-
-export const getEventEndDate = (event: KvarteretEventDocument): Date => {
-    const first = event.dates[0]
-    if (!first) return new Date()
-    if (first.endTime) return toOsloDate(first.startDate, first.endTime)
-    // Default: 2 hours after start
-    const start = toOsloDate(first.startDate, first.startTime)
-    return new Date(start.getTime() + 2 * 60 * 60 * 1000)
-}
-
-// ─── Rrule expansion ──────────────────────────────────────────────────────
-
-export const expandRruleUpcomingDates = (
-    anchorDateStr: string,
-    anchorTime: string | null,
-    rruleStr: string,
-    maxCount = 14,
-): Date[] => {
-    // Mirrors the approach in samfunnetibergen/ArrangementCard.tsx.
-    // Uses between(now, ceiling) so that past-anchored recurring events
-    // (whose explicit dates[] entry has passed) still yield future occurrences.
-    try {
-        const rule = new RRule({
-            ...RRule.parseString(rruleStr),
-            dtstart: new Date(`${anchorDateStr}T12:00:00Z`),
-        })
-        const now = new Date()
-        const ceiling = new Date(now.getFullYear() + 2, now.getMonth(), now.getDate())
-        return rule
-            .between(now, ceiling, true)
-            .slice(0, maxCount)
-            .map((d: Date) => toOsloDate(d.toISOString().slice(0, 10), anchorTime))
-    } catch {
-        return []
-    }
-}
-
-// ─── Portable Text serialization ───────────────────────────────────────────
-
-const escapeHtml = (text: string): string =>
-    text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;")
-
-const serializeSpans = (
-    children: SanityPortableTextBlock["children"],
-    markDefs: SanityPortableTextMarkDef[],
-): string => {
-    const defsMap = new Map(markDefs.map(def => [def._key, def]))
-
-    return children
-        .map(span => {
-            let text = escapeHtml(span.text)
-            for (const mark of span.marks ?? []) {
-                if (mark === "strong") {
-                    text = `<strong>${text}</strong>`
-                } else if (mark === "em") {
-                    text = `<em>${text}</em>`
-                } else if (mark === "code") {
-                    text = `<code>${text}</code>`
-                } else {
-                    const def = defsMap.get(mark)
-                    if (def?._type === "link" && def.href) {
-                        text = `<a href="${escapeHtml(def.href)}">${text}</a>`
-                    }
-                }
-            }
-            return text
-        })
-        .join("")
-}
-
-const portableTextToHtml = (blocks: SanityPortableTextBlock[] | null | undefined): string => {
-    if (!blocks || blocks.length === 0) return ""
-
-    return blocks
-        .filter(block => block._type === "block")
-        .map(block => {
-            const content = serializeSpans(block.children, block.markDefs)
-            switch (block.style) {
-                case "h1":
-                    return `<h1>${content}</h1>`
-                case "h2":
-                    return `<h2>${content}</h2>`
-                case "h3":
-                    return `<h3>${content}</h3>`
-                case "h4":
-                    return `<h4>${content}</h4>`
-                case "blockquote":
-                    return `<blockquote>${content}</blockquote>`
-                default:
-                    return `<p>${content}</p>`
-            }
-        })
-        .join("")
-}
-
-const portableTextToPlainText = (blocks: SanityPortableTextBlock[] | null | undefined): string => {
-    if (!blocks || blocks.length === 0) return ""
-
-    return blocks
-        .filter(block => block._type === "block")
-        .map(block => block.children.map(span => span.text).join(""))
-        .filter(Boolean)
-        .join("\n\n")
-}
-
-// ─── Formatting functions ──────────────────────────────────────────────────
 
 const resolveDateLocale = (language: "no" | "en") => (language === "en" ? enUS : nb)
+const localeCode = (language: "no" | "en"): string => (language === "en" ? "en-GB" : "nb-NO")
 const WEEK_IN_MINUTES = 7 * 24 * 60
 const DAY_IN_MINUTES = 24 * 60
 const HOUR_IN_MINUTES = 60
 
 const formatEventWhen = (date: Date, language: "no" | "en", now: Date): string => {
     const locale = resolveDateLocale(language)
-    const timeLabel = format(date, "HH:mm", { locale })
+    const timeLabel = new Intl.DateTimeFormat(localeCode(language), {
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+        timeZone: "Europe/Oslo",
+    }).format(date)
     if (isSameWeek(date, now, { locale })) {
         const relativeLabel = formatDistanceToNowStrict(date, { addSuffix: true, locale })
         return `${relativeLabel} - ${timeLabel}`
     }
-    const dateLabel = format(date, language === "en" ? "d MMMM" : "d. MMMM", { locale })
+    const dateLabel = new Intl.DateTimeFormat(localeCode(language), {
+        day: "numeric",
+        month: "long",
+        timeZone: "Europe/Oslo",
+    }).format(date)
     return `${dateLabel} - ${timeLabel}`
 }
 
@@ -154,28 +46,21 @@ const toDurationPart = (
     unit: "week" | "day" | "hour" | "minute",
 ): string | null => {
     if (value <= 0) return null
-    if (language === "en") {
-        switch (unit) {
-            case "week":
-                return `${value} ${value === 1 ? "week" : "weeks"}`
-            case "day":
-                return `${value} ${value === 1 ? "day" : "days"}`
-            case "hour":
-                return `${value} ${value === 1 ? "hour" : "hours"}`
-            case "minute":
-                return `${value} ${value === 1 ? "minute" : "minutes"}`
-        }
-    }
-    switch (unit) {
-        case "week":
-            return `${value} ${value === 1 ? "uke" : "uker"}`
-        case "day":
-            return `${value} ${value === 1 ? "dag" : "dager"}`
-        case "hour":
-            return `${value} ${value === 1 ? "time" : "timer"}`
-        case "minute":
-            return `${value} ${value === 1 ? "minutt" : "minutter"}`
-    }
+    const labels =
+        language === "en"
+            ? {
+                  week: value === 1 ? "week" : "weeks",
+                  day: value === 1 ? "day" : "days",
+                  hour: value === 1 ? "hour" : "hours",
+                  minute: value === 1 ? "minute" : "minutes",
+              }
+            : {
+                  week: value === 1 ? "uke" : "uker",
+                  day: value === 1 ? "dag" : "dager",
+                  hour: value === 1 ? "time" : "timer",
+                  minute: value === 1 ? "minutt" : "minutter",
+              }
+    return `${value} ${labels[unit]}`
 }
 
 const formatEventDuration = (startDate: Date, endDate: Date, language: "no" | "en"): string => {
@@ -186,20 +71,18 @@ const formatEventDuration = (startDate: Date, endDate: Date, language: "no" | "e
     remainingMinutes -= days * DAY_IN_MINUTES
     const hours = Math.floor(remainingMinutes / HOUR_IN_MINUTES)
     remainingMinutes -= hours * HOUR_IN_MINUTES
-    const minutes = remainingMinutes
-
     const durationParts = [
         toDurationPart(weeks, language, "week"),
         toDurationPart(days, language, "day"),
         toDurationPart(hours, language, "hour"),
-        toDurationPart(minutes, language, "minute"),
+        toDurationPart(remainingMinutes, language, "minute"),
     ].filter(Boolean)
 
-    if (durationParts.length === 0) {
-        return language === "en" ? "0 minutes" : "0 minutter"
-    }
-
-    return durationParts.slice(0, 2).join(" ")
+    return durationParts.length > 0
+        ? durationParts.slice(0, 2).join(" ")
+        : language === "en"
+          ? "0 minutes"
+          : "0 minutter"
 }
 
 export const formatEventStart = (date: Date, language: "no" | "en"): string =>
@@ -212,51 +95,55 @@ export const formatEventStartStopWithDuration = (
 ): string => {
     const whenLabel = formatEventWhen(startDate, language, new Date())
     const durationLabel = formatEventDuration(startDate, endDate, language)
-    const durationSentence =
-        language === "en" ? `lasts ${durationLabel}` : `varer i ${durationLabel}`
-    return `${whenLabel}\n${durationSentence}`
+    return `${whenLabel}\n${language === "en" ? "lasts" : "varer i"} ${durationLabel}`
 }
 
-export const getEventTaxonomyText = (event: KvarteretEventDocument): string => {
-    const eventTypeName = event.eventType?.name ?? ""
-    const organizerName = [event.organizerGroup?.name, event.organizerText]
-        .filter(Boolean)
-        .join(", ")
+export const formatOccurrenceStart = (
+    occurrence: EventOccurrence,
+    language: "no" | "en",
+): string => {
+    if (occurrence.schedule.kind === "timed") {
+        return formatEventStart(new Date(occurrence.schedule.startsAt), language)
+    }
+    return new Intl.DateTimeFormat(localeCode(language), {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "Europe/Oslo",
+    }).format(occurrenceStartDate(occurrence))
+}
 
+export const formatOccurrenceStartStopWithDuration = (
+    occurrence: EventOccurrence,
+    language: "no" | "en",
+): string => {
+    if (occurrence.schedule.kind === "date") return formatOccurrenceStart(occurrence, language)
+    return formatEventStartStopWithDuration(
+        getEventStartDate(occurrence),
+        getEventEndDate(occurrence),
+        language,
+    )
+}
+
+export const getEventTaxonomyText = ({ event }: EventOccurrence): string => {
+    const eventTypeName = event.eventType?.name ?? ""
+    const organizerName = event.organizer?.name ?? ""
     if (!eventTypeName) return organizerName
     if (!organizerName) return eventTypeName
     return `${eventTypeName} (${organizerName})`
 }
 
-export const getEventRoomText = (event: KvarteretEventDocument): string =>
-    event.room?.name ?? event.roomText ?? ""
-
-export interface RecurringBadgeLabels {
-    recurring: string
-    daily: string
-    weekly: string
-    monthly: string
-}
+export const getEventRoomText = ({ event }: EventOccurrence): string => event.location.name
 
 export const getRecurringBadgeText = (
-    rrule: string | null,
-    labels: RecurringBadgeLabels,
-): string => {
-    if (!rrule) return labels.recurring
+    occurrence: EventOccurrence,
+    labels: { recurring: string; festival: string },
+): string => (occurrence.event.kind === "festivalSession" ? labels.festival : labels.recurring)
 
-    const freqMatch = rrule.match(/FREQ=(\w+)/)
-    const freq = freqMatch?.[1]?.toUpperCase()
-
-    if (freq === "DAILY") return labels.daily
-    if (freq === "WEEKLY") return labels.weekly
-    if (freq === "MONTHLY") return labels.monthly
-    return labels.recurring
-}
-
-export const getPriceText = (event: KvarteretEventDocument, freeLabel: string): string => {
-    if (event.isFree) return freeLabel
-    const prices = [event.priceOrdinar, event.priceStudent, event.priceMedlem].filter(
-        (p): p is number => p !== null && p !== undefined,
+export const getPriceText = ({ event }: EventOccurrence, freeLabel: string): string => {
+    if (event.pricing.isFree) return freeLabel
+    const prices = [event.pricing.ordinary, event.pricing.student, event.pricing.member].filter(
+        (price): price is number => price !== null,
     )
     if (prices.length === 0) return ""
     const min = Math.min(...prices)
@@ -264,14 +151,11 @@ export const getPriceText = (event: KvarteretEventDocument, freeLabel: string): 
     return min === max ? `${min} kr` : `${min}–${max} kr`
 }
 
-export const selectPrimaryDetailsHtml = (
-    description: KvarteretEventDocument["description"],
-): string => portableTextToHtml(description)
+export const selectPrimaryDetailsHtml = (occurrence: EventOccurrence): string =>
+    occurrence.event.description.html
 
-export const selectProjectedDescriptionPreview = (
-    description: KvarteretEventDocument["description"],
-): string => {
-    const text = portableTextToPlainText(description)
+export const selectProjectedDescriptionPreview = (occurrence: EventOccurrence): string => {
+    const text = occurrence.event.description.text
     if (text.length <= DESCRIPTION_PREVIEW_MAX_CHARS) return text
     return `${text.slice(0, DESCRIPTION_PREVIEW_MAX_CHARS).trimEnd()}...`
 }

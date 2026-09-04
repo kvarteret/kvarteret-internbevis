@@ -1,111 +1,103 @@
-import type { SanityPortableTextBlock } from "@/features/dashboard/domain/types"
+import type { EventOccurrence } from "@/features/dashboard/domain/types"
 import {
     formatEventStart,
     formatEventStartStopWithDuration,
+    formatOccurrenceStart,
     getPriceText,
-    getRecurringBadgeText,
     selectPrimaryDetailsHtml,
     selectProjectedDescriptionPreview,
     toRenderableHtml,
 } from "../eventFormatting"
 
-const block = (
-    text: string,
-    style: SanityPortableTextBlock["style"] = "normal",
-    marks: string[] = [],
-): SanityPortableTextBlock => ({
-    _key: "k1",
-    _type: "block",
-    style,
-    markDefs: [],
-    children: [{ _key: "s1", _type: "span", text, marks }],
+const occurrence = (overrides?: Partial<EventOccurrence>): EventOccurrence => ({
+    id: "occurrence:event-1:date-1",
+    schedule: {
+        kind: "timed",
+        startsAt: "2026-03-10T18:00:00.000Z",
+        endsAt: "2026-03-10T20:30:00.000Z",
+        timeZone: "Europe/Oslo",
+    },
+    event: {
+        id: "event-1",
+        slug: "event-1",
+        kind: "single",
+        status: "scheduled",
+        updatedAt: null,
+        title: "Event",
+        description: { html: "<p>Hello <strong>world</strong></p>", text: "Hello world" },
+        image: null,
+        eventType: null,
+        taxonomyGroup: null,
+        organizer: null,
+        location: { kind: "venue", name: "Det Akademiske Kvarter" },
+        pricing: {
+            currency: "NOK",
+            isFree: false,
+            ordinary: 150,
+            student: 100,
+            member: null,
+        },
+        parent: null,
+        links: { website: "https://example.test/event-1", ticket: null, facebook: null },
+    },
+    ...overrides,
 })
 
 describe("eventFormatting", () => {
-    afterEach(() => {
-        jest.useRealTimers()
+    afterEach(() => jest.useRealTimers())
+
+    test("uses the API's sanitized HTML and plain-text description", () => {
+        const event = occurrence()
+        expect(selectPrimaryDetailsHtml(event)).toBe("<p>Hello <strong>world</strong></p>")
+        expect(selectProjectedDescriptionPreview(event)).toBe("Hello world")
     })
 
-    test("selectPrimaryDetailsHtml serializes blocks to html paragraphs", () => {
-        const result = selectPrimaryDetailsHtml([block("Hello world")])
-        expect(result).toBe("<p>Hello world</p>")
+    test("truncates description previews to 200 characters", () => {
+        const text = "a".repeat(240)
+        const event = occurrence({
+            event: {
+                ...occurrence().event,
+                description: { html: `<p>${text}</p>`, text },
+            },
+        })
+        expect(selectProjectedDescriptionPreview(event)).toBe(`${"a".repeat(200)}...`)
     })
 
-    test("selectPrimaryDetailsHtml returns empty string for null", () => {
-        expect(selectPrimaryDetailsHtml(null)).toBe("")
-    })
-
-    test("selectPrimaryDetailsHtml returns empty string for empty array", () => {
-        expect(selectPrimaryDetailsHtml([])).toBe("")
-    })
-
-    test("selectPrimaryDetailsHtml applies heading styles", () => {
-        expect(selectPrimaryDetailsHtml([block("Title", "h2")])).toBe("<h2>Title</h2>")
-        expect(selectPrimaryDetailsHtml([block("Quote", "blockquote")])).toBe(
-            "<blockquote>Quote</blockquote>",
+    test("passes renderable API HTML through unchanged", () => {
+        expect(toRenderableHtml("<p>Already <strong>formatted</strong></p>")).toBe(
+            "<p>Already <strong>formatted</strong></p>",
         )
     })
 
-    test("selectProjectedDescriptionPreview returns plain text from blocks", () => {
-        expect(selectProjectedDescriptionPreview([block("Hello world")])).toBe("Hello world")
-    })
-
-    test("selectProjectedDescriptionPreview returns empty string for null", () => {
-        expect(selectProjectedDescriptionPreview(null)).toBe("")
-    })
-
-    test("selectProjectedDescriptionPreview truncates to 200 chars", () => {
-        const longText = "a".repeat(240)
-        const result = selectProjectedDescriptionPreview([block(longText)])
-        expect(result).toBe(`${"a".repeat(200)}...`)
-    })
-
-    test("toRenderableHtml passes html through unchanged", () => {
-        const html = "<p>Already <strong>formatted</strong></p>"
-        expect(toRenderableHtml(html)).toBe(html)
-    })
-
-    test("toRenderableHtml passes empty string through", () => {
-        expect(toRenderableHtml("")).toBe("")
+    test("formats date-only occurrences without inventing a time", () => {
+        const value = formatOccurrenceStart(
+            occurrence({
+                schedule: { kind: "date", date: "2026-10-14", timeZone: "Europe/Oslo" },
+            }),
+            "no",
+        )
+        expect(value).toContain("14")
+        expect(value).not.toMatch(/\d{2}:\d{2}/)
     })
 
     test("formatEventStart uses relative phrasing for same-week dates", () => {
         jest.useFakeTimers().setSystemTime(new Date(2026, 2, 2, 12, 0, 0))
-
         const value = formatEventStart(new Date(2026, 2, 5, 18, 0, 0), "no")
-
         expect(value).toContain(" - 18:00")
         expect(value).toContain("om")
     })
 
-    test("formatEventStartStopWithDuration renders Norwegian duration phrasing on separate lines", () => {
+    test("formats Norwegian duration phrasing on a separate line", () => {
         jest.useFakeTimers().setSystemTime(new Date(2026, 2, 1, 12, 0, 0))
-
-        const start = new Date(2026, 2, 10, 19, 0, 0)
-        const end = new Date(2026, 2, 10, 21, 30, 0)
-        const value = formatEventStartStopWithDuration(start, end, "no")
-
-        expect(value).toContain("varer i")
-        expect(value).toContain("2 timer")
-        expect(value).toContain("30 minutter")
+        const value = formatEventStartStopWithDuration(
+            new Date(2026, 2, 10, 19, 0, 0),
+            new Date(2026, 2, 10, 21, 30, 0),
+            "no",
+        )
+        expect(value).toContain("varer i 2 timer 30 minutter")
     })
 
-    test("getPriceText receives the translated free label from the UI boundary", () => {
-        const event = { isFree: true } as Parameters<typeof getPriceText>[0]
-
-        expect(getPriceText(event, "Free")).toBe("Free")
-        expect(getPriceText(event, "Gratis")).toBe("Gratis")
-    })
-
-    test("getRecurringBadgeText receives translated labels instead of owning UI copy", () => {
-        const labels = {
-            recurring: "Recurring",
-            daily: "every day",
-            weekly: "every week",
-            monthly: "every month",
-        }
-
-        expect(getRecurringBadgeText("FREQ=WEEKLY", labels)).toBe("every week")
-        expect(getRecurringBadgeText(null, labels)).toBe("Recurring")
+    test("formats the API price range", () => {
+        expect(getPriceText(occurrence(), "Gratis")).toBe("100–150 kr")
     })
 })
