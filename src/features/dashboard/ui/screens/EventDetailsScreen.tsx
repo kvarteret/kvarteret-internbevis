@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { useLanguage } from "@/app/providers/LanguageProvider"
+import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchEventById } from "@/features/dashboard/data/eventsRepository"
 import {
@@ -26,6 +27,8 @@ export const EventDetailsScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
     const { language } = useLanguage()
+    const { status: sessionStatus } = useSession()
+    const isLoggedIn = sessionStatus === "authenticated"
     const { width } = useWindowDimensions()
     const { eventId } = useLocalSearchParams<{ eventId?: string | string[] }>()
     const resolvedEventId = Array.isArray(eventId) ? eventId[0] : eventId
@@ -36,10 +39,12 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         isError,
         refetch,
     } = useQuery({
-        queryKey: ["event", resolvedEventId, language],
+        queryKey: ["event", resolvedEventId, language, isLoggedIn],
         queryFn: ({ signal }) => {
             if (!resolvedEventId) throw new Error("Missing event ID.")
-            return fetchEventById(resolvedEventId, language, signal)
+            return fetchEventById(resolvedEventId, language, signal, {
+                includeInternal: isLoggedIn,
+            })
         },
         enabled: Boolean(resolvedEventId),
         retry: 1,

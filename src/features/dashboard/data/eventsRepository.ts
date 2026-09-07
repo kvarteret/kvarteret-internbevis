@@ -1,5 +1,9 @@
 import { appEnv } from "@/app/config/env"
-import { listEvents, type PublicEventsResponse } from "@/core/api/samfunnet-events"
+import {
+    type ListEventsData,
+    listEvents,
+    type PublicEventsResponse,
+} from "@/core/api/samfunnet-events"
 import { client } from "@/core/api/samfunnet-events/client.gen"
 import { getStoredJson, setStoredJson } from "@/core/storage/asyncStorage"
 import type { EventOccurrence } from "@/features/dashboard/domain/types"
@@ -29,8 +33,13 @@ const configureClient = (): void => {
     client.setConfig({ baseUrl: appEnv.samfunnetApiBaseUrl.replace(/\/$/, "") })
 }
 
-const getEventsCacheKey = (locale: "nb" | "en", from: string, to?: string): string =>
-    `${EVENTS_CACHE_KEY_PREFIX}:${locale}:${from}:${to ?? "open"}`
+const getEventsCacheKey = (
+    locale: "nb" | "en",
+    from: string,
+    to: string | undefined,
+    includeInternal: boolean,
+): string =>
+    `${EVENTS_CACHE_KEY_PREFIX}:${includeInternal ? "internal" : "public"}:${locale}:${from}:${to ?? "open"}`
 
 const readCachedPayload = async <T>(key: string): Promise<CachedPayload<T> | null> => {
     try {
@@ -55,6 +64,14 @@ export interface FetchEventsOptions {
     language: EventLanguage
     from?: string
     to?: string
+    includeInternal?: boolean
+}
+
+// The internal-events flag is intentionally not part of the public OpenAPI
+// document. Keep the generated client untouched while allowing the runtime to
+// pass the backend extension for authenticated requests.
+type EventsQuery = NonNullable<ListEventsData["query"]> & {
+    includeInternal?: true
 }
 
 export const fetchEventOccurrences = async (
@@ -64,13 +81,17 @@ export const fetchEventOccurrences = async (
     configureClient()
     const locale = toApiLocale(options.language)
     const from = options.from ?? toOsloDateString()
-    const cacheKey = getEventsCacheKey(locale, from, options.to)
+    const includeInternal = options.includeInternal === true
+    const cacheKey = getEventsCacheKey(locale, from, options.to, includeInternal)
     const cached = await readCachedPayload<PublicEventsResponse>(cacheKey)
 
     try {
+        const query: EventsQuery = { locale, from, to: options.to }
+        if (includeInternal) query.includeInternal = true
+
         const result = await listEvents({
             headers: cached?.etag ? { "If-None-Match": cached.etag } : undefined,
-            query: { locale, from, to: options.to },
+            query: query as ListEventsData["query"],
             signal,
         })
 
@@ -94,8 +115,12 @@ export const fetchEventOccurrences = async (
 export const fetchHomeEvents = async (
     language: EventLanguage,
     signal?: AbortSignal,
+    options?: Pick<FetchEventsOptions, "includeInternal">,
 ): Promise<EventOccurrence[]> => {
-    const response = await fetchEventOccurrences({ language }, signal)
+    const response = await fetchEventOccurrences(
+        { language, includeInternal: options?.includeInternal },
+        signal,
+    )
     return response.data
 }
 
@@ -103,8 +128,12 @@ export const fetchEventById = async (
     occurrenceId: string,
     language: EventLanguage,
     signal?: AbortSignal,
+    options?: Pick<FetchEventsOptions, "includeInternal">,
 ): Promise<EventOccurrence> => {
-    const response = await fetchEventOccurrences({ language }, signal)
+    const response = await fetchEventOccurrences(
+        { language, includeInternal: options?.includeInternal },
+        signal,
+    )
     const occurrence = response.data.find(
         candidate => candidate.id === occurrenceId || candidate.event.id === occurrenceId,
     )

@@ -106,6 +106,65 @@ describe("eventsRepository (Samfunnet public API)", () => {
         expect(new URL(request.url).searchParams.get("locale")).toBe("en")
     })
 
+    test("includes internal events only for authenticated requests", async () => {
+        ;(global.fetch as jest.Mock)
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(createApiResponse([])), {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify(createApiResponse([])), {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                }),
+            )
+
+        await fetchEventOccurrences({ language: "no", from: "2026-09-04" })
+        await fetchEventOccurrences({
+            language: "no",
+            from: "2026-09-04",
+            includeInternal: true,
+        })
+
+        const publicRequest = (global.fetch as jest.Mock).mock.calls[0][0] as Request
+        const authenticatedRequest = (global.fetch as jest.Mock).mock.calls[1][0] as Request
+        const publicUrl = new URL(publicRequest.url)
+        const authenticatedUrl = new URL(authenticatedRequest.url)
+        expect(publicUrl.searchParams.has("includeInternal")).toBe(false)
+        expect(authenticatedUrl.searchParams.get("includeInternal")).toBe("true")
+    })
+
+    test("keeps public and authenticated event caches separate", async () => {
+        const response = JSON.stringify(createApiResponse([]))
+        ;(global.fetch as jest.Mock)
+            .mockResolvedValueOnce(
+                new Response(response, {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                }),
+            )
+            .mockResolvedValueOnce(
+                new Response(response, {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                }),
+            )
+
+        await fetchEventOccurrences({ language: "no", from: "2026-09-04" })
+        await fetchEventOccurrences({
+            language: "no",
+            from: "2026-09-04",
+            includeInternal: true,
+        })
+
+        const publicKey = (getStoredJson as jest.Mock).mock.calls[0][0] as string
+        const authenticatedKey = (getStoredJson as jest.Mock).mock.calls[1][0] as string
+        expect(publicKey).toContain(":public:")
+        expect(authenticatedKey).toContain(":internal:")
+    })
+
     test("reuses an ETag snapshot when the API returns 304", async () => {
         const cached = createApiResponse([createOccurrence("cached-occurrence")])
         ;(getStoredJson as jest.Mock).mockResolvedValue({

@@ -41,7 +41,8 @@ const clampProgress = (value: number | null): number => {
 export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
-    const { isLoading } = useSession()
+    const { isLoading, status: sessionStatus } = useSession()
+    const isLoggedIn = sessionStatus === "authenticated"
     const { language } = useLanguage()
     const isFocused = useIsFocused()
     const { textPrimary } = useThemeRuntimeColors()
@@ -75,8 +76,8 @@ export const KvarteretScreen = (): React.JSX.Element => {
         isError: eventsError,
         refetch: refetchEvents,
     } = useQuery({
-        queryKey: ["home-events", language],
-        queryFn: ({ signal }) => fetchHomeEvents(language, signal),
+        queryKey: ["home-events", language, isLoggedIn],
+        queryFn: ({ signal }) => fetchHomeEvents(language, signal, { includeInternal: isLoggedIn }),
         staleTime: 30_000,
         retry: 1,
     })
