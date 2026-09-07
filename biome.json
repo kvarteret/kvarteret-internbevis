@@ -36,6 +36,17 @@
     "assist": {
         "enabled": true
     },
+    "overrides": [
+        {
+            "includes": ["src/core/api/samfunnet-events/**"],
+            "linter": {
+                "enabled": false
+            },
+            "assist": {
+                "enabled": false
+            }
+        }
+    ],
     "javascript": {
         "formatter": {
             "quoteStyle": "double",

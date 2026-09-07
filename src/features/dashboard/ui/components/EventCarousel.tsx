@@ -1,15 +1,15 @@
-import React from "react"
+import type React from "react"
 import { useTranslation } from "react-i18next"
-import { FlatList, ListRenderItem, useWindowDimensions, View } from "react-native"
-import { KvarteretEventDocument } from "@/features/dashboard/domain/types"
-import { EventCard, EventCardProps } from "@/features/dashboard/ui/components/EventCard"
+import { FlatList, type ListRenderItem, useWindowDimensions, View } from "react-native"
+import type { EventOccurrence } from "@/features/dashboard/domain/types"
+import { EventCard, type EventCardProps } from "@/features/dashboard/ui/components/EventCard"
 import { Button } from "@/shared/ui/Button"
 import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { triggerSoftImpactHaptic } from "@/shared/utils/haptics"
 
 interface EventCarouselProps {
-    events: KvarteretEventDocument[] | undefined
+    events: EventOccurrence[] | undefined
     isPending: boolean
     isError: boolean
     onRetry: () => Promise<unknown>
@@ -42,12 +42,12 @@ export const EventCarousel = ({
             ? width - 32
             : Math.max(width * CAROUSEL_CARD_WIDTH_RATIO, MIN_CAROUSEL_CARD_WIDTH)
 
-    const renderItem: ListRenderItem<KvarteretEventDocument> = ({ item }) => (
+    const renderItem: ListRenderItem<EventOccurrence> = ({ item }) => (
         <EventCard
             accessibilityOpenHint={t("homeEventsOpenHint")}
-            event={item}
             cardWidth={cardWidth}
             layout={cardLayout}
+            occurrence={item}
             onPress={onEventPress}
         />
     )
@@ -86,7 +86,7 @@ export const EventCarousel = ({
                 ItemSeparatorComponent={() => <View className="w-3" />}
                 contentContainerClassName="px-0.5"
                 data={events}
-                keyExtractor={item => item._id}
+                keyExtractor={item => item.id}
                 renderItem={renderItem}
                 showsHorizontalScrollIndicator={false}
                 snapToAlignment="start"

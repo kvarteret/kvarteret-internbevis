@@ -1,7 +1,8 @@
-import React, { useMemo, useRef } from "react"
+import type React from "react"
+import { useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { NativeTouchEvent, PanResponder, useWindowDimensions, View } from "react-native"
-import { EventFeedEntry } from "@/features/dashboard/domain/types"
+import { type NativeTouchEvent, PanResponder, useWindowDimensions, View } from "react-native"
+import type { EventFeedEntry } from "@/features/dashboard/domain/types"
 import { EventCard } from "@/features/dashboard/ui/components/EventCard"
 import { Text } from "@/shared/ui/Text"
 
@@ -71,14 +72,14 @@ export const EventGrid = ({
                 className={columns === 2 ? "flex-row flex-wrap gap-2.5" : "gap-3"}
                 {...panResponder.panHandlers}
             >
-                {entries.map(({ event, upcomingDates }) => (
+                {entries.map(({ occurrence, upcomingOccurrences }) => (
                     <EventCard
                         accessibilityOpenHint=""
                         cardWidth={listCardWidth}
-                        event={event}
-                        key={event._id}
+                        key={occurrence.id}
                         layout="grid"
-                        upcomingDates={upcomingDates}
+                        occurrence={occurrence}
+                        upcomingOccurrences={upcomingOccurrences}
                         onPress={onEventPress}
                     />
                 ))}

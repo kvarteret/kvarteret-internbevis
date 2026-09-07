@@ -1,5 +1,5 @@
 import { MaterialIcons } from "@expo/vector-icons"
-import React from "react"
+import type React from "react"
 import { Image, View } from "react-native"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { CachedImage } from "@/shared/ui/CachedImage"
@@ -24,8 +24,7 @@ export const ProfileAvatar = ({
     const { textSecondary } = useThemeRuntimeColors()
     const localImageSource = imageUrl ? localImageMap[imageUrl] : undefined
     const hasRemoteImage = Boolean(imageUrl && !localImageSource)
-    const stableRecyclingKey =
-        hasRemoteImage && imageUrl ? imageUrl.split("?")[0] : undefined
+    const stableRecyclingKey = hasRemoteImage && imageUrl ? imageUrl.split("?")[0] : undefined
 
     return (
         <View

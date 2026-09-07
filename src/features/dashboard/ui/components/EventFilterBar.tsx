@@ -1,20 +1,14 @@
-import React from "react"
+import type React from "react"
 import { useTranslation } from "react-i18next"
 import { ScrollView, View } from "react-native"
 import {
     countActiveEventFilters,
     createEmptyEventFilterState,
-    DerivedTaxonomy,
-    EventFilterState,
+    type DerivedTaxonomy,
+    type EventFilterState,
     getLocalizedTaxonomyGroupName,
-    TAXONOMY_GROUP_ORDER,
 } from "@/features/dashboard/domain/eventSelection"
 import { FilterChip } from "@/features/dashboard/ui/components/FilterChip"
-
-const getQuickTaxonomyGroups = (taxonomy: DerivedTaxonomy | undefined): string[] => {
-    const available = new Set(taxonomy?.taxonomyGroups.map(g => g.name) ?? [])
-    return TAXONOMY_GROUP_ORDER.filter(name => available.has(name))
-}
 
 interface EventFilterBarProps {
     activeFilterCount: number
@@ -34,7 +28,7 @@ export const EventFilterBar = ({
     onOpenFilters,
 }: EventFilterBarProps): React.JSX.Element => {
     const { t } = useTranslation()
-    const quickGroups = getQuickTaxonomyGroups(taxonomy)
+    const quickGroups = taxonomy?.taxonomyGroups ?? []
 
     return (
         <View className="gap-3">
@@ -45,12 +39,12 @@ export const EventFilterBar = ({
                         selected={countActiveEventFilters(filters) === 0}
                         onPress={() => onChange(createEmptyEventFilterState())}
                     />
-                    {quickGroups.map(groupName => (
+                    {quickGroups.map(group => (
                         <FilterChip
-                            key={groupName}
-                            label={getLocalizedTaxonomyGroupName(groupName, language)}
+                            key={group._id}
+                            label={getLocalizedTaxonomyGroupName(group.name, language)}
                             selected={
-                                filters.taxonomyGroup === groupName &&
+                                filters.taxonomyGroup === group._id &&
                                 filters.eventTypeIds.length === 0
                             }
                             onPress={() =>
@@ -58,7 +52,7 @@ export const EventFilterBar = ({
                                     ...filters,
                                     eventTypeIds: [],
                                     taxonomyGroup:
-                                        filters.taxonomyGroup === groupName ? null : groupName,
+                                        filters.taxonomyGroup === group._id ? null : group._id,
                                 })
                             }
                         />

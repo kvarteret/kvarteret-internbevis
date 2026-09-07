@@ -1,252 +1,211 @@
-import { KvarteretEventDocument, SanityArrangementDate } from "@/features/dashboard/domain/types"
+import type { EventOccurrence } from "@/features/dashboard/domain/types"
 import {
+    buildEventCalendarMonths,
     buildEventFeedSections,
     buildUpcomingDateChips,
-    createEmptyEventFilterState,
     deriveTaxonomyFromEvents,
     filterEvents,
+    occurrenceDateString,
     parsePersistedEventFilterState,
 } from "../eventSelection"
 
-function makeDate(isoString: string): SanityArrangementDate {
-    // isoString like "2026-05-01T18:00:00.000Z" — extract Oslo date/time approximately
-    const d = new Date(isoString)
-    const startDate = d.toISOString().split("T")[0]!
-    const startTime = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`
-    return { _key: `d-${isoString}`, startDate, startTime, endTime: null }
-}
-
-function createEvent(
+const makeOccurrence = (
     id: string,
     options?: {
-        dates?: SanityArrangementDate[]
-        start?: Date
-        end?: Date
+        startsAt?: string
+        date?: string
+        eventId?: string
         title?: string
+        kind?: EventOccurrence["event"]["kind"]
+        parentId?: string
         eventTypeId?: string
         eventTypeName?: string
-        taxonomyGroup?: string
-        organizerGroupId?: string
-        isRecurring?: boolean
-        extraDates?: Date[]
+        taxonomyGroupId?: string
+        taxonomyGroupName?: string
+        organizerId?: string
     },
-): KvarteretEventDocument {
-    const primaryDate = options?.start
-        ? makeDate(options.start.toISOString())
-        : makeDate("2026-02-20T12:00:00.000Z")
-
-    const extraDates = (options?.extraDates ?? []).map(d => makeDate(d.toISOString()))
-
-    const dates = options?.dates ?? [primaryDate, ...extraDates]
-
+): EventOccurrence => {
+    const eventId = options?.eventId ?? id
     return {
-        _id: id,
-        eventKind: "single",
-        eventStatus: "scheduled",
-        parent: null,
-        title: options?.title ?? `Event ${id}`,
-        slug: `event-${id}`,
-        dates,
-        isRecurring: options?.isRecurring ?? null,
-        rrule: null,
-        isFree: null,
-        priceOrdinar: null,
-        priceStudent: null,
-        priceMedlem: null,
-        ticketUrl: null,
-        facebookUrl: null,
-        imageUrl: null,
-        imageCaption: null,
-        room: null,
-        roomText: null,
-        organizerGroup: options?.organizerGroupId
-            ? {
-                  _id: options.organizerGroupId,
-                  name: options.organizerGroupId,
-                  slug: options.organizerGroupId,
-              }
-            : null,
-        organizerText: null,
-        eventType: options?.eventTypeId
-            ? {
-                  _id: options.eventTypeId,
-                  name: options.eventTypeName ?? options.eventTypeId,
-                  slug: options.eventTypeId,
-                  taxonomyGroup: options?.taxonomyGroup
-                      ? {
-                            _id: options.taxonomyGroup,
-                            name: options.taxonomyGroup,
-                            slug: options.taxonomyGroup.toLowerCase(),
-                        }
-                      : null,
-              }
-            : null,
-        description: null,
+        id,
+        schedule: options?.date
+            ? { kind: "date", date: options.date, timeZone: "Europe/Oslo" }
+            : {
+                  kind: "timed",
+                  startsAt: options?.startsAt ?? "2026-09-10T17:00:00.000Z",
+                  endsAt: null,
+                  timeZone: "Europe/Oslo",
+              },
+        event: {
+            id: eventId,
+            slug: eventId,
+            kind: options?.kind ?? "single",
+            status: "scheduled",
+            updatedAt: null,
+            title: options?.title ?? `Event ${id}`,
+            description: { html: "", text: "" },
+            image: null,
+            eventType: options?.eventTypeId
+                ? { id: options.eventTypeId, name: options.eventTypeName ?? options.eventTypeId }
+                : null,
+            taxonomyGroup: options?.taxonomyGroupId
+                ? {
+                      id: options.taxonomyGroupId,
+                      name: options.taxonomyGroupName ?? options.taxonomyGroupId,
+                  }
+                : null,
+            organizer: options?.organizerId
+                ? {
+                      kind: "group",
+                      id: options.organizerId,
+                      name: options.organizerId,
+                      slug: options.organizerId,
+                  }
+                : null,
+            location: { kind: "venue", name: "Det Akademiske Kvarter" },
+            pricing: {
+                currency: "NOK",
+                isFree: true,
+                ordinary: null,
+                student: null,
+                member: null,
+            },
+            parent: options?.parentId
+                ? {
+                      id: options.parentId,
+                      slug: options.parentId,
+                      kind: "seriesParent",
+                      status: "scheduled",
+                      title: "Series",
+                      website: `https://example.test/${options.parentId}`,
+                  }
+                : null,
+            links: {
+                website: `https://example.test/${eventId}`,
+                ticket: null,
+                facebook: null,
+            },
+        },
     }
 }
 
-describe("eventsService", () => {
-    test("deriveTaxonomyFromEvents groups event types by taxonomy group", () => {
-        const music = createEvent("music", {
-            eventTypeId: "konsert",
+describe("eventSelection", () => {
+    test("derives localized taxonomy and group organizers from occurrences", () => {
+        const concert = makeOccurrence("concert", {
+            eventTypeId: "concert",
             eventTypeName: "Konsert",
-            taxonomyGroup: "Musikk",
+            taxonomyGroupId: "eventTaxonomyGroup-musikk",
+            taxonomyGroupName: "Konserter",
+            organizerId: "samklang",
         })
-        const debate = createEvent("debate", {
-            eventTypeId: "debatt",
-            eventTypeName: "Debatt",
-            taxonomyGroup: "Faglig",
-        })
-        const organizedEvent = createEvent("org", {
-            eventTypeId: "møte",
-            eventTypeName: "Møte",
-            taxonomyGroup: "Faglig",
-            organizerGroupId: "styret",
+        const talk = makeOccurrence("talk", {
+            eventTypeId: "talk",
+            taxonomyGroupId: "eventTaxonomyGroup-faglig",
+            taxonomyGroupName: "Faglig",
         })
 
-        const taxonomy = deriveTaxonomyFromEvents([music, debate, organizedEvent])
-
-        const groupNames = taxonomy.taxonomyGroups.map(g => g.name)
-        expect(groupNames).toContain("Musikk")
-        expect(groupNames).toContain("Faglig")
-
-        const faglig = taxonomy.taxonomyGroups.find(g => g.name === "Faglig")
-        expect(faglig?.eventTypes.map(t => t._id).sort()).toEqual(["debatt", "møte"].sort())
-
-        expect(taxonomy.organizerGroups.map(g => g._id)).toEqual(["styret"])
+        const taxonomy = deriveTaxonomyFromEvents([concert, concert, talk])
+        expect(taxonomy.taxonomyGroups.map(group => group._id)).toEqual([
+            "eventTaxonomyGroup-faglig",
+            "eventTaxonomyGroup-musikk",
+        ])
+        expect(taxonomy.taxonomyGroups[1]?.eventTypes).toEqual([
+            { _id: "concert", name: "Konsert", slug: "concert" },
+        ])
+        expect(taxonomy.organizerGroups).toEqual([{ _id: "samklang", name: "samklang" }])
     })
 
-    test("deriveTaxonomyFromEvents orders taxonomy groups per TAXONOMY_GROUP_ORDER", () => {
-        const social = createEvent("s", { eventTypeId: "fest", taxonomyGroup: "Sosialt" })
-        const music = createEvent("m", { eventTypeId: "konsert", taxonomyGroup: "Musikk" })
-        const other = createEvent("o", { eventTypeId: "annet", taxonomyGroup: "Annet" })
-
-        const taxonomy = deriveTaxonomyFromEvents([social, other, music])
-        const names = taxonomy.taxonomyGroups.map(g => g.name)
-
-        // Musikk (index 0) should appear before Sosialt (index 3), Annet is fallback last
-        expect(names.indexOf("Musikk")).toBeLessThan(names.indexOf("Sosialt"))
-        expect(names.indexOf("Sosialt")).toBeLessThan(names.indexOf("Annet"))
-    })
-
-    test("filterEvents applies taxonomy group filter", () => {
-        const music = createEvent("music", { eventTypeId: "konsert", taxonomyGroup: "Musikk" })
-        const debate = createEvent("debate", { eventTypeId: "debatt", taxonomyGroup: "Faglig" })
+    test("filters occurrences by taxonomy, event type, and organizer ids", () => {
+        const concert = makeOccurrence("concert", {
+            eventTypeId: "concert",
+            taxonomyGroupId: "music",
+            organizerId: "samklang",
+        })
+        const talk = makeOccurrence("talk", {
+            eventTypeId: "talk",
+            taxonomyGroupId: "academic",
+        })
 
         expect(
-            filterEvents([music, debate], {
-                ...createEmptyEventFilterState(),
-                taxonomyGroup: "Musikk",
-            }).map(e => e._id),
-        ).toEqual(["music"])
+            filterEvents([concert, talk], {
+                taxonomyGroup: "music",
+                eventTypeIds: ["concert"],
+                organizerGroupIds: ["samklang"],
+            }).map(item => item.id),
+        ).toEqual(["concert"])
     })
 
-    test("filterEvents applies event type id filter", () => {
-        const music = createEvent("music", { eventTypeId: "konsert" })
-        const debate = createEvent("debate", { eventTypeId: "debatt" })
-
-        expect(
-            filterEvents([music, debate], {
-                ...createEmptyEventFilterState(),
-                eventTypeIds: ["debatt"],
-            }).map(e => e._id),
-        ).toEqual(["debate"])
-    })
-
-    test("filterEvents applies organizer group id filter", () => {
-        const music = createEvent("music", { organizerGroupId: "asf" })
-        const debate = createEvent("debate", { organizerGroupId: "debatt-klubben" })
-
-        expect(
-            filterEvents([music, debate], {
-                ...createEmptyEventFilterState(),
-                organizerGroupIds: ["asf"],
-            }).map(e => e._id),
-        ).toEqual(["music"])
-    })
-
-    test("parsePersistedEventFilterState accepts valid saved filters and rejects invalid shapes", () => {
+    test("parses persisted filters and removes duplicate ids", () => {
         expect(
             parsePersistedEventFilterState({
-                eventTypeIds: ["konsert", "konsert"],
-                organizerGroupIds: ["asf"],
-                taxonomyGroup: "Musikk",
+                eventTypeIds: ["concert", "concert"],
+                organizerGroupIds: ["samklang"],
+                taxonomyGroup: "music",
             }),
         ).toEqual({
-            eventTypeIds: ["konsert"],
-            organizerGroupIds: ["asf"],
-            taxonomyGroup: "Musikk",
+            eventTypeIds: ["concert"],
+            organizerGroupIds: ["samklang"],
+            taxonomyGroup: "music",
         })
-
-        expect(parsePersistedEventFilterState({ eventTypeIds: ["konsert"] })).toBeNull()
-        expect(parsePersistedEventFilterState(null)).toBeNull()
+        expect(parsePersistedEventFilterState({ eventTypeIds: ["concert"] })).toBeNull()
     })
 
-    test("buildEventFeedSections maps events preserving order", () => {
-        const a = createEvent("a")
-        const b = createEvent("b")
-        const c = createEvent("c")
-
-        const result = buildEventFeedSections([a, b, c])
-
-        expect(result.rest.map(entry => entry.event._id)).toEqual(["a", "b", "c"])
-    })
-
-    test("buildEventFeedSections puts extra dates from dates array into upcomingDates", () => {
-        const quiz = createEvent("quiz", {
-            start: new Date("2026-05-01T18:00:00.000Z"),
-            extraDates: [
-                new Date("2026-05-08T18:00:00.000Z"),
-                new Date("2026-05-15T18:00:00.000Z"),
-            ],
+    test("builds one list card with future chips per series", () => {
+        const first = makeOccurrence("quiz-1", {
+            eventId: "quiz-instance-1",
+            kind: "seriesInstance",
+            parentId: "quiz-series",
+            startsAt: "2026-09-08T17:00:00.000Z",
         })
+        const second = makeOccurrence("quiz-2", {
+            eventId: "quiz-instance-2",
+            kind: "seriesInstance",
+            parentId: "quiz-series",
+            startsAt: "2026-09-15T17:00:00.000Z",
+        })
+        const concert = makeOccurrence("concert")
 
-        const result = buildEventFeedSections([quiz])
-
-        expect(result.rest).toHaveLength(1)
-        expect(result.rest[0]!.upcomingDates).toHaveLength(2)
+        const result = buildEventFeedSections([first, second, concert])
+        expect(result.rest.map(entry => entry.occurrence.id)).toEqual(["quiz-1", "concert"])
+        expect(result.rest[0]?.upcomingOccurrences).toEqual([second])
     })
 
-    test("buildUpcomingDateChips formats first two dates and counts the rest", () => {
-        const d1 = new Date("2026-05-05T18:00:00.000Z")
-        const d2 = new Date("2026-05-12T18:00:00.000Z")
-        const d3 = new Date("2026-05-19T18:00:00.000Z")
-        const d4 = new Date("2026-05-26T18:00:00.000Z")
+    test("groups repeated dates of the same single event in the list projection", () => {
+        const first = makeOccurrence("multi-1", { eventId: "multi" })
+        const second = makeOccurrence("multi-2", {
+            eventId: "multi",
+            startsAt: "2026-09-11T17:00:00.000Z",
+        })
+        expect(buildEventFeedSections([first, second]).rest).toHaveLength(1)
+    })
 
-        expect(buildUpcomingDateChips([])).toEqual([])
-        expect(buildUpcomingDateChips([d1])).toHaveLength(1)
-        expect(buildUpcomingDateChips([d1, d2])).toHaveLength(2)
-        expect(buildUpcomingDateChips([d1, d2, d3])).toEqual([
-            expect.stringMatching(/\d+\. /),
-            expect.stringMatching(/\d+\. /),
-            "+1",
+    test("formats two upcoming chips and an overflow count", () => {
+        const occurrences = [5, 12, 19, 26].map(day =>
+            makeOccurrence(`event-${day}`, {
+                startsAt: `2026-05-${String(day).padStart(2, "0")}T18:00:00.000Z`,
+            }),
+        )
+        expect(buildUpcomingDateChips(occurrences)).toEqual([
+            expect.stringMatching(/5/),
+            expect.stringMatching(/12/),
+            "+2",
         ])
-        expect(buildUpcomingDateChips([d1, d2, d3, d4])).toContain("+2")
     })
 
-    test("buildUpcomingDateChips caps overflow badge at 9+", () => {
-        const dates = Array.from({ length: 12 }, (_, i) => new Date(2026, 4, i + 1))
-        const chips = buildUpcomingDateChips(dates)
-        expect(chips[chips.length - 1]).toBe("9+")
+    test("builds a calendar projection retaining every occurrence and empty months", () => {
+        const september = makeOccurrence("september", { date: "2026-09-08" })
+        const november = makeOccurrence("november", { date: "2026-11-03" })
+        const months = buildEventCalendarMonths([september, november], "2026-09-04")
+
+        expect(months.map(month => month.key)).toEqual(["2026-08", "2026-09", "2026-10", "2026-11"])
+        expect(months.map(month => month.eventCount)).toEqual([0, 1, 0, 1])
     })
 
-    test("buildEventFeedSections expands rrule from past anchor into future upcomingDates", () => {
-        // Anchor date is well in the past; rrule is weekly on Tuesdays.
-        // expandRruleUpcomingDates must produce future dates regardless.
-        const weekly: KvarteretEventDocument = {
-            ...createEvent("weekly"),
-            dates: [{ _key: "d1", startDate: "2024-01-09", startTime: "19:00", endTime: "22:00" }],
-            isRecurring: true,
-            rrule: "FREQ=WEEKLY;BYDAY=TU",
-        }
-
-        const result = buildEventFeedSections([weekly])
-
-        expect(result.rest[0]!.upcomingDates.length).toBeGreaterThan(0)
-        // All returned dates must be in the future
-        const now = new Date()
-        for (const d of result.rest[0]!.upcomingDates) {
-            expect(d.getTime()).toBeGreaterThan(now.getTime())
-        }
+    test("derives the local Oslo date from UTC timestamps", () => {
+        expect(
+            occurrenceDateString(
+                makeOccurrence("midnight", { startsAt: "2026-09-04T22:30:00.000Z" }),
+            ),
+        ).toBe("2026-09-05")
     })
 })

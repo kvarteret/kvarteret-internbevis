@@ -227,6 +227,23 @@ Then start the app:
 npm run start
 ```
 
+## Public events API
+
+The event feed consumes the anonymous occurrence API documented at
+`https://www.samfunnetibergen.no/api/v1/openapi.json`. Set
+`EXPO_PUBLIC_SAMFUNNET_API_BASE_URL` to point at another compatible deployment;
+the production website is used by default.
+
+The checked-in client is generated from that OpenAPI document:
+
+```bash
+npm run api:generate:events
+npm run api:check:events
+```
+
+For local or pinned contract generation, set `SAMFUNNET_EVENTS_OPENAPI` to an
+OpenAPI URL or file path before running either command.
+
 ## Expo Go login-link support
 
 Expo Go cannot register the production custom URL scheme the same way as a standalone app.

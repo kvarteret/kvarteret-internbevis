@@ -3,51 +3,45 @@ import { useTranslation } from "react-i18next"
 import { Pressable, View } from "react-native"
 import { useLanguage } from "@/app/providers/LanguageProvider"
 import {
-    formatEventStart,
+    formatOccurrenceStart,
     getEventRoomText,
-    getEventStartDate,
     getEventTaxonomyText,
     selectProjectedDescriptionPreview,
 } from "@/features/dashboard/domain/eventFormatting"
 import { buildUpcomingDateChips } from "@/features/dashboard/domain/eventSelection"
-import type { KvarteretEventDocument } from "@/features/dashboard/domain/types"
+import type { EventOccurrence } from "@/features/dashboard/domain/types"
 import { CachedImage } from "@/shared/ui/CachedImage"
 import { Card } from "@/shared/ui/Card"
 import { Text } from "@/shared/ui/Text"
 import { triggerSelectionHaptic } from "@/shared/utils/haptics"
 
 export interface EventCardProps {
-    event: KvarteretEventDocument
+    occurrence: EventOccurrence
     cardWidth: number
-    onPress: (eventId: string) => void
+    onPress: (occurrenceId: string) => void
     accessibilityOpenHint: string
     layout?: "carousel" | "featured" | "grid"
-    upcomingDates?: Date[]
+    upcomingOccurrences?: EventOccurrence[]
 }
 
 export const EventCard = ({
-    event,
+    occurrence,
     cardWidth,
     onPress,
     accessibilityOpenHint,
     layout = "carousel",
-    upcomingDates,
+    upcomingOccurrences,
 }: EventCardProps): React.JSX.Element | null => {
     const { language } = useLanguage()
     const { t } = useTranslation()
+    const { event } = occurrence
     if (!event.title.trim()) return null
 
-    const descriptionPreview = selectProjectedDescriptionPreview(event.description)
-    const startDate = getEventStartDate(event)
-    const formattedDate = formatEventStart(startDate, language)
-    const taxonomyText = getEventTaxonomyText(event)
-    const roomText = getEventRoomText(event)
-    const statusLabel =
-        event.eventStatus === "cancelled"
-            ? t("eventStatusCancelled")
-            : event.eventStatus === "postponed"
-              ? t("eventStatusPostponed")
-              : null
+    const descriptionPreview = selectProjectedDescriptionPreview(occurrence)
+    const formattedDate = formatOccurrenceStart(occurrence, language)
+    const taxonomyText = getEventTaxonomyText(occurrence)
+    const roomText = getEventRoomText(occurrence)
+    const statusLabel = event.status === "cancelled" ? t("eventStatusCancelled") : null
     const accessibilityLabel = `${event.title}. ${statusLabel ? `${statusLabel}. ` : ""}${formattedDate}.`
     const imageHeightClassName =
         layout === "featured" ? "h-80" : layout === "grid" ? "h-36" : "h-44"
@@ -73,7 +67,7 @@ export const EventCard = ({
                 android_ripple={{ color: "rgba(0,0,0,0.08)" }}
                 onPress={() => {
                     void triggerSelectionHaptic()
-                    onPress(event._id)
+                    onPress(occurrence.id)
                 }}
                 style={({ pressed }) => [
                     {
@@ -83,11 +77,11 @@ export const EventCard = ({
                 ]}
             >
                 <View>
-                    {event.imageUrl ? (
+                    {event.image ? (
                         <CachedImage
                             className={`${imageHeightClassName} w-full`}
                             contentFit="cover"
-                            source={event.imageUrl}
+                            source={event.image.url}
                         />
                     ) : (
                         <View className={`${imageHeightClassName} w-full bg-surface-muted`} />
@@ -127,9 +121,9 @@ export const EventCard = ({
                     <Text className={titleClassName} numberOfLines={2}>
                         {event.title}
                     </Text>
-                    {upcomingDates && upcomingDates.length > 0 ? (
+                    {upcomingOccurrences && upcomingOccurrences.length > 0 ? (
                         <View className="flex-row flex-wrap gap-1.5">
-                            {buildUpcomingDateChips(upcomingDates).map(chip => (
+                            {buildUpcomingDateChips(upcomingOccurrences).map(chip => (
                                 <View
                                     key={chip}
                                     className="rounded-full border border-editorial-border bg-surface-muted px-2 py-0.5"

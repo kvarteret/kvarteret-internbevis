@@ -6,18 +6,14 @@ import { useTranslation } from "react-i18next"
 import { ScrollView, useWindowDimensions, View } from "react-native"
 import RenderHTML from "react-native-render-html"
 import { useLanguage } from "@/app/providers/LanguageProvider"
+import { useSession } from "@/app/providers/SessionProvider"
 import { openExternalUrl } from "@/core/linking/linkClient"
 import { fetchEventById } from "@/features/dashboard/data/eventsRepository"
 import {
-    formatEventStartStopWithDuration,
-    getEventEndDate,
+    formatOccurrenceStartStopWithDuration,
     getEventRoomText,
-    getEventStartDate,
     getEventTaxonomyText,
     getPriceText,
-    getRecurringBadgeText,
-    selectPrimaryDetailsHtml,
-    toRenderableHtml,
 } from "@/features/dashboard/domain/eventFormatting"
 import { Button } from "@/shared/ui/Button"
 import { CachedImage } from "@/shared/ui/CachedImage"
@@ -31,52 +27,44 @@ export const EventDetailsScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const navigation = useNavigation()
     const { language } = useLanguage()
+    const { status: sessionStatus } = useSession()
+    const isLoggedIn = sessionStatus === "authenticated"
     const { width } = useWindowDimensions()
     const { eventId } = useLocalSearchParams<{ eventId?: string | string[] }>()
     const resolvedEventId = Array.isArray(eventId) ? eventId[0] : eventId
 
     const {
-        data: event,
+        data: occurrence,
         isPending,
         isError,
         refetch,
     } = useQuery({
-        queryKey: ["event", resolvedEventId],
+        queryKey: ["event", resolvedEventId, language, isLoggedIn],
         queryFn: ({ signal }) => {
             if (!resolvedEventId) throw new Error("Missing event ID.")
-            return fetchEventById(resolvedEventId, signal)
+            return fetchEventById(resolvedEventId, language, signal, {
+                includeInternal: isLoggedIn,
+            })
         },
         enabled: Boolean(resolvedEventId),
         retry: 1,
     })
 
-    const title = event?.title || t("eventDetailsTitle")
-    const statusLabel =
-        event?.eventStatus === "cancelled"
-            ? t("eventStatusCancelled")
-            : event?.eventStatus === "postponed"
-              ? t("eventStatusPostponed")
-              : null
+    const title = occurrence?.event.title || t("eventDetailsTitle")
+    const statusLabel = occurrence?.event.status === "cancelled" ? t("eventStatusCancelled") : null
 
     const details = useMemo(() => {
-        if (!event) return null
-        const detailsHtml = toRenderableHtml(selectPrimaryDetailsHtml(event.description))
-        const startDate = getEventStartDate(event)
-        const endDate = getEventEndDate(event)
-        const whenValue = formatEventStartStopWithDuration(startDate, endDate, language)
-        const taxonomy = getEventTaxonomyText(event)
-        const roomText = getEventRoomText(event)
-        const recurring = event.isRecurring
-            ? getRecurringBadgeText(event.rrule, {
-                  recurring: t("eventRecurring"),
-                  daily: t("eventRecurringDaily"),
-                  weekly: t("eventRecurringWeekly"),
-                  monthly: t("eventRecurringMonthly"),
-              })
-            : ""
-        const priceText = getPriceText(event, t("eventPriceFree"))
-        return { event, detailsHtml, whenValue, taxonomy, roomText, recurring, priceText }
-    }, [event, language, t])
+        if (!occurrence) return null
+        return {
+            event: occurrence.event,
+            detailsHtml: occurrence.event.description.html,
+            whenValue: formatOccurrenceStartStopWithDuration(occurrence, language),
+            taxonomy: getEventTaxonomyText(occurrence),
+            roomText: getEventRoomText(occurrence),
+            recurring: occurrence.event.parent ? t("eventRecurring") : "",
+            priceText: getPriceText(occurrence, t("eventPriceFree")),
+        }
+    }, [occurrence, language, t])
 
     const openLink = useCallback(async (url: string): Promise<void> => {
         if (!url) return
@@ -94,13 +82,11 @@ export const EventDetailsScreen = (): React.JSX.Element => {
     }, [navigation, title])
 
     const htmlSource = useMemo(() => ({ html: details?.detailsHtml ?? "" }), [details?.detailsHtml])
-
     const htmlRenderersProps = useMemo(
         () => ({
             a: {
                 onPress: (_event: unknown, href: string | undefined) => {
-                    if (!href) return
-                    void openLink(href)
+                    if (href) void openLink(href)
                 },
             },
         }),
@@ -124,7 +110,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
         )
     }
 
-    if (!resolvedEventId || isError || !event || !details) {
+    if (!resolvedEventId || isError || !occurrence || !details) {
         return (
             <View className="flex-1 bg-background">
                 <ScrollView
@@ -160,16 +146,16 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                 contentInsetAdjustmentBehavior="automatic"
             >
                 <View className="gap-3">
-                    {event.imageUrl ? (
+                    {details.event.image ? (
                         <CachedImage
                             className="h-80 w-full rounded-none"
                             contentFit="cover"
-                            source={event.imageUrl}
+                            source={details.event.image.url}
                         />
                     ) : null}
-                    {event.imageCaption ? (
+                    {details.event.image?.caption ? (
                         <Text className="text-xs leading-5 text-editorial-ink-soft">
-                            {event.imageCaption}
+                            {details.event.image.caption}
                         </Text>
                     ) : null}
                 </View>
@@ -188,7 +174,7 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                         </Text>
                     ) : null}
                     <Text className="text-5xl leading-tight text-editorial-ink font-black">
-                        {event.title}
+                        {details.event.title}
                     </Text>
                     {details.roomText ? (
                         <Text className="text-base uppercase tracking-widest text-editorial-action font-extrabold">
@@ -234,12 +220,12 @@ export const EventDetailsScreen = (): React.JSX.Element => {
                 <View className="gap-3">
                     {[
                         {
-                            url: event.ticketUrl,
+                            url: details.event.links.ticket,
                             label: t("eventDetailsTickets"),
                             variant: "destructive" as const,
                         },
                         {
-                            url: event.facebookUrl,
+                            url: details.event.links.facebook,
                             label: t("eventDetailsFacebook"),
                             variant: "secondary" as const,
                         },

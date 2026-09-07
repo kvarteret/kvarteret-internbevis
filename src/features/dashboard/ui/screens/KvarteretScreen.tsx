@@ -1,7 +1,8 @@
 import { useIsFocused } from "@react-navigation/native"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "expo-router"
-import React, { useEffect, useMemo, useState } from "react"
+import type React from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, ScrollView, View } from "react-native"
 import { useLanguage } from "@/app/providers/LanguageProvider"
@@ -14,7 +15,7 @@ import {
     countActiveEventFilters,
     createEmptyEventFilterState,
     deriveTaxonomyFromEvents,
-    EventFilterState,
+    type EventFilterState,
     filterEvents,
     parsePersistedEventFilterState,
 } from "@/features/dashboard/domain/eventSelection"
@@ -30,7 +31,7 @@ import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
 import { Text } from "@/shared/ui/Text"
 
 const NOW_PLAYING_POLL_INTERVAL_MS = 10_000
-const EVENT_FILTER_STORAGE_KEY = "kvarteret_event_filters_sanity:v1"
+const EVENT_FILTER_STORAGE_KEY = "kvarteret_event_filters_api:v1"
 
 const clampProgress = (value: number | null): number => {
     if (value === null || !Number.isFinite(value)) return 0
@@ -40,7 +41,8 @@ const clampProgress = (value: number | null): number => {
 export const KvarteretScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
-    const { isLoading } = useSession()
+    const { isLoading, status: sessionStatus } = useSession()
+    const isLoggedIn = sessionStatus === "authenticated"
     const { language } = useLanguage()
     const isFocused = useIsFocused()
     const { textPrimary } = useThemeRuntimeColors()
@@ -69,13 +71,13 @@ export const KvarteretScreen = (): React.JSX.Element => {
     }, [filters, filtersHydrated])
 
     const {
-        data: events,
+        data: occurrences,
         isPending: eventsPending,
         isError: eventsError,
         refetch: refetchEvents,
     } = useQuery({
-        queryKey: ["home-events"],
-        queryFn: ({ signal }) => fetchHomeEvents(signal),
+        queryKey: ["home-events", language, isLoggedIn],
+        queryFn: ({ signal }) => fetchHomeEvents(language, signal, { includeInternal: isLoggedIn }),
         staleTime: 30_000,
         retry: 1,
     })
@@ -95,9 +97,15 @@ export const KvarteretScreen = (): React.JSX.Element => {
     const nowPlayingProgressWidth =
         `${clampProgress(nowPlaying?.progressPercent ?? 0)}%` as `${number}%`
 
-    const taxonomy = useMemo(() => deriveTaxonomyFromEvents(events ?? []), [events])
-    const filteredEvents = useMemo(() => filterEvents(events ?? [], filters), [events, filters])
-    const eventFeed = useMemo(() => buildEventFeedSections(filteredEvents), [filteredEvents])
+    const taxonomy = useMemo(() => deriveTaxonomyFromEvents(occurrences ?? []), [occurrences])
+    const filteredOccurrences = useMemo(
+        () => filterEvents(occurrences ?? [], filters),
+        [occurrences, filters],
+    )
+    const eventFeed = useMemo(
+        () => buildEventFeedSections(filteredOccurrences),
+        [filteredOccurrences],
+    )
     const activeFilterCount = countActiveEventFilters(filters)
 
     if (isLoading) {
@@ -137,18 +145,18 @@ export const KvarteretScreen = (): React.JSX.Element => {
                 <View className="w-full gap-3">
                     {eventsPending || eventsError ? (
                         <EventCarousel
-                            events={events}
+                            events={occurrences}
                             isPending={eventsPending}
                             isError={eventsError}
                             onRetry={async () => refetchEvents()}
-                            onEventPress={eventId => router.push(`/event/${eventId}`)}
+                            onEventPress={occurrenceId => router.push(`/event/${occurrenceId}`)}
                             showTitle={false}
                         />
                     ) : eventFeed.rest.length > 0 ? (
                         <EventGrid
                             columns={restColumns}
                             entries={eventFeed.rest}
-                            onEventPress={eventId => router.push(`/event/${eventId}`)}
+                            onEventPress={occurrenceId => router.push(`/event/${occurrenceId}`)}
                             onPinchColumnsChange={setRestColumns}
                         />
                     ) : (
@@ -159,7 +167,7 @@ export const KvarteretScreen = (): React.JSX.Element => {
                 <EtjenestenFooter />
             </ScrollView>
             <EventFiltersModal
-                eventCount={filteredEvents.length}
+                eventCount={eventFeed.rest.length}
                 filters={filters}
                 language={language}
                 taxonomy={taxonomy}
