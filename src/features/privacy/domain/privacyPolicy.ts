@@ -1,4 +1,4 @@
-import { SupportedLanguage } from "@/app/providers/LanguageProvider"
+import type { SupportedLanguage } from "@/app/providers/LanguageProvider"
 
 export const PRIVACY_POLICY_MARKDOWN: Record<SupportedLanguage, string> = {
     no: `# Personvernerklæring for Kvarteret
@@ -29,6 +29,9 @@ Kvarteret lagrer begrensede data lokalt på enheten for å forbedre ytelse og st
 
 ## Operasjonell telemetri og oppdateringstjenester
 Vi bruker Expo-tjenester, inkludert EAS Update og EAS Insights, for å levere appoppdateringer og følge med på teknisk bruk av appen. Dette kan omfatte teknisk informasjon som appversjon, plattform, operativsystemversjon, oppdateringsadopsjon, prosjektidentifikator og en tilfeldig installasjonstoken som Expo bruker for å behandle oppdaterings- og brukshendelser. Vi bruker denne informasjonen for å drifte, vedlikeholde, feilsøke og forbedre appen. Denne telemetrien er ikke ment å identifisere deg direkte som enkeltperson.
+
+## Valgfri produktanalyse
+Produktanalyse er avslått som standard. Hvis du aktivt slår det på under personverninnstillingene, kan vi registrere begrensede bruksdata, som at internbeviset vises og om det ble vist fra lokal hurtigbuffer eller nettverk. Produktanalysen bruker PostHog og inneholder ikke navn, e-postadresse, kortinformasjon eller tilgangstoken.
 
 ## Deling av personopplysninger
 Vi selger ikke dine personopplysninger og deler dem ikke med tredjeparter for annonseringsformål. Vi bruker tjenesteleverandører der det er nødvendig for å drifte appen, inkludert Expo for oppdateringslevering og operasjonell telemetri. Informasjonen som vises i appen er ellers kun tilgjengelig for deg og autorisert personell på Kvarteret.
@@ -76,6 +79,9 @@ Kvarteret stores limited data locally on the device to improve performance and r
 
 ## Operational Telemetry and Update Services
 We use Expo services, including EAS Update and EAS Insights, to deliver app updates and monitor technical app usage. This may include technical information such as app version, platform, operating system version, update adoption, project identifier, and a randomized installation token used by Expo to process update and usage events. We use this information to operate, maintain, troubleshoot, and improve the app. This telemetry is not intended to directly identify you as an individual user.
+
+## Optional Product Analytics
+Product analytics is off by default. If you actively enable it in the privacy settings, we may record limited usage data, such as when the internal ID is displayed and whether it came from the local cache or the network. Product analytics uses PostHog and does not include your name, email address, card information, or access token.
 
 ## Sharing of Personal Data
 We do not sell your personal data or share it with third parties for advertising purposes. We use service providers where necessary to operate the app, including Expo for update delivery and operational telemetry. The information displayed in the app is otherwise only accessible to you and authorized personnel at Kvarteret.
