@@ -1,11 +1,18 @@
 import Constants from "expo-constants"
 import * as Updates from "expo-updates"
+import PostHog from "posthog-react-native"
 import { Platform } from "react-native"
 import { appEnv } from "@/app/config/env"
-import { getStoredJson, getStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
+import {
+    getStoredJson,
+    getStoredValue,
+    setStoredJson,
+    setStoredValue,
+} from "@/core/storage/asyncStorage"
 
 const QUEUE_KEY = "mobile_observability_queue_v1"
 const COLLECTION_PREFERENCE_KEY = "mobile_operational_diagnostics_enabled"
+export const PRODUCT_ANALYTICS_PREFERENCE_KEY = "mobile_product_analytics_enabled"
 const MAX_QUEUE_SIZE = 100
 const MAX_QUEUE_AGE_MS = 24 * 60 * 60 * 1000
 const REPORT_TIMEOUT_MS = 1_500
@@ -20,6 +27,8 @@ export type MobileDiagnosticEventName =
     | "session_invalidated"
     | "session_token_persist_failed"
 
+export type MobileProductEventName = "mobile_card.displayed"
+
 interface MobileDiagnosticRecord {
     app_version: string | null
     auth_error_code: string | null
@@ -27,6 +36,7 @@ interface MobileDiagnosticRecord {
     event_id: string
     event_name: MobileDiagnosticEventName
     occurred_at: string
+    operation_id: string
     attempt_count: number
     next_attempt_at: number
     platform: string
@@ -44,6 +54,44 @@ const normalized = (value: unknown, maxLength: number): string | null => {
 const eventId = (): string =>
     `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`
 
+export const createClientRequestId = (): string => eventId()
+
+let productAnalyticsClient: PostHog | null = null
+
+const getProductAnalyticsClient = (): PostHog | null => {
+    if (!appEnv.posthogApiKey) return null
+    productAnalyticsClient ??= new PostHog(appEnv.posthogApiKey, {
+        captureAppLifecycleEvents: false,
+        defaultOptIn: false,
+        host: appEnv.posthogHost,
+        persistence: "file",
+    })
+    return productAnalyticsClient
+}
+
+export const setProductAnalyticsEnabled = async (enabled: boolean): Promise<void> => {
+    await setStoredValue(PRODUCT_ANALYTICS_PREFERENCE_KEY, enabled ? "true" : "false")
+    const client = getProductAnalyticsClient()
+    if (client) {
+        await (enabled ? client.optIn() : client.optOut())
+    }
+}
+
+export const captureProductEvent = async (
+    eventName: MobileProductEventName,
+    properties: Record<string, string>,
+): Promise<void> => {
+    try {
+        if ((await getStoredValue(PRODUCT_ANALYTICS_PREFERENCE_KEY)) !== "true") return
+        const client = getProductAnalyticsClient()
+        if (!client) return
+        await client.optIn()
+        client.capture(eventName, properties)
+    } catch {
+        // Product analytics must never affect the displayed card or navigation.
+    }
+}
+
 const getDiagnosticsUrl = (): string => {
     const configured = appEnv.internkortBaseUrl.trim().replace(/\/$/, "")
     return `${configured}/client-events/diagnostics`
@@ -52,25 +100,29 @@ const getDiagnosticsUrl = (): string => {
 const runtimeRecord = (
     eventName: MobileDiagnosticEventName,
     input: { authErrorCode?: string | null; authErrorStatus?: number | null },
-): MobileDiagnosticRecord => ({
-    app_version: normalized(Constants.expoConfig?.version, 64),
-    auth_error_code: normalized(input.authErrorCode, 64),
-    auth_error_status:
-        typeof input.authErrorStatus === "number" &&
-        input.authErrorStatus >= 400 &&
-        input.authErrorStatus <= 599
-            ? input.authErrorStatus
-            : null,
-    event_id: eventId(),
-    event_name: eventName,
-    occurred_at: new Date().toISOString(),
-    attempt_count: 0,
-    next_attempt_at: 0,
-    platform: Platform.OS.slice(0, 32),
-    runtime_version: normalized(Updates.runtimeVersion, 64),
-    update_channel: normalized(Updates.channel, 64),
-    update_id: normalized(Updates.updateId, 128),
-})
+): MobileDiagnosticRecord => {
+    const occurrenceId = eventId()
+    return {
+        app_version: normalized(Constants.expoConfig?.version, 64),
+        auth_error_code: normalized(input.authErrorCode, 64),
+        auth_error_status:
+            typeof input.authErrorStatus === "number" &&
+            input.authErrorStatus >= 400 &&
+            input.authErrorStatus <= 599
+                ? input.authErrorStatus
+                : null,
+        event_id: occurrenceId,
+        event_name: eventName,
+        occurred_at: new Date().toISOString(),
+        operation_id: occurrenceId,
+        attempt_count: 0,
+        next_attempt_at: 0,
+        platform: Platform.OS.slice(0, 32),
+        runtime_version: normalized(Updates.runtimeVersion, 64),
+        update_channel: normalized(Updates.channel, 64),
+        update_id: normalized(Updates.updateId, 128),
+    }
+}
 
 const readQueue = async (): Promise<MobileDiagnosticRecord[]> => {
     const value = await getStoredJson<unknown>(QUEUE_KEY)
@@ -103,9 +155,16 @@ const post = async (record: MobileDiagnosticRecord): Promise<boolean> => {
         const payload = { ...record } as Record<string, unknown>
         delete payload.attempt_count
         delete payload.next_attempt_at
+        const attemptNo = record.attempt_count + 1
+        payload.attempt_id = `${record.event_id}:${attemptNo}`
+        payload.attempt_no = attemptNo
+        payload.source = "client"
         const response = await fetch(getDiagnosticsUrl(), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                "X-Request-ID": createClientRequestId(),
+            },
             body: JSON.stringify(payload),
             signal: controller?.signal,
         })

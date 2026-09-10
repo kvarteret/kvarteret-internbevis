@@ -1,6 +1,6 @@
 import { ZodError } from "zod"
 import { appEnv } from "@/app/config/env"
-import { emitOperationalDiagnostic } from "@/core/observability"
+import { createClientRequestId, emitOperationalDiagnostic } from "@/core/observability"
 import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import {
     getSessionValue,
@@ -44,7 +44,10 @@ const getInternkortBaseUrl = (): string => {
 const postAuthJson = async (path: string, body: Record<string, unknown>): Promise<Response> => {
     return fetch(`${getInternkortBaseUrl()}/${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            "X-Request-ID": createClientRequestId(),
+        },
         body: JSON.stringify(body),
     })
 }
@@ -52,7 +55,10 @@ const postAuthJson = async (path: string, body: Record<string, unknown>): Promis
 const getAuthJson = async (path: string, sessionToken: string): Promise<Response> => {
     return fetch(`${getInternkortBaseUrl()}/${path}`, {
         method: "GET",
-        headers: { Authorization: `Bearer ${sessionToken}` },
+        headers: {
+            Authorization: `Bearer ${sessionToken}`,
+            "X-Request-ID": createClientRequestId(),
+        },
     })
 }
 
