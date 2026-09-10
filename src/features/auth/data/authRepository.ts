@@ -1,5 +1,6 @@
 import { ZodError } from "zod"
 import { appEnv } from "@/app/config/env"
+import { emitOperationalDiagnostic } from "@/core/observability"
 import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import {
     getSessionValue,
@@ -14,7 +15,7 @@ import {
     parseInternkortInformation,
     parseMobileCardSession,
 } from "@/features/auth/domain/internkortSchema"
-import { User } from "@/shared/types/user"
+import type { User } from "@/shared/types/user"
 
 const INCLUDE_ROLE_HISTORY_QUERY = "?include_role_history=true"
 // v2 = raw API payload validated by mobileCardResponseApiSchema; v1 stored a
@@ -178,6 +179,10 @@ export const createMobileCardSession = async (
             const session = parseMobileCardSession(payload)
             return session
         } catch (error) {
+            void emitOperationalDiagnostic("response_invalid", {
+                authErrorCode: "mobile_card_session_response_invalid",
+                authErrorStatus: response.status,
+            })
             if (error instanceof ZodError) {
                 throw createAuthServiceError({
                     code: "UNEXPECTED_RESPONSE",
@@ -257,12 +262,19 @@ export const getInternkortInformation = async (sessionToken: string): Promise<Us
                 try {
                     await saveSessionToken(renewedSessionToken)
                 } catch {
+                    void emitOperationalDiagnostic("session_token_persist_failed", {
+                        authErrorCode: "session_token_persist_failed",
+                    })
                     // Keep the current session usable even if renewal persistence fails.
                 }
             }
 
             return user
         } catch (error) {
+            void emitOperationalDiagnostic("response_invalid", {
+                authErrorCode: "mobile_card_response_invalid",
+                authErrorStatus: response.status,
+            })
             if (error instanceof ZodError) {
                 throw createAuthServiceError({
                     code: "UNEXPECTED_RESPONSE",
