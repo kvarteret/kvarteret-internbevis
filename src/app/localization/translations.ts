@@ -60,6 +60,10 @@ export const translations = {
             notRegistered: "Du er ikke registrert.",
             logout: "Logg ut",
             privacy: "Personvern",
+            productAnalyticsTitle: "Valgfri produktanalyse",
+            productAnalyticsDescription:
+                "Hjelp oss å forstå hvordan appen brukes. Dette er av som standard og sender bare anonymiserte bruksdata, aldri kortinformasjon.",
+            productAnalyticsToggle: "Tillat produktanalyse",
             about: "Om",
             feedback: "Tilbakemelding",
             benefits: "Medlemsfordeler",
@@ -272,6 +276,10 @@ export const translations = {
             notRegistered: "You are not registered.",
             logout: "Logout",
             privacy: "Privacy",
+            productAnalyticsTitle: "Optional product analytics",
+            productAnalyticsDescription:
+                "Help us understand how the app is used. This is off by default and sends only usage data, never card information.",
+            productAnalyticsToggle: "Allow product analytics",
             about: "About",
             feedback: "Feedback",
             benefits: "Member benefits",

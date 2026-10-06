@@ -22,6 +22,10 @@ export type PublicEventsResponse = {
                    */
                   endsAt: string | null
                   /**
+                   * UTC doors-open timestamp. Currently equal to startsAt.
+                   */
+                  doorsOpenAt: string | null
+                  /**
                    * Local time zone used by the editorial schedule.
                    */
                   timeZone: "Europe/Oslo"
@@ -158,12 +162,101 @@ export type PublicEventsResponse = {
     }
 }
 
+export type PublicEventTaxonomyResponse = {
+    eventTypeGroups: Array<{
+        id: string
+        name: string
+        eventTypes: Array<{
+            id: string
+            name: string
+        }>
+    }>
+    rooms: Array<{
+        id: string
+        name: string
+        slug: string
+    }>
+}
+
 export type PublicErrorResponse = {
     error: {
         code: "invalid_request" | "internal_error"
         message: string
     }
 }
+
+export type GetEventTaxonomyData = {
+    body?: never
+    headers?: {
+        /**
+         * ETag from an earlier response.
+         */
+        "If-None-Match"?: string
+    }
+    path?: never
+    query?: {
+        /**
+         * Localized names; Norwegian is the default.
+         */
+        locale?: "nb" | "en"
+    }
+    url: "/api/v1/events/taxonomy"
+}
+
+export type GetEventTaxonomyErrors = {
+    /**
+     * Invalid request
+     */
+    400: PublicErrorResponse
+    /**
+     * Temporary server failure
+     */
+    500: PublicErrorResponse
+}
+
+export type GetEventTaxonomyError = GetEventTaxonomyErrors[keyof GetEventTaxonomyErrors]
+
+export type GetEventTaxonomyResponses = {
+    /**
+     * Current event types, category groups, and rooms
+     */
+    200: PublicEventTaxonomyResponse
+}
+
+export type GetEventTaxonomyResponse = GetEventTaxonomyResponses[keyof GetEventTaxonomyResponses]
+
+export type HeadEventTaxonomyData = {
+    body?: never
+    path?: never
+    query?: {
+        locale?: "nb" | "en"
+    }
+    url: "/api/v1/events/taxonomy"
+}
+
+export type HeadEventTaxonomyResponses = {
+    /**
+     * Taxonomy is available
+     */
+    200: unknown
+}
+
+export type OptionsEventTaxonomyData = {
+    body?: never
+    path?: never
+    query?: never
+    url: "/api/v1/events/taxonomy"
+}
+
+export type OptionsEventTaxonomyResponses = {
+    /**
+     * CORS preflight accepted
+     */
+    204: void
+}
+
+export type OptionsEventTaxonomyResponse =
+    OptionsEventTaxonomyResponses[keyof OptionsEventTaxonomyResponses]
 
 export type ListEventsData = {
     body?: never

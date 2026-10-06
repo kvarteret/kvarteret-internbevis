@@ -3,14 +3,21 @@
 import type { Client, Options as Options2, TDataShape } from "./client"
 import { client } from "./client.gen"
 import type {
+    GetEventTaxonomyData,
+    GetEventTaxonomyErrors,
+    GetEventTaxonomyResponses,
     HeadEventsData,
     HeadEventsErrors,
     HeadEventsResponses,
+    HeadEventTaxonomyData,
+    HeadEventTaxonomyResponses,
     ListEventsData,
     ListEventsErrors,
     ListEventsResponses,
     OptionsEventsData,
     OptionsEventsResponses,
+    OptionsEventTaxonomyData,
+    OptionsEventTaxonomyResponses,
 } from "./types.gen"
 
 export type Options<
@@ -30,6 +37,42 @@ export type Options<
      */
     meta?: Record<string, unknown>
 }
+
+/**
+ * Discover event types, category groups, and rooms
+ *
+ * Returns the currently published event taxonomy, including every event type nested under its category group and all room IDs. IDs match those used by the events feed. The response is localized to Norwegian by default.
+ */
+export const getEventTaxonomy = <ThrowOnError extends boolean = false>(
+    options?: Options<GetEventTaxonomyData, ThrowOnError>,
+) =>
+    (options?.client ?? client).get<
+        GetEventTaxonomyResponses,
+        GetEventTaxonomyErrors,
+        ThrowOnError
+    >({ url: "/api/v1/events/taxonomy", ...options })
+
+/**
+ * Check the event taxonomy snapshot
+ */
+export const headEventTaxonomy = <ThrowOnError extends boolean = false>(
+    options?: Options<HeadEventTaxonomyData, ThrowOnError>,
+) =>
+    (options?.client ?? client).head<HeadEventTaxonomyResponses, unknown, ThrowOnError>({
+        url: "/api/v1/events/taxonomy",
+        ...options,
+    })
+
+/**
+ * Inspect taxonomy API CORS policy
+ */
+export const optionsEventTaxonomy = <ThrowOnError extends boolean = false>(
+    options?: Options<OptionsEventTaxonomyData, ThrowOnError>,
+) =>
+    (options?.client ?? client).options<OptionsEventTaxonomyResponses, unknown, ThrowOnError>({
+        url: "/api/v1/events/taxonomy",
+        ...options,
+    })
 
 /**
  * List complete public event occurrences

@@ -15,6 +15,7 @@ const createOccurrence = (id = "occurrence:event-1:date-1"): EventOccurrence => 
     id,
     schedule: {
         kind: "timed",
+        doorsOpenAt: null,
         startsAt: "2026-09-04T18:30:00.000Z",
         endsAt: "2026-09-04T21:00:00.000Z",
         timeZone: "Europe/Oslo",

@@ -10,6 +10,7 @@ const occurrence = (overrides?: Partial<EventOccurrence>): EventOccurrence => ({
     id: "occurrence:event-1:date-1",
     schedule: {
         kind: "timed",
+        doorsOpenAt: null,
         startsAt: "2026-03-10T18:00:00.000Z",
         endsAt: "2026-03-10T20:30:00.000Z",
         timeZone: "Europe/Oslo",
@@ -77,6 +78,7 @@ describe("eventFormatting", () => {
             occurrence({
                 schedule: {
                     kind: "timed",
+                    doorsOpenAt: null,
                     startsAt: "2026-03-05T17:00:00.000Z",
                     endsAt: null,
                     timeZone: "Europe/Oslo",
@@ -94,6 +96,7 @@ describe("eventFormatting", () => {
             occurrence({
                 schedule: {
                     kind: "timed",
+                    doorsOpenAt: null,
                     startsAt: "2026-03-10T18:00:00.000Z",
                     endsAt: "2026-03-10T20:30:00.000Z",
                     timeZone: "Europe/Oslo",

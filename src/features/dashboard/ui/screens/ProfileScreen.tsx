@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router"
-import React, { useEffect, useMemo, useState } from "react"
+import type React from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ActivityIndicator, Image, Pressable, ScrollView, View } from "react-native"
 import Animated, {
@@ -10,10 +11,11 @@ import Animated, {
     withSpring,
 } from "react-native-reanimated"
 import { useSession } from "@/app/providers/SessionProvider"
+import { captureProductEvent } from "@/core/observability"
 import { getIdVerificationStatus } from "@/features/dashboard/domain/idVerification"
 import {
     buildDisplayRoles,
-    DisplayRoleRow,
+    type DisplayRoleRow,
     resolvePersistedRoleSelections,
 } from "@/features/dashboard/domain/profileRoles"
 import { ProfileAvatar } from "@/features/dashboard/ui/components/ProfileAvatar"
@@ -208,7 +210,13 @@ const LoggedOutCard = ({
 export const ProfileScreen = (): React.JSX.Element => {
     const { t } = useTranslation()
     const router = useRouter()
-    const { user, status: sessionStatus, isLoading, exitAnonymousMode } = useSession()
+    const {
+        user,
+        status: sessionStatus,
+        isLoading,
+        staleFromCache,
+        exitAnonymousMode,
+    } = useSession()
     const { selectedFrontpageRoleSelections } = useFrontpageRoles()
     const frame = useSafeAreaFrame()
     const { textPrimary } = useThemeRuntimeColors()
@@ -219,6 +227,13 @@ export const ProfileScreen = (): React.JSX.Element => {
             router.replace("/login")
         }
     }, [router, sessionStatus])
+
+    useEffect(() => {
+        if (!user) return
+        void captureProductEvent("mobile_card.displayed", {
+            card_source: staleFromCache ? "cache" : "network",
+        })
+    }, [staleFromCache, user])
 
     const avatarSize = Math.min(340, Math.max(180, frame.width * 0.46))
 
