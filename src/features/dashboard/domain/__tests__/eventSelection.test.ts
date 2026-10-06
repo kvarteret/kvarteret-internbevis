@@ -32,6 +32,7 @@ const makeOccurrence = (
             ? { kind: "date", date: options.date, timeZone: "Europe/Oslo" }
             : {
                   kind: "timed",
+                  doorsOpenAt: null,
                   startsAt: options?.startsAt ?? "2026-09-10T17:00:00.000Z",
                   endsAt: null,
                   timeZone: "Europe/Oslo",
