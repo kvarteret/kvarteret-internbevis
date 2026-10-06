@@ -7,5 +7,8 @@ export const reportSessionLogoutDiagnostic = async (
     await emitOperationalDiagnostic(input.eventName, {
         authErrorCode: input.authErrorCode,
         authErrorStatus: input.authErrorStatus,
+        hadCachedUser: input.hadCachedUser,
+        hadLoginMarker: input.hadLoginMarker,
+        hadStoredCredentials: input.hadStoredCredentials,
     })
 }

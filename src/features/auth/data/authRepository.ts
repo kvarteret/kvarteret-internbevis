@@ -1,6 +1,10 @@
 import { ZodError } from "zod"
 import { appEnv } from "@/app/config/env"
-import { createClientRequestId, emitOperationalDiagnostic } from "@/core/observability"
+import {
+    createClientRequestId,
+    createDiagnosticSessionId,
+    emitOperationalDiagnostic,
+} from "@/core/observability"
 import { getStoredJson, removeStoredValue, setStoredJson } from "@/core/storage/asyncStorage"
 import {
     getSessionValue,
@@ -47,6 +51,7 @@ const postAuthJson = async (path: string, body: Record<string, unknown>): Promis
         headers: {
             "Content-Type": "application/json",
             "X-Request-ID": createClientRequestId(),
+            "X-Session-ID": createDiagnosticSessionId(),
         },
         body: JSON.stringify(body),
     })
@@ -58,6 +63,7 @@ const getAuthJson = async (path: string, sessionToken: string): Promise<Response
         headers: {
             Authorization: `Bearer ${sessionToken}`,
             "X-Request-ID": createClientRequestId(),
+            "X-Session-ID": createDiagnosticSessionId(),
         },
     })
 }

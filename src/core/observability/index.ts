@@ -16,6 +16,14 @@ export const PRODUCT_ANALYTICS_PREFERENCE_KEY = "mobile_product_analytics_enable
 const MAX_QUEUE_SIZE = 100
 const MAX_QUEUE_AGE_MS = 24 * 60 * 60 * 1000
 const REPORT_TIMEOUT_MS = 1_500
+let sessionId: string | null = null
+
+export const createDiagnosticSessionId = (): string => {
+    sessionId ??= Array.from({ length: 32 }, () =>
+        Math.floor(Math.random() * 16).toString(16),
+    ).join("")
+    return sessionId
+}
 
 export type MobileDiagnosticEventName =
     | "cache_fallback_started"
@@ -43,6 +51,10 @@ interface MobileDiagnosticRecord {
     runtime_version: string | null
     update_channel: string | null
     update_id: string | null
+    session_id: string
+    had_cached_user?: boolean
+    had_login_marker?: boolean
+    had_stored_credentials?: boolean
 }
 
 const normalized = (value: unknown, maxLength: number): string | null => {
@@ -99,7 +111,7 @@ const getDiagnosticsUrl = (): string => {
 
 const runtimeRecord = (
     eventName: MobileDiagnosticEventName,
-    input: { authErrorCode?: string | null; authErrorStatus?: number | null },
+    input: DiagnosticInput,
 ): MobileDiagnosticRecord => {
     const occurrenceId = eventId()
     return {
@@ -121,6 +133,16 @@ const runtimeRecord = (
         runtime_version: normalized(Updates.runtimeVersion, 64),
         update_channel: normalized(Updates.channel, 64),
         update_id: normalized(Updates.updateId, 128),
+        session_id: createDiagnosticSessionId(),
+        ...(typeof input.hadCachedUser === "boolean"
+            ? { had_cached_user: input.hadCachedUser }
+            : {}),
+        ...(typeof input.hadLoginMarker === "boolean"
+            ? { had_login_marker: input.hadLoginMarker }
+            : {}),
+        ...(typeof input.hadStoredCredentials === "boolean"
+            ? { had_stored_credentials: input.hadStoredCredentials }
+            : {}),
     }
 }
 
@@ -155,6 +177,7 @@ const post = async (record: MobileDiagnosticRecord): Promise<boolean> => {
         const payload = { ...record } as Record<string, unknown>
         delete payload.attempt_count
         delete payload.next_attempt_at
+        delete payload.session_id
         const attemptNo = record.attempt_count + 1
         payload.attempt_id = `${record.event_id}:${attemptNo}`
         payload.attempt_no = attemptNo
@@ -164,6 +187,7 @@ const post = async (record: MobileDiagnosticRecord): Promise<boolean> => {
             headers: {
                 "Content-Type": "application/json",
                 "X-Request-ID": createClientRequestId(),
+                "X-Session-ID": record.session_id || createDiagnosticSessionId(),
             },
             body: JSON.stringify(payload),
             signal: controller?.signal,
@@ -202,9 +226,17 @@ export const flushOperationalDiagnostics = async (): Promise<void> => {
     }
 }
 
+interface DiagnosticInput {
+    authErrorCode?: string | null
+    authErrorStatus?: number | null
+    hadCachedUser?: boolean
+    hadLoginMarker?: boolean
+    hadStoredCredentials?: boolean
+}
+
 export const emitOperationalDiagnostic = async (
     eventName: MobileDiagnosticEventName,
-    input: { authErrorCode?: string | null; authErrorStatus?: number | null } = {},
+    input: DiagnosticInput = {},
 ): Promise<void> => {
     try {
         if (!(await isCollectionEnabled())) return
