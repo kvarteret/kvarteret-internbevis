@@ -1,16 +1,18 @@
-import React, {
+import type React from "react"
+import {
     createContext,
-    PropsWithChildren,
+    type PropsWithChildren,
     useCallback,
     useContext,
     useEffect,
     useMemo,
     useState,
 } from "react"
+import { emitOperationalDiagnostic, flushOperationalDiagnostics } from "@/core/observability"
 import { getStoredValue, removeStoredValue, setStoredValue } from "@/core/storage/asyncStorage"
 import { reportSessionLogoutDiagnostic } from "@/features/auth/data/authDiagnosticsRepository"
 import {
-    AuthResult,
+    type AuthResult,
     authResultFromError,
     cacheAuthenticatedCard,
     clearCachedUser,
@@ -34,7 +36,7 @@ import {
     resolveHydrationErrorOutcome,
     resolveHydrationPrecheck,
 } from "@/features/auth/domain/sessionHydration"
-import { User } from "@/shared/types/user"
+import type { User } from "@/shared/types/user"
 
 // One discriminated union instead of parallel booleans: the session is always
 // in exactly one of these states, and impossible combinations (for example
@@ -95,6 +97,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
         }
 
         const hydrateSession = async (): Promise<void> => {
+            void flushOperationalDiagnostics()
             let snapshot = {
                 hasStoredCredentials: false,
                 cachedUser: null as User | null,
@@ -140,6 +143,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
                 }
 
                 if (precheck.cachedUser) {
+                    void emitOperationalDiagnostic("cache_fallback_started")
                     setState({
                         status: "authenticated",
                         user: precheck.cachedUser,
@@ -149,6 +153,9 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
                 }
 
                 const hydratedUser = await getInternkortInformation(accessToken ?? "")
+                if (precheck.cachedUser) {
+                    void emitOperationalDiagnostic("cache_fallback_recovered")
+                }
                 await saveLoginMarker(hydratedUser.id)
                 setState({ status: "authenticated", user: hydratedUser, staleFromCache: false })
                 await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
@@ -246,9 +253,17 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
     }, [])
 
     const logout = useCallback(async (): Promise<void> => {
-        await clearStoredSession()
-        await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
-        setState({ status: "signedOut", error: null })
+        try {
+            await clearStoredSession()
+            await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
+            setState({ status: "signedOut", error: null })
+            void emitOperationalDiagnostic("logout_succeeded")
+        } catch (error) {
+            void emitOperationalDiagnostic("logout_failed", {
+                authErrorCode: error instanceof Error ? "storage_failure" : "logout_failed",
+            })
+            throw error
+        }
     }, [])
 
     const value = useMemo<SessionContextValue>(

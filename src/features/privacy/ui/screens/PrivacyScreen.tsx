@@ -1,9 +1,11 @@
 import { useNavigation } from "expo-router"
 import React, { useLayoutEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { ScrollView, TextStyle, View } from "react-native"
+import { ScrollView, Switch, Text, type TextStyle, View } from "react-native"
 import Markdown from "react-native-markdown-display"
 import { useLanguage } from "@/app/providers/LanguageProvider"
+import { PRODUCT_ANALYTICS_PREFERENCE_KEY, setProductAnalyticsEnabled } from "@/core/observability"
+import { getStoredValue } from "@/core/storage/asyncStorage"
 import { PRIVACY_POLICY_MARKDOWN } from "@/features/privacy/domain/privacyPolicy"
 import { useThemeRuntimeColors } from "@/shared/theme/use-theme-runtime-colors"
 import { EtjenestenFooter } from "@/shared/ui/EtjenestenFooter"
@@ -13,6 +15,7 @@ export const PrivacyScreen = (): React.JSX.Element => {
     const navigation = useNavigation()
     const { language } = useLanguage()
     const colors = useThemeRuntimeColors()
+    const [productAnalyticsEnabled, setProductAnalyticsEnabledState] = React.useState(false)
     const markdown = PRIVACY_POLICY_MARKDOWN[language]
     const markdownStyle = useMemo(
         () => ({
@@ -52,6 +55,21 @@ export const PrivacyScreen = (): React.JSX.Element => {
         navigation.setOptions({ title: t("privacy") })
     }, [navigation, t])
 
+    React.useEffect(() => {
+        void getStoredValue(PRODUCT_ANALYTICS_PREFERENCE_KEY).then(value => {
+            setProductAnalyticsEnabledState(value === "true")
+        })
+    }, [])
+
+    const toggleProductAnalytics = async (enabled: boolean): Promise<void> => {
+        setProductAnalyticsEnabledState(enabled)
+        try {
+            await setProductAnalyticsEnabled(enabled)
+        } catch {
+            setProductAnalyticsEnabledState(!enabled)
+        }
+    }
+
     return (
         <View className="flex-1 bg-background">
             <ScrollView
@@ -61,6 +79,25 @@ export const PrivacyScreen = (): React.JSX.Element => {
             >
                 <View className="w-full px-1 py-2">
                     <Markdown style={markdownStyle}>{markdown}</Markdown>
+                </View>
+
+                <View className="mx-1 mb-6 gap-2 rounded-2xl border border-editorial-border bg-surface px-4 py-4">
+                    <Text className="text-base font-semibold text-editorial-ink">
+                        {t("productAnalyticsTitle")}
+                    </Text>
+                    <Text className="text-sm leading-5 text-text-secondary">
+                        {t("productAnalyticsDescription")}
+                    </Text>
+                    <View className="flex-row items-center justify-between gap-4">
+                        <Text className="flex-1 text-sm font-medium text-editorial-ink">
+                            {t("productAnalyticsToggle")}
+                        </Text>
+                        <Switch
+                            accessibilityLabel={t("productAnalyticsToggle")}
+                            onValueChange={toggleProductAnalytics}
+                            value={productAnalyticsEnabled}
+                        />
+                    </View>
                 </View>
 
                 <EtjenestenFooter />
