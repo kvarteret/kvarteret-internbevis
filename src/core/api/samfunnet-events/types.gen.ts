@@ -119,6 +119,7 @@ export type PublicEventsResponse = {
             pricing: {
                 currency: "NOK"
                 isFree: boolean
+                isSoldOut?: boolean
                 ordinary: number | null
                 student: number | null
                 member: number | null

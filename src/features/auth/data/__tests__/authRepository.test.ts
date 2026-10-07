@@ -63,7 +63,7 @@ describe("getInternkortInformation", () => {
 
         expect(user.id).toBe(12)
         expect(global.fetch).toHaveBeenCalledWith(
-            "https://personal.kvarteret.no/api/v1/mobile-card/me?include_role_history=true",
+            "https://personal.samfunnetibergen.no/api/v1/mobile-card/me?include_role_history=true",
             expect.any(Object),
         )
         expect(setSessionValue).toHaveBeenCalledWith("accessToken", "renewed-token-456")
@@ -97,7 +97,7 @@ describe("getInternkortInformation", () => {
 
         expect(session.sessionToken).toBe("session-123")
         expect(global.fetch).toHaveBeenCalledWith(
-            "https://personal.kvarteret.no/api/v1/mobile-card/sessions?include_role_history=true",
+            "https://personal.samfunnetibergen.no/api/v1/mobile-card/sessions?include_role_history=true",
             expect.any(Object),
         )
         expect(setStoredJson).not.toHaveBeenCalled()
