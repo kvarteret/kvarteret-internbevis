@@ -12,7 +12,11 @@ import {
     SESSION_STORAGE_KEYS,
     setSessionValue,
 } from "@/core/storage/sessionStorage"
-import { createAuthServiceError, toAuthServiceError } from "@/features/auth/domain/authError"
+import {
+    createAuthServiceError,
+    isInvalidAuthError,
+    toAuthServiceError,
+} from "@/features/auth/domain/authError"
 import {
     mobileCardResponseApiSchema,
     mobileCardSessionRequestSchema,
@@ -28,6 +32,8 @@ const INCLUDE_ROLE_HISTORY_QUERY = "?include_role_history=true"
 const SESSION_CACHE_USER_KEY = "session_cached_user:v2"
 const LEGACY_SESSION_CACHE_USER_KEY = "session_cached_user"
 const SESSION_LOGIN_MARKER_KEY = "session_login_marker"
+const SESSION_STORAGE_ATTEMPTS = 3
+const SESSION_STORAGE_RETRY_DELAY_MS = 150
 
 export interface AuthResult {
     success: boolean
@@ -79,6 +85,23 @@ export const cacheAuthenticatedCard = async (rawCard: unknown): Promise<void> =>
     } catch {
         // Keep the session usable even if cache persistence fails.
     }
+}
+
+// Android Keystore reads and writes can fail transiently (for example at cold
+// start), so session token storage gets a few attempts before it gives up.
+const withSessionStorageRetry = async <T>(operation: () => Promise<T>): Promise<T> => {
+    let lastError: unknown
+    for (let attempt = 1; attempt <= SESSION_STORAGE_ATTEMPTS; attempt++) {
+        try {
+            return await operation()
+        } catch (error) {
+            lastError = error
+            if (attempt < SESSION_STORAGE_ATTEMPTS) {
+                await new Promise(resolve => setTimeout(resolve, SESSION_STORAGE_RETRY_DELAY_MS))
+            }
+        }
+    }
+    throw lastError
 }
 
 const readResponseMessage = async (response: Response): Promise<string> => {
@@ -272,12 +295,13 @@ export const getInternkortInformation = async (sessionToken: string): Promise<Us
 
             if (renewedSessionToken.length > 0 && renewedSessionToken !== sessionToken) {
                 try {
-                    await saveSessionToken(renewedSessionToken)
+                    await withSessionStorageRetry(() => saveSessionToken(renewedSessionToken))
                 } catch {
                     void emitOperationalDiagnostic("session_token_persist_failed", {
                         authErrorCode: "session_token_persist_failed",
                     })
-                    // Keep the current session usable even if renewal persistence fails.
+                    // The previous token stays stored and the server accepts it
+                    // until it expires, so the session stays usable.
                 }
             }
 
@@ -321,6 +345,26 @@ export const getInternkortInformation = async (sessionToken: string): Promise<Us
     })
 }
 
+// A single 401 is not proof that the session is gone: a newer token can be in
+// storage (for example from a login that finished meanwhile), or the rejection
+// can be a one-off. Ask once more before the caller clears the session.
+export const refreshSessionUser = async (sessionToken: string): Promise<User> => {
+    try {
+        return await getInternkortInformation(sessionToken)
+    } catch (error) {
+        if (!isInvalidAuthError(error)) {
+            throw error
+        }
+
+        const storedToken = await getSavedSessionToken().catch(() => null)
+        if (!storedToken) {
+            throw error
+        }
+
+        return getInternkortInformation(storedToken)
+    }
+}
+
 export const saveCredentials = async (email: string, accessToken: string): Promise<void> => {
     await setSessionValue(SESSION_STORAGE_KEYS.email, email)
     await setSessionValue(SESSION_STORAGE_KEYS.accessToken, accessToken)
@@ -340,6 +384,20 @@ export const getSavedCredentials = async (): Promise<{
     ])
 
     return { email, accessToken }
+}
+
+export const getSavedSessionToken = async (): Promise<string | null> => {
+    try {
+        return await withSessionStorageRetry(() =>
+            getSessionValue(SESSION_STORAGE_KEYS.accessToken),
+        )
+    } catch (error) {
+        throw createAuthServiceError({
+            code: "STORAGE_ERROR",
+            message: "Could not read the saved session. Please try again.",
+            cause: error,
+        })
+    }
 }
 
 export const clearCredentials = async (): Promise<void> => {
