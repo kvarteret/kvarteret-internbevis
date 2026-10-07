@@ -114,6 +114,18 @@ describe("resolveHydrationErrorOutcome", () => {
         expect(outcome).toEqual({ kind: "keep-cached-user", cachedUser })
     })
 
+    it("keeps the cached user when the stored token cannot be read", () => {
+        const cachedUser = createUser()
+        const storageError = createAuthServiceError({
+            code: "STORAGE_ERROR",
+            message: "Could not read the saved session.",
+        })
+
+        const outcome = resolveHydrationErrorOutcome(storageError, cachedUser)
+
+        expect(outcome).toEqual({ kind: "keep-cached-user", cachedUser })
+    })
+
     it("signs out with an error on a transient error without a cached user", () => {
         const outcome = resolveHydrationErrorOutcome(transientError(), null)
 

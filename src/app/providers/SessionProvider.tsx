@@ -21,9 +21,9 @@ import {
     clearLoginMarker,
     createMobileCardSession,
     getCachedUser,
-    getInternkortInformation,
-    getSavedCredentials,
     getSavedLoginMarker,
+    getSavedSessionToken,
+    refreshSessionUser,
     saveCredentials,
     saveLoginMarker,
 } from "@/features/auth/data/authRepository"
@@ -106,17 +106,15 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
             let accessToken: string | null = null
 
             try {
-                const [credentials, cachedUser, loginMarker] = await Promise.all([
-                    getSavedCredentials(),
+                const [cachedUser, loginMarker] = await Promise.all([
                     getCachedUser(),
                     getSavedLoginMarker(),
                 ])
-                accessToken = credentials.accessToken
-                snapshot = {
-                    hasStoredCredentials: Boolean(credentials.accessToken),
-                    cachedUser,
-                    hasLoginMarker: Boolean(loginMarker),
-                }
+                snapshot = { ...snapshot, cachedUser, hasLoginMarker: Boolean(loginMarker) }
+                // Read the token after the cache, so a failed Keystore read can
+                // still fall back to the cached card.
+                accessToken = await getSavedSessionToken()
+                snapshot = { ...snapshot, hasStoredCredentials: Boolean(accessToken) }
 
                 const precheck = resolveHydrationPrecheck(snapshot)
 
@@ -152,7 +150,7 @@ export const SessionProvider = ({ children }: PropsWithChildren): React.JSX.Elem
                     await removeStoredValue(ANONYMOUS_MODE_STORAGE_KEY)
                 }
 
-                const hydratedUser = await getInternkortInformation(accessToken ?? "")
+                const hydratedUser = await refreshSessionUser(accessToken ?? "")
                 if (precheck.cachedUser) {
                     void emitOperationalDiagnostic("cache_fallback_recovered")
                 }

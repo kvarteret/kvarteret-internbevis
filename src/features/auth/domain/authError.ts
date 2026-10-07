@@ -6,6 +6,7 @@ export type AuthErrorCode =
     | "EMAIL_CONFLICT"
     | "REQUEST_FAILED"
     | "UNEXPECTED_RESPONSE"
+    | "STORAGE_ERROR"
     | "UNKNOWN_ERROR"
 
 export interface AuthServiceError extends Error {
@@ -69,6 +70,7 @@ export function isTransientAuthError(error: unknown): boolean {
         authError.code === "NETWORK_ERROR" ||
         authError.code === "REQUEST_FAILED" ||
         authError.code === "SERVER_ERROR" ||
-        authError.code === "UNEXPECTED_RESPONSE"
+        authError.code === "UNEXPECTED_RESPONSE" ||
+        authError.code === "STORAGE_ERROR"
     )
 }
