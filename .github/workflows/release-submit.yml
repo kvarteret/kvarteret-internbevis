@@ -25,6 +25,14 @@ on:
         description: "Optional release notes used for TestFlight what-to-test and update message"
         required: false
         type: string
+      ios_build_id:
+        description: "Optional finished EAS iOS build id to submit instead of building (leave publish_update off)"
+        required: false
+        type: string
+      android_build_id:
+        description: "Optional finished EAS Android build id to submit instead of building (leave publish_update off)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -151,14 +159,20 @@ jobs:
       - name: Build iOS production binary
         if: ${{ inputs.platform == 'all' || inputs.platform == 'ios' }}
         id: ios_build
+        env:
+          EXISTING_BUILD_ID: ${{ inputs.ios_build_id }}
         run: |
           set -euo pipefail
-          eas build \
-            --platform ios \
-            --profile production \
-            --non-interactive \
-            --wait \
-            --json | tee ios-build.json
+          if [ -n "${EXISTING_BUILD_ID}" ]; then
+            eas build:view "${EXISTING_BUILD_ID}" --json | tee ios-build.json
+          else
+            eas build \
+              --platform ios \
+              --profile production \
+              --non-interactive \
+              --wait \
+              --json | tee ios-build.json
+          fi
 
           node <<'NODE'
           const fs = require("fs");
@@ -191,14 +205,20 @@ jobs:
       - name: Build Android production binary
         if: ${{ inputs.platform == 'all' || inputs.platform == 'android' }}
         id: android_build
+        env:
+          EXISTING_BUILD_ID: ${{ inputs.android_build_id }}
         run: |
           set -euo pipefail
-          eas build \
-            --platform android \
-            --profile production \
-            --non-interactive \
-            --wait \
-            --json | tee android-build.json
+          if [ -n "${EXISTING_BUILD_ID}" ]; then
+            eas build:view "${EXISTING_BUILD_ID}" --json | tee android-build.json
+          else
+            eas build \
+              --platform android \
+              --profile production \
+              --non-interactive \
+              --wait \
+              --json | tee android-build.json
+          fi
 
           node <<'NODE'
           const fs = require("fs");
